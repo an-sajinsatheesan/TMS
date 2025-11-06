@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { verifyOtpSchema } from '../../utils/validationSchemas';
 import AuthLayout from './AuthLayout';
@@ -15,7 +16,10 @@ const VerifyOtp = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { verifyOtp } = useAuth();
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+  const [resendTimer, setResendTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = useForm({
     resolver: yupResolver(verifyOtpSchema),
     defaultValues: {
       code: ''
@@ -23,6 +27,16 @@ const VerifyOtp = () => {
   });
 
   const email = location.state?.email;
+
+  // Timer for resend OTP
+  useEffect(() => {
+    if (resendTimer > 0) {
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanResend(true);
+    }
+  }, [resendTimer]);
 
   const onSubmit = async (data) => {
     try {
@@ -36,6 +50,14 @@ const VerifyOtp = () => {
     }
   };
 
+  const handleResend = async () => {
+    if (!canResend) return;
+
+    // TODO: Implement resend OTP API call
+    setResendTimer(60);
+    setCanResend(false);
+  };
+
   if (!email) {
     navigate('/register');
     return null;
@@ -44,64 +66,91 @@ const VerifyOtp = () => {
   return (
     <AuthLayout>
       <div className="w-full">
+        {/* Header with Icon */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+            <Mail className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-normal text-gray-900 mb-3">Verify Email</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Check your email</h1>
           <p className="text-gray-600">
-            We've sent a verification code to<br />
-            <strong className="text-gray-900">{email}</strong>
+            We've sent a verification code to
           </p>
+          <p className="font-medium text-gray-900 mt-1">{email}</p>
         </div>
 
+        {/* Error Alert */}
         {errors.root && (
-          <div className="mb-6">
-            <Message severity="error" text={errors.root.message} className="w-full" />
-          </div>
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.root.message}</AlertDescription>
+          </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="code" className="block text-sm font-medium text-gray-700">
-              Verification Code
-            </label>
-            <InputText
+        {/* OTP Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* OTP Input */}
+          <div className="space-y-2">
+            <Label htmlFor="code">Verification Code</Label>
+            <Input
               id="code"
               type="text"
-              {...register('code')}
-              className={classNames('w-full text-center text-2xl tracking-widest', { 'p-invalid': errors.code })}
               placeholder="000000"
               maxLength={6}
               autoFocus
-              aria-describedby="code-error"
+              {...register('code')}
+              className={cn(
+                "text-center text-2xl tracking-[0.5em] font-mono",
+                errors.code && "border-red-500 focus-visible:ring-red-500"
+              )}
             />
             {errors.code && (
-              <small id="code-error" className="p-error">
-                {errors.code.message}
-              </small>
+              <p className="text-sm text-red-500">{errors.code.message}</p>
             )}
-            <p className="mt-2 text-xs text-gray-500">Check your email for the 6-digit code</p>
+            <p className="text-xs text-gray-500 text-center">
+              Enter the 6-digit code sent to your email
+            </p>
           </div>
 
+          {/* Submit Button */}
           <Button
             type="submit"
-            label={isSubmitting ? 'Verifying...' : 'Verify Email'}
+            className="w-full"
             disabled={isSubmitting}
-            className="w-full justify-center bg-blue-600 hover:bg-blue-700 border-blue-600"
-            loading={isSubmitting}
-          />
+          >
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? 'Verifying...' : 'Verify Email'}
+          </Button>
         </form>
 
+        {/* Resend Code */}
         <div className="mt-6 text-center">
+          {canResend ? (
+            <Button
+              type="button"
+              variant="link"
+              className="px-0"
+              onClick={handleResend}
+            >
+              Resend code
+            </Button>
+          ) : (
+            <p className="text-sm text-gray-500">
+              Resend code in {resendTimer}s
+            </p>
+          )}
+        </div>
+
+        {/* Back to Registration */}
+        <div className="mt-4 text-center">
           <Button
-            label="← Back to Registration"
-            link
+            type="button"
+            variant="ghost"
+            className="px-0"
             onClick={() => navigate('/register')}
-            className="text-sm text-blue-600 hover:text-blue-700 font-normal p-0"
-          />
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to registration
+          </Button>
         </div>
       </div>
     </AuthLayout>

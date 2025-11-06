@@ -1,20 +1,21 @@
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Loader2, Mail, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { forgotPasswordSchema } from '../../utils/validationSchemas';
+import { authService } from '../../api/auth.service';
 import AuthLayout from './AuthLayout';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
-  const [success, setSuccess] = useState(false);
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+  const [emailSent, setEmailSent] = useState(false);
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError, getValues } = useForm({
     resolver: yupResolver(forgotPasswordSchema),
     defaultValues: {
       email: ''
@@ -23,34 +24,64 @@ const ForgotPassword = () => {
 
   const onSubmit = async (data) => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/auth/forgot-password`, {
-        email: data.email
-      });
-      setSuccess(true);
+      await authService.forgotPassword(data.email);
+      setEmailSent(true);
     } catch (err) {
       setError('root', {
         type: 'manual',
-        message: err.response?.data?.message || 'Failed to send reset email. Please try again.'
+        message: err.response?.data?.message || err.message || 'Failed to send reset email'
       });
     }
   };
 
-  if (success) {
+  if (emailSent) {
     return (
       <AuthLayout>
-        <div className="w-full text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-full mb-4">
-            <i className="pi pi-check text-green-600 text-3xl"></i>
+        <div className="w-full">
+          {/* Success Header */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-full mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Check your email</h1>
+            <p className="text-gray-600">
+              We've sent a password reset link to
+            </p>
+            <p className="font-medium text-gray-900 mt-1">{getValues('email')}</p>
           </div>
-          <h1 className="text-3xl font-normal text-gray-900 mb-3">Check Your Email</h1>
-          <p className="text-gray-600 mb-8">
-            If an account exists with that email, we've sent you a password reset link.
-          </p>
+
+          {/* Instructions */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              Click the link in the email to reset your password. If you don't see the email, check your spam folder.
+            </p>
+          </div>
+
+          {/* Back to Login */}
           <Button
-            label="Back to Login"
+            type="button"
+            variant="outline"
+            className="w-full"
             onClick={() => navigate('/login')}
-            className="w-full justify-center bg-blue-600 hover:bg-blue-700 border-blue-600"
-          />
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to sign in
+          </Button>
+
+          {/* Resend Email */}
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Didn't receive the email?{' '}
+              <Button
+                type="button"
+                variant="link"
+                className="px-0"
+                onClick={() => setEmailSent(false)}
+              >
+                Try again
+              </Button>
+            </p>
+          </div>
         </div>
       </AuthLayout>
     );
@@ -59,58 +90,64 @@ const ForgotPassword = () => {
   return (
     <AuthLayout>
       <div className="w-full">
+        {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full mb-4">
-            <i className="pi pi-lock text-blue-600 text-3xl"></i>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+            <Mail className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-3xl font-normal text-gray-900 mb-3">Forgot Password?</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Forgot password?</h1>
           <p className="text-gray-600">
-            No worries! Enter your email and we'll send you reset instructions.
+            No worries, we'll send you reset instructions
           </p>
         </div>
 
+        {/* Error Alert */}
         {errors.root && (
-          <div className="mb-6">
-            <Message severity="error" text={errors.root.message} className="w-full" />
-          </div>
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errors.root.message}</AlertDescription>
+          </Alert>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Email Address
-            </label>
-            <InputText
+        {/* Reset Password Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Email Field */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email address</Label>
+            <Input
               id="email"
               type="email"
+              placeholder="name@example.com"
               {...register('email')}
-              placeholder=""
-              className={classNames('w-full', { 'p-invalid': errors.email })}
-              aria-describedby="email-error"
+              className={cn(errors.email && "border-red-500 focus-visible:ring-red-500")}
             />
             {errors.email && (
-              <small id="email-error" className="p-error">
-                {errors.email.message}
-              </small>
+              <p className="text-sm text-red-500">{errors.email.message}</p>
             )}
           </div>
 
+          {/* Submit Button */}
           <Button
             type="submit"
-            label={isSubmitting ? 'Sending...' : 'Send Reset Link'}
+            className="w-full"
             disabled={isSubmitting}
-            className="w-full justify-center bg-blue-600 hover:bg-blue-700 border-blue-600"
-            loading={isSubmitting}
-          />
+          >
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isSubmitting ? 'Sending...' : 'Send reset link'}
+          </Button>
         </form>
 
+        {/* Back to Login */}
         <div className="mt-6 text-center">
           <Button
-            label="← Back to Login"
-            link
+            type="button"
+            variant="ghost"
+            className="px-0"
             onClick={() => navigate('/login')}
-            className="text-sm text-blue-600 hover:text-blue-700 font-normal p-0"
-          />
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to sign in
+          </Button>
         </div>
       </div>
     </AuthLayout>
