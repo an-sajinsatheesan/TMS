@@ -47,7 +47,10 @@ const CompleteProfile = () => {
   });
 
   const onSubmit = async (data) => {
-    if (!accessToken) {
+    // Check if user has valid token (from OTP verification or localStorage)
+    const token = accessToken || localStorage.getItem('accessToken');
+
+    if (!token) {
       setError('root', {
         type: 'manual',
         message: 'Invalid session. Please register again.'
@@ -58,13 +61,19 @@ const CompleteProfile = () => {
 
     try {
       // Create profile via onboarding API (already has token from OTP verification)
-      await authService.completeProfile(accessToken, {
+      await authService.completeProfile(token, {
         fullName: data.fullName,
         password: data.password
       });
 
-      // Redirect to onboarding (user already has token from OTP verification)
-      navigate('/onboarding');
+      // Ensure tokens are in localStorage for subsequent requests
+      if (!localStorage.getItem('accessToken')) {
+        localStorage.setItem('accessToken', token);
+      }
+
+      // Redirect to onboarding - user now has valid token and completed profile
+      // No login required - user is already authenticated
+      navigate('/onboarding', { replace: true });
     } catch (err) {
       console.error('Profile creation error:', err);
       setError('root', {
@@ -74,7 +83,10 @@ const CompleteProfile = () => {
     }
   };
 
-  if (!email || !accessToken) {
+  // Check if user has email and token (either from state or localStorage)
+  const hasToken = accessToken || localStorage.getItem('accessToken');
+
+  if (!email || !hasToken) {
     navigate('/register');
     return null;
   }

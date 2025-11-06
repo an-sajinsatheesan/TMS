@@ -13,7 +13,7 @@ const Step9Invite = () => {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { completeOnboarding } = useOnboarding();
-  const { refreshOnboardingStatus } = useAuth();
+  const { refreshOnboardingStatus, user } = useAuth();
 
   const handleAddEmail = () => {
     setEmails([...emails, '']);
@@ -37,10 +37,21 @@ const Step9Invite = () => {
     setSaving(true);
 
     try {
-      await completeOnboarding({ inviteEmails: validEmails });
+      const response = await completeOnboarding({ inviteEmails: validEmails });
       await refreshOnboardingStatus();
-      // Navigate to dashboard (user already has token from OTP verification)
-      navigate('/dashboard');
+
+      // Navigate to dashboard with proper parameters
+      // Backend returns project data (axios interceptor unwraps response.data)
+      const project = response.data?.project;
+      const userId = user?.id;
+
+      if (project?.id && userId) {
+        // Redirect to dashboard with userId, projectId, and default viewMode
+        navigate(`/dashboard/${userId}/${project.id}/board`, { replace: true });
+      } else {
+        // Fallback to generic dashboard if IDs not available
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       console.error('Complete error:', err);
       setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');
@@ -54,10 +65,21 @@ const Step9Invite = () => {
     setSaving(true);
 
     try {
-      await completeOnboarding({ inviteEmails: [] });
+      const response = await completeOnboarding({ inviteEmails: [] });
       await refreshOnboardingStatus();
-      // Navigate to dashboard (user already has token from OTP verification)
-      navigate('/dashboard');
+
+      // Navigate to dashboard with proper parameters
+      // Backend returns project data (axios interceptor unwraps response.data)
+      const project = response.data?.project;
+      const userId = user?.id;
+
+      if (project?.id && userId) {
+        // Redirect to dashboard with userId, projectId, and default viewMode
+        navigate(`/dashboard/${userId}/${project.id}/board`, { replace: true });
+      } else {
+        // Fallback to generic dashboard if IDs not available
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       console.error('Complete error:', err);
       setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');

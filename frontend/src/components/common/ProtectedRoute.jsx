@@ -40,7 +40,8 @@ const ProtectedRoute = ({ children }) => {
         return <Navigate to={redirectPath} replace />;
     }
 
-    // If onboarding is complete and trying to access onboarding, redirect to dashboard
+    // Case 5: If onboarding is complete and trying to access onboarding, redirect to dashboard
+    // The dashboard will load the user's default project
     if (onboardingStatus?.isComplete && location.pathname.startsWith('/onboarding')) {
         return <Navigate to="/dashboard" replace />;
     }

@@ -25,8 +25,46 @@ const Register = () => {
 
     const onSubmit = async (data) => {
         try {
-            await registerUser(data.email);
-            navigate('/verify-otp', { state: { email: data.email } });
+            const response = await registerUser(data.email);
+
+            // Case 2: Handle incomplete registration scenarios
+            // If user has verified OTP but hasn't completed profile/onboarding
+            if (response.data?.canContinueOnboarding) {
+                // User can continue onboarding - tokens are already set by AuthContext
+                // Redirect to complete profile if no password, or to onboarding step
+                const currentStep = response.data?.currentStep || 1;
+
+                if (currentStep === 1 && !response.data?.user?.fullName) {
+                    // Profile not completed - redirect to complete profile
+                    navigate('/complete-profile', {
+                        state: { email: data.email },
+                        replace: true
+                    });
+                } else {
+                    // Profile completed - redirect to appropriate onboarding step
+                    const stepMap = {
+                        1: '/onboarding',
+                        2: '/onboarding/step2',
+                        3: '/onboarding/step3',
+                        4: '/onboarding/step4',
+                        5: '/onboarding/step5',
+                        6: '/onboarding/step6',
+                        7: '/onboarding/step7',
+                        8: '/onboarding/step8',
+                    };
+                    const redirectPath = stepMap[currentStep] || '/onboarding';
+                    navigate(redirectPath, { replace: true });
+                }
+            } else if (response.data?.userExists && response.data?.isEmailVerified) {
+                // User exists and has password - should login instead
+                setError('root', {
+                    type: 'manual',
+                    message: response.data?.message || 'This email is already registered. Please log in.'
+                });
+            } else {
+                // New user - proceed to OTP verification
+                navigate('/verify-otp', { state: { email: data.email } });
+            }
         } catch (err) {
             setError('root', {
                 type: 'manual',
