@@ -22,8 +22,9 @@ const OnboardingStepGuard = ({ children, requiredStep }) => {
 
     const currentStep = onboardingStatus.currentStep || 1;
 
-    // If user tries to access a step they haven't reached yet, redirect to current step
-    if (requiredStep > currentStep) {
+    // Allow users to access current step or next step (currentStep + 1)
+    // But prevent skipping multiple steps ahead
+    if (requiredStep > currentStep + 1) {
       const stepMap = {
         1: '/onboarding',
         2: '/onboarding/step2',
