@@ -50,24 +50,15 @@ const VerifyOtp = () => {
       // This token can ONLY be used to complete profile
       const tokens = response.data?.tokens || response.tokens;
 
-      if (tokens?.accessToken) {
-        // Store temporary token - will be replaced with full token after profile completion
-        localStorage.setItem('accessToken', tokens.accessToken);
-        localStorage.setItem('refreshToken', tokens.refreshToken);
-        localStorage.setItem('userEmail', email);
-      }
-
       // After email verification, redirect to complete profile
       // This is where the user will set their name and password
-      setTimeout(() => {
-        navigate('/complete-profile', {
-          state: {
-            email: email,
-            accessToken: tokens?.accessToken
-          },
-          replace: true
-        });
-      }, 1000);
+      navigate('/complete-profile', {
+        state: {
+          email: email,
+          accessToken: tokens?.accessToken || tokens?.access_token
+        },
+        replace: true
+      });
     } catch (err) {
       console.error('OTP Verification error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Verification failed';

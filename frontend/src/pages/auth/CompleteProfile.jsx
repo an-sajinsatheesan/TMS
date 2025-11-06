@@ -32,9 +32,9 @@ const profileSchema = yup.object().shape({
 const CompleteProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { completeProfile } = useAuth(); // ← Use completeProfile from AuthContext
-  const email = location.state?.email || localStorage.getItem('userEmail') || '';
-  const accessToken = location.state?.accessToken || localStorage.getItem('accessToken') || '';
+  const { completeProfile } = useAuth();
+  const email = location.state?.email || '';
+  const accessToken = location.state?.accessToken || '';
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -48,10 +48,7 @@ const CompleteProfile = () => {
   });
 
   const onSubmit = async (data) => {
-    // Check if user has valid token (from OTP verification)
-    const token = accessToken || localStorage.getItem('accessToken');
-
-    if (!token) {
+    if (!accessToken) {
       setError('root', {
         type: 'manual',
         message: 'Invalid session. Please register again.'
@@ -61,27 +58,21 @@ const CompleteProfile = () => {
     }
 
     try {
-      // Complete account registration using AuthContext method
-      // This will store tokens AND update user state automatically
-      await completeProfile(token, {
+      await completeProfile(accessToken, {
         fullName: data.fullName,
         password: data.password
       });
 
-      // Show success toast
       toast.success('Account created successfully! Welcome aboard!', {
         description: 'Redirecting to onboarding...'
       });
 
-      // ✅ User is now fully authenticated and AuthContext is updated
-      // Redirect to onboarding which starts at STEP 1
       setTimeout(() => {
         navigate('/onboarding', { replace: true });
       }, 1000);
     } catch (err) {
       console.error('❌ Profile creation error:', err);
 
-      // Show error toast
       const errorMessage = err.response?.data?.message || err.message || 'Failed to complete profile. Please try again.';
       toast.error('Profile creation failed', {
         description: errorMessage
@@ -94,11 +85,9 @@ const CompleteProfile = () => {
     }
   };
 
-  // Check if user has email and token (either from state or localStorage)
   useEffect(() => {
-    const hasToken = accessToken || localStorage.getItem('accessToken');
-    if (!email || !hasToken) {
-      navigate('/register');
+    if (!email || !accessToken) {
+      navigate('/register', { replace: true });
     }
   }, [email, accessToken, navigate]);
 
