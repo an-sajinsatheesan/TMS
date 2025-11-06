@@ -79,10 +79,16 @@ export const AuthProvider = ({ children }) => {
 
     const verifyOtp = async (email, code) => {
         const response = await authService.verifyOtp(email, code);
-        if (response.success) {
-            localStorage.setItem('accessToken', response.data.tokens.accessToken);
-            localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
-            setUser(response.data.user);
+        if (response.success || response.data?.tokens) {
+            const tokens = response.data?.tokens || response.data.data?.tokens;
+            localStorage.setItem('accessToken', tokens.accessToken);
+            localStorage.setItem('refreshToken', tokens.refreshToken);
+            setUser(response.data.user || response.data.data?.user);
+
+            // Set onboarding status if available
+            if (response.data?.onboardingStatus) {
+                setOnboardingStatus(response.data.onboardingStatus);
+            }
         }
         return response;
     };

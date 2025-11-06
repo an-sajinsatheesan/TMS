@@ -57,16 +57,13 @@ const CompleteProfile = () => {
     }
 
     try {
-      // Create profile via onboarding API
+      // Create profile via onboarding API (already has token from OTP verification)
       await authService.completeProfile(accessToken, {
         fullName: data.fullName,
         password: data.password
       });
 
-      // Auto-login with the credentials
-      await login(email, data.password);
-
-      // Redirect to onboarding
+      // Redirect to onboarding (user already has token from OTP verification)
       navigate('/onboarding');
     } catch (err) {
       console.error('Profile creation error:', err);

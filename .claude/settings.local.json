@@ -7,7 +7,9 @@
       "Bash(del backendnul 2)",
       "Bash(if exist nul del nul 2)",
       "Bash(NUL)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nchore: Clean up legacy files and add database migrations\n\n- Remove outdated documentation files (IMPLEMENTATION_SUMMARY, SECURITY_IMPROVEMENTS, SETUP_GUIDE)\n- Remove legacy PrimeReact migration docs\n- Clean up unused dashboard and project view components\n- Add Prisma database migrations for project members, tasks, and comments\n- Add new setup documentation (README-SETUP.md)\n- Add CompleteProfile page for auth flow\n- Add Windows batch scripts for starting frontend and backend\n- Update onboarding and auth components\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

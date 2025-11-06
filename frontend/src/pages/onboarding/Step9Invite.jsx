@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,6 +13,7 @@ const Step9Invite = () => {
   const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { completeOnboarding } = useOnboarding();
+  const { refreshOnboardingStatus } = useAuth();
 
   const handleAddEmail = () => {
     setEmails([...emails, '']);
@@ -36,8 +38,9 @@ const Step9Invite = () => {
 
     try {
       await completeOnboarding({ inviteEmails: validEmails });
-      // Navigate to dashboard or project view
-      navigate('/login');
+      await refreshOnboardingStatus();
+      // Navigate to dashboard (user already has token from OTP verification)
+      navigate('/dashboard');
     } catch (err) {
       console.error('Complete error:', err);
       setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');
@@ -52,7 +55,9 @@ const Step9Invite = () => {
 
     try {
       await completeOnboarding({ inviteEmails: [] });
-      navigate('/login');
+      await refreshOnboardingStatus();
+      // Navigate to dashboard (user already has token from OTP verification)
+      navigate('/dashboard');
     } catch (err) {
       console.error('Complete error:', err);
       setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');
