@@ -27,6 +27,9 @@ router.use(authenticate);
 // GET /progress - Get current step and saved data
 router.get('/progress', OnboardingController.getProgress);
 
+// POST /update-step - Update current step
+router.post('/update-step', OnboardingController.updateStep);
+
 // POST /app-usage - Save app usage selection (Step 4)
 router.post('/app-usage', OnboardingController.saveAppUsage);
 

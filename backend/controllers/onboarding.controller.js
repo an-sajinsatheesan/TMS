@@ -32,6 +32,26 @@ class OnboardingController {
   });
 
   /**
+   * @route   POST /api/v1/onboarding/update-step
+   * @desc    Update current onboarding step
+   * @access  Private
+   */
+  static updateStep = asyncHandler(async (req, res) => {
+    const { step } = req.body;
+
+    if (!step || step < 1 || step > 9) {
+      throw ApiError.badRequest('Invalid step number');
+    }
+
+    const onboardingData = await prisma.onboardingData.update({
+      where: { userId: req.user.id },
+      data: { currentStep: step },
+    });
+
+    ApiResponse.success(onboardingData, 'Step updated successfully').send(res);
+  });
+
+  /**
    * @route   POST /api/v1/onboarding/profile
    * @desc    Complete account registration - CREATE user with name and password AFTER OTP verification
    * @access  Public (email must be provided from OTP verification)

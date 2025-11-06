@@ -28,6 +28,10 @@ export const onboardingService = {
     return await axiosInstance.get(API_ENDPOINTS.ONBOARDING.PROGRESS);
   },
 
+  updateStep: async (step) => {
+    return await axiosInstance.post(`${API_ENDPOINTS.ONBOARDING.BASE}/update-step`, { step });
+  },
+
   // Save endpoints
   saveProfile: async (data) => {
     return await axiosInstance.post(API_ENDPOINTS.ONBOARDING.PROFILE, data);

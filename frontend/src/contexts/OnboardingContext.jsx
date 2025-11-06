@@ -111,8 +111,9 @@ export const OnboardingProvider = ({ children }) => {
   };
 
   const saveWorkspace = async (data) => {
-    // Just save workspace name locally - it will be created at onboarding completion
+    // Save workspace name locally and update step to 3
     updateOnboardingData('workspace', data);
+    await onboardingService.updateStep(3);
     return true;
   };
 

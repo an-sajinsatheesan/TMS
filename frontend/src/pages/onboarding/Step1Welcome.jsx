@@ -1,14 +1,25 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
+import { onboardingService } from '../../api/onboarding.service';
 import { Button } from '@/components/ui/button';
 
 const Step1Welcome = () => {
   const navigate = useNavigate();
   const { setCurrentStep } = useOnboarding();
+  const [loading, setLoading] = useState(false);
 
-  const handleGetStarted = () => {
-    setCurrentStep(2);
-    navigate('/onboarding/step2');
+  const handleGetStarted = async () => {
+    setLoading(true);
+    try {
+      await onboardingService.updateStep(2);
+      setCurrentStep(2);
+      navigate('/onboarding/step2');
+    } catch (error) {
+      console.error('Failed to update step:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,8 +50,8 @@ const Step1Welcome = () => {
         </div>
       </div>
 
-      <Button onClick={handleGetStarted} size="lg" className="px-8">
-        Get Started
+      <Button onClick={handleGetStarted} size="lg" className="px-8" disabled={loading}>
+        {loading ? 'Loading...' : 'Get Started'}
       </Button>
     </div>
   );
