@@ -110,6 +110,12 @@ export const OnboardingProvider = ({ children }) => {
     return true;
   };
 
+  const saveWorkspace = async (data) => {
+    // Just save workspace name locally - it will be created at onboarding completion
+    updateOnboardingData('workspace', data);
+    return true;
+  };
+
   const value = {
     currentStep,
     onboardingData,
@@ -118,6 +124,7 @@ export const OnboardingProvider = ({ children }) => {
     prevStep,
     updateOnboardingData,
     saveProfile,
+    saveWorkspace,
     saveAppUsage,
     saveIndustry,
     saveTeamSize,
