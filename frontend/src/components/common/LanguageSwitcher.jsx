@@ -20,14 +20,14 @@ const LanguageSwitcher = ({ className = "" }) => {
 
   return (
     <div className={className}>
-      <Button
+     {/*  <Button
         label={selectedLanguage}
         icon="pi pi-globe"
         onClick={(e) => op.current.toggle(e)}
         className="p-button-text p-button-sm text-gray-600 hover:text-gray-900"
         aria-label="Select Language"
-      />
-      <OverlayPanel ref={op} className="w-48">
+      /> */}
+     {/*  <OverlayPanel ref={op} className="w-48">
         <div className="flex flex-col gap-1">
           {languages.map((lang) => (
             <button
@@ -41,7 +41,7 @@ const LanguageSwitcher = ({ className = "" }) => {
             </button>
           ))}
         </div>
-      </OverlayPanel>
+      </OverlayPanel> */}
     </div>
   );
 };

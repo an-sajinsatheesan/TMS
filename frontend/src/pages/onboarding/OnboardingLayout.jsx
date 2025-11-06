@@ -1,43 +1,55 @@
 import { Outlet } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import Logo from '../../components/common/Logo';
-import LanguageSwitcher from '../../components/common/LanguageSwitcher';
 
 const OnboardingLayout = () => {
   const { currentStep } = useOnboarding();
 
+  const steps = [
+    { number: 1, label: 'Welcome' },
+    { number: 2, label: 'Workspace' },
+    { number: 3, label: 'Company' },
+    { number: 4, label: 'Project' },
+    { number: 5, label: 'Sections' },
+    { number: 6, label: 'Tasks' },
+    { number: 7, label: 'Layout' },
+    { number: 8, label: 'Invite' },
+  ];
+
   return (
-    <div className="min-h-screen h-screen flex overflow-hidden bg-white">
-      {/* Left section - 35% width */}
-      <div className="w-full lg:w-[35%] flex flex-col">
-        {/* Header with Logo and Language Switcher */}
-        <header className="flex items-center justify-between px-8 py-6">
-          <Logo />
-          <LanguageSwitcher />
-        </header>
-
-        {/* Progress Bar - Full width of left section */}
-        <div className="px-8 mb-6">
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-green-500 h-2 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${(currentStep / 9) * 100}%` }}
-            ></div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2">
+            {steps.map((step, index) => (
+              <div key={step.number} className="flex items-center">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    currentStep >= step.number
+                      ? 'bg-primary text-white'
+                      : 'bg-gray-300 text-gray-600'
+                  }`}
+                >
+                  {step.number}
+                </div>
+                {index < steps.length - 1 && (
+                  <div
+                    className={`w-8 h-1 ${
+                      currentStep > step.number ? 'bg-primary' : 'bg-gray-300'
+                    }`}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="text-center text-sm text-gray-600">
+            Step {currentStep} of {steps.length}
           </div>
         </div>
 
-        {/* Content Area - Start right after progress bar */}
-        <div className="flex-1 px-8 overflow-y-auto">
+        {/* Content */}
+        <div className="bg-white rounded-lg shadow-lg p-8">
           <Outlet />
-        </div>
-      </div>
-
-      {/* Right section - 65% width - Image/Preview Area */}
-      <div className="hidden lg:flex w-[65%] bg-pink-50 items-center justify-center p-12">
-        <div className="w-full h-full flex items-center justify-center">
-          <div className="text-center text-gray-400">
-            <p className="text-lg">Preview Area</p>
-          </div>
         </div>
       </div>
     </div>

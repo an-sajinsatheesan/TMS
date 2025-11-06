@@ -38,7 +38,7 @@ app.use('/api/', limiter);
 // Stricter rate limiting for auth routes
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 requests per windowMs
+    max: NODE_ENV === 'development' ? 50 : 5, // More lenient in development
     message: 'Too many authentication attempts, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -48,14 +48,22 @@ app.use('/api/v1/auth/login', authLimiter);
 app.use('/api/v1/auth/register', authLimiter);
 app.use('/api/v1/auth/verify-otp', authLimiter);
 
-// CORS configuration - Require CLIENT_URL to be set
-if (!process.env.CLIENT_URL) {
-    logger.error('CLIENT_URL environment variable is not set!');
-    throw new Error('CLIENT_URL environment variable is required for CORS configuration');
-}
+// CORS configuration - Allow multiple origins in development
+const allowedOrigins = NODE_ENV === 'development'
+    ? ['http://localhost:5173', 'http://localhost:5174', process.env.CLIENT_URL]
+    : [process.env.CLIENT_URL];
 
 app.use(cors({
-    origin: process.env.CLIENT_URL,
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 

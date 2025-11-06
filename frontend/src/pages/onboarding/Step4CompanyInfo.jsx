@@ -83,8 +83,8 @@ const Step4CompanyInfo = () => {
         teamSizeId: selectedTeamSizeId,
         roleIds: selectedRoleIds,
       });
-      setCurrentStep(5);
-      navigate('/onboarding/step5');
+      setCurrentStep(4);
+      navigate('/onboarding/step4');
     } catch (err) {
       console.error('Save error:', err);
       setError(err.response?.data?.message || 'Failed to save. Please try again.');
@@ -193,7 +193,7 @@ const Step4CompanyInfo = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate('/onboarding/step3')}
+            onClick={() => navigate('/onboarding/step2')}
             disabled={saving}
           >
             Back

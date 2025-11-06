@@ -1,82 +1,85 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { resetPasswordSchema } from '../../utils/validationSchemas';
 import { authService } from '../../api/auth.service';
+import { useAuth } from '../../contexts/AuthContext';
 import AuthLayout from './AuthLayout';
 
-const ResetPassword = () => {
+const profileSchema = yup.object().shape({
+  fullName: yup.string()
+    .required('Full name is required')
+    .min(2, 'Full name must be at least 2 characters'),
+  password: yup.string()
+    .required('Password is required')
+    .min(8, 'Password must be at least 8 characters')
+    .matches(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .matches(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .matches(/[0-9]/, 'Password must contain at least one number'),
+  confirmPassword: yup.string()
+    .required('Please confirm your password')
+    .oneOf([yup.ref('password')], 'Passwords must match')
+});
+
+const CompleteProfile = () => {
   const navigate = useNavigate();
-  const { token } = useParams();
+  const location = useLocation();
+  const { login } = useAuth();
+  const email = location.state?.email || '';
+  const accessToken = location.state?.accessToken || '';
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState(false);
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
-    resolver: yupResolver(resetPasswordSchema),
+    resolver: yupResolver(profileSchema),
     defaultValues: {
-      newPassword: '',
+      fullName: '',
+      password: '',
       confirmPassword: ''
     }
   });
 
   const onSubmit = async (data) => {
-    try {
-      await authService.resetPassword(token, data.newPassword);
-      setResetSuccess(true);
-
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
-    } catch (err) {
+    if (!accessToken) {
       setError('root', {
         type: 'manual',
-        message: err.response?.data?.message || err.message || 'Failed to reset password'
+        message: 'Invalid session. Please register again.'
+      });
+      navigate('/register');
+      return;
+    }
+
+    try {
+      // Create profile via onboarding API
+      await authService.completeProfile(accessToken, {
+        fullName: data.fullName,
+        password: data.password
+      });
+
+      // Auto-login with the credentials
+      await login(email, data.password);
+
+      // Redirect to onboarding
+      navigate('/onboarding');
+    } catch (err) {
+      console.error('Profile creation error:', err);
+      setError('root', {
+        type: 'manual',
+        message: err.response?.data?.message || err.message || 'Failed to complete profile'
       });
     }
   };
 
-  if (resetSuccess) {
-    return (
-      <AuthLayout>
-        <div className="w-full">
-          {/* Success Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-50 rounded-full mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h1 className="text-3xl font-semibold text-gray-900 mb-2">Password reset!</h1>
-            <p className="text-gray-600">
-              Your password has been successfully reset.
-            </p>
-          </div>
-
-          {/* Success Message */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-green-800 text-center">
-              Redirecting you to sign in...
-            </p>
-          </div>
-
-          {/* Manual Login Button */}
-          <Button
-            type="button"
-            className="w-full"
-            onClick={() => navigate('/login')}
-          >
-            Continue to sign in
-          </Button>
-        </div>
-      </AuthLayout>
-    );
+  if (!email || !accessToken) {
+    navigate('/register');
+    return null;
   }
 
   return (
@@ -84,9 +87,9 @@ const ResetPassword = () => {
       <div className="w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Set new password</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Complete your profile</h1>
           <p className="text-gray-600">
-            Your new password must be different from previously used passwords
+            Set up your account to get started
           </p>
         </div>
 
@@ -98,20 +101,38 @@ const ResetPassword = () => {
           </Alert>
         )}
 
-        {/* Reset Password Form */}
+        {/* Profile Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* New Password Field */}
+          {/* Full Name Field */}
           <div className="space-y-2">
-            <Label htmlFor="newPassword">New password</Label>
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="John Doe"
+              autoFocus
+              {...register('fullName')}
+              className={cn(
+                errors.fullName && "border-red-500 focus-visible:ring-red-500"
+              )}
+            />
+            {errors.fullName && (
+              <p className="text-sm text-red-500">{errors.fullName.message}</p>
+            )}
+          </div>
+
+          {/* Password Field */}
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
-                id="newPassword"
+                id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter new password"
-                {...register('newPassword')}
+                placeholder="Enter password"
+                {...register('password')}
                 className={cn(
                   "pr-10",
-                  errors.newPassword && "border-red-500 focus-visible:ring-red-500"
+                  errors.password && "border-red-500 focus-visible:ring-red-500"
                 )}
               />
               <button
@@ -126,8 +147,8 @@ const ResetPassword = () => {
                 )}
               </button>
             </div>
-            {errors.newPassword && (
-              <p className="text-sm text-red-500">{errors.newPassword.message}</p>
+            {errors.password && (
+              <p className="text-sm text-red-500">{errors.password.message}</p>
             )}
             <p className="text-xs text-gray-500">
               Must be at least 8 characters with uppercase, lowercase, and number
@@ -136,12 +157,12 @@ const ResetPassword = () => {
 
           {/* Confirm Password Field */}
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm password</Label>
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm new password"
+                placeholder="Confirm password"
                 {...register('confirmPassword')}
                 className={cn(
                   "pr-10",
@@ -172,24 +193,12 @@ const ResetPassword = () => {
             disabled={isSubmitting}
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? 'Resetting password...' : 'Reset password'}
+            {isSubmitting ? 'Creating account...' : 'Complete registration'}
           </Button>
         </form>
-
-        {/* Back to Login */}
-        <div className="mt-6 text-center">
-          <Button
-            type="button"
-            variant="link"
-            className="px-0"
-            onClick={() => navigate('/login')}
-          >
-            Back to sign in
-          </Button>
-        </div>
       </div>
     </AuthLayout>
   );
 };
 
-export default ResetPassword;
+export default CompleteProfile;

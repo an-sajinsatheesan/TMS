@@ -12,8 +12,8 @@ const Step5ProjectName = () => {
   const handleContinue = () => {
     if (projectName.trim()) {
       updateOnboardingData('projectSetup', { projectName });
-      setCurrentStep(6);
-      navigate('/onboarding/step6');
+      setCurrentStep(5);
+      navigate('/onboarding/step5');
     }
   };
 
@@ -41,7 +41,7 @@ const Step5ProjectName = () => {
         <Button
           type="button"
           variant="outline"
-          onClick={() => navigate('/onboarding/step4')}
+          onClick={() => navigate('/onboarding/step3')}
         >
           Back
         </Button>

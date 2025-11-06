@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -15,28 +15,16 @@ import AuthLayout from './AuthLayout';
 const VerifyOtp = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { verifyOtp } = useAuth();
+  const email = location.state?.email || '';
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError, setValue } = useForm({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
     resolver: yupResolver(verifyOtpSchema),
     defaultValues: {
       code: ''
     }
   });
-
-    const onSubmit = async (data) => {
-        try {
-            await authService.verifyOtp(email, data.otp);
-            navigate('/onboarding');
-        } catch (err) {
-            setError('root', {
-                type: 'manual',
-                message: err.response?.data?.message || 'Invalid OTP'
-            });
-        }
-    };
 
   // Timer for resend OTP
   useEffect(() => {
@@ -50,12 +38,22 @@ const VerifyOtp = () => {
 
   const onSubmit = async (data) => {
     try {
-      await verifyOtp(email, data.code);
-      navigate('/onboarding');
+      const response = await authService.verifyOtp(email, data.code);
+      console.log('OTP Verification response:', response.data);
+
+      // After OTP verification, redirect to complete profile with access token
+      navigate('/complete-profile', {
+        state: {
+          email: email,
+          accessToken: response.data.data?.tokens?.accessToken || response.data.tokens?.accessToken
+        },
+        replace: true
+      });
     } catch (err) {
+      console.error('OTP Verification error:', err);
       setError('root', {
         type: 'manual',
-        message: err.message || 'Verification failed'
+        message: err.response?.data?.message || err.message || 'Verification failed'
       });
     }
   };

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(rm backend/nul 2)",
+      "Bash(nul)",
+      "Bash(del backendnul 2)",
+      "Bash(if exist nul del nul 2)",
+      "Bash(NUL)",
+      "Bash(rm:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

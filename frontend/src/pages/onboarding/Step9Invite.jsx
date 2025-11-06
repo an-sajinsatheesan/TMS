@@ -1,65 +1,72 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { X, Plus, AlertCircle } from 'lucide-react';
 
 const Step9Invite = () => {
-  const [email1, setEmail1] = useState('');
-  const [email2, setEmail2] = useState('');
-  const [email3, setEmail3] = useState('');
+  const [emails, setEmails] = useState(['']);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const navigate = useNavigate();
   const { completeOnboarding } = useOnboarding();
-  const { refreshOnboardingStatus } = useAuth();
 
-  const handleComplete = async () => {
+  const handleAddEmail = () => {
+    setEmails([...emails, '']);
+  };
+
+  const handleRemoveEmail = (index) => {
+    if (emails.length > 1) {
+      setEmails(emails.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleEmailChange = (index, value) => {
+    const newEmails = [...emails];
+    newEmails[index] = value;
+    setEmails(newEmails);
+  };
+
+  const handleFinish = async () => {
+    const validEmails = emails.filter(email => email.trim());
     setError('');
-    setLoading(true);
+    setSaving(true);
 
     try {
-      const validEmails = [email1, email2, email3].filter(email => email.trim() !== '');
-      const response = await completeOnboarding({ inviteEmails: validEmails });
-      // Refresh onboarding status to mark it as complete
-      await refreshOnboardingStatus();
-      // Redirect to first project if available, otherwise dashboard
-      const redirectPath = response?.redirectTo || '/dashboard';
-      navigate(redirectPath);
+      await completeOnboarding({ inviteEmails: validEmails });
+      // Navigate to dashboard or project view
+      navigate('/login');
     } catch (err) {
-      setError(err.message || 'Failed to complete onboarding');
+      console.error('Complete error:', err);
+      setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   const handleSkip = async () => {
     setError('');
-    setLoading(true);
+    setSaving(true);
 
     try {
-      const response = await completeOnboarding({ inviteEmails: [] });
-      // Refresh onboarding status to mark it as complete
-      await refreshOnboardingStatus();
-      // Redirect to first project if available, otherwise dashboard
-      const redirectPath = response?.redirectTo || '/dashboard';
-      navigate(redirectPath);
+      await completeOnboarding({ inviteEmails: [] });
+      navigate('/login');
     } catch (err) {
-      setError(err.message || 'Failed to complete onboarding');
+      console.error('Complete error:', err);
+      setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-4">Invite Your Team</h2>
+    <div className="mb-8">
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-3">Invite your team</h2>
         <p className="text-gray-600">
-          Invite team members to collaborate with you. You can also do this later.
+          Collaborate better by inviting your team members.
         </p>
       </div>
 
@@ -70,56 +77,69 @@ const Step9Invite = () => {
         </Alert>
       )}
 
-      <div className="mb-6">
-        <label className="block text-sm font-semibold mb-3">
-          Email Addresses
-        </label>
-        <div className="space-y-3">
-          <Input
-            type="email"
-            value={email1}
-            onChange={(e) => setEmail1(e.target.value)}
-            placeholder="teammate1@example.com"
-          />
-          <Input
-            type="email"
-            value={email2}
-            onChange={(e) => setEmail2(e.target.value)}
-            placeholder="teammate2@example.com"
-          />
-          <Input
-            type="email"
-            value={email3}
-            onChange={(e) => setEmail3(e.target.value)}
-            placeholder="teammate3@example.com"
-          />
+      <div className="space-y-6 mb-8">
+        <div className="space-y-2">
+          {emails.map((email, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => handleEmailChange(index, e.target.value)}
+                placeholder="teammate@example.com"
+                className="flex-1"
+                disabled={saving}
+              />
+              {emails.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveEmail(index)}
+                  disabled={saving}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
         </div>
+
+        <Button
+          type="button"
+          onClick={handleAddEmail}
+          variant="outline"
+          className="w-full"
+          disabled={saving}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Email
+        </Button>
       </div>
 
       <div className="flex gap-3">
         <Button
           type="button"
           variant="outline"
-          onClick={() => navigate('/onboarding/step8')}
-          disabled={loading}
+          onClick={() => navigate('/onboarding/step7')}
+          disabled={saving}
         >
           Back
         </Button>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           onClick={handleSkip}
-          disabled={loading}
+          disabled={saving}
         >
-          Skip for now
+          Skip
         </Button>
         <Button
           type="button"
-          onClick={handleComplete}
-          disabled={loading}
+          onClick={handleFinish}
           className="flex-1"
+          disabled={saving}
         >
-          {loading ? 'Completing...' : 'Complete Setup'}
+          {saving ? 'Finishing...' : 'Finish'}
         </Button>
       </div>
     </div>

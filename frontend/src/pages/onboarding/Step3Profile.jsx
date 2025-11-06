@@ -1,167 +1,104 @@
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { profileSchema } from '../../utils/validationSchemas';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
+import { AlertCircle } from 'lucide-react';
 
 const Step3Profile = () => {
-    const navigate = useNavigate();
-    const { setCurrentStep, saveProfile } = useOnboarding();
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-    const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
-        resolver: yupResolver(profileSchema),
-        defaultValues: {
-            fullName: '',
-            password: '',
-            confirmPassword: '',
-            avatarUrl: ''
-        }
-    });
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
+  const { setCurrentStep, saveProfile } = useOnboarding();
 
-    const onSubmit = async (data) => {
-        try {
-            await saveProfile({
-                fullName: data.fullName,
-                password: data.password,
-                avatarUrl: data.avatarUrl || undefined,
-            });
-            setCurrentStep(4);
-            navigate('/onboarding/step4');
-        } catch (err) {
-            setError('root', {
-                type: 'manual',
-                message: err.message || 'Failed to save profile'
-            });
-        }
-    };
+  const handleContinue = async () => {
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Please enter your first and last name');
+      return;
+    }
 
-    return (
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
-            <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-4">Set Up Your Profile</h2>
-                <p className="text-gray-600">
-                    Tell us a bit about yourself.
-                </p>
-            </div>
+    setError('');
+    setSaving(true);
 
-            {errors.root && (
-                <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{errors.root.message}</AlertDescription>
-                </Alert>
-            )}
+    try {
+      await saveProfile({ firstName, lastName });
+      setCurrentStep(4);
+      navigate('/onboarding/step4');
+    } catch (err) {
+      console.error('Save error:', err);
+      setError(err.response?.data?.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <div className="space-y-4 mb-6">
-                    <div className="flex flex-col gap-2">
-                        <label htmlFor="fullName" className="block text-sm font-semibold">
-                            Full Name *
-                        </label>
-                        <Input
-                            id="fullName"
-                            {...register('fullName')}
-                            className={cn({ 'border-destructive': errors.fullName })}
-                            placeholder="John Doe"
-                        />
-                        {errors.fullName && (
-                            <p className="text-sm text-destructive">{errors.fullName.message}</p>
-                        )}
-                    </div>
+  return (
+    <div className="mb-8">
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold mb-3">Tell us about yourself</h2>
+        <p className="text-gray-600">
+          Let's personalize your experience.
+        </p>
+      </div>
 
-                    <div className="flex flex-col gap-2">
-                        <label htmlFor="password" className="block text-sm font-semibold">
-                            Password *
-                        </label>
-                        <div className="relative">
-                            <Input
-                                id="password"
-                                type={showPassword ? "text" : "password"}
-                                {...register('password')}
-                                className={cn({ 'border-destructive': errors.password })}
-                                placeholder="Create a password"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2"
-                            >
-                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                        </div>
-                        {errors.password && (
-                            <p className="text-sm text-destructive">{errors.password.message}</p>
-                        )}
-                    </div>
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-                    <div className="flex flex-col gap-2">
-                        <label htmlFor="confirmPassword" className="block text-sm font-semibold">
-                            Confirm Password *
-                        </label>
-                        <div className="relative">
-                            <Input
-                                id="confirmPassword"
-                                type={showConfirmPassword ? "text" : "password"}
-                                {...register('confirmPassword')}
-                                className={cn({ 'border-destructive': errors.confirmPassword })}
-                                placeholder="Confirm your password"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2"
-                            >
-                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                        </div>
-                        {errors.confirmPassword && (
-                            <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
-                        )}
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                        <label htmlFor="avatarUrl" className="block text-sm font-semibold">
-                            Avatar URL (Optional)
-                        </label>
-                        <Input
-                            id="avatarUrl"
-                            type="url"
-                            {...register('avatarUrl')}
-                            className={cn({ 'border-destructive': errors.avatarUrl })}
-                            placeholder="https://example.com/avatar.jpg"
-                        />
-                        {errors.avatarUrl && (
-                            <p className="text-sm text-destructive">{errors.avatarUrl.message}</p>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex gap-3">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => navigate('/onboarding/step2')}
-                        disabled={isSubmitting}
-                    >
-                        Back
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="flex-1"
-                    >
-                        {isSubmitting ? 'Saving...' : 'Continue'}
-                    </Button>
-                </div>
-            </form>
+      <div className="space-y-6 mb-8">
+        <div className="flex flex-col gap-2">
+          <label htmlFor="firstName" className="block text-sm font-semibold">
+            First Name *
+          </label>
+          <Input
+            id="firstName"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="John"
+            disabled={saving}
+          />
         </div>
-    );
+
+        <div className="flex flex-col gap-2">
+          <label htmlFor="lastName" className="block text-sm font-semibold">
+            Last Name *
+          </label>
+          <Input
+            id="lastName"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Doe"
+            disabled={saving}
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate('/onboarding/step2')}
+          disabled={saving}
+        >
+          Back
+        </Button>
+        <Button
+          type="button"
+          onClick={handleContinue}
+          disabled={!firstName.trim() || !lastName.trim() || saving}
+          className="flex-1"
+        >
+          {saving ? 'Saving...' : 'Continue'}
+        </Button>
+      </div>
+    </div>
+  );
 };
 
 export default Step3Profile;

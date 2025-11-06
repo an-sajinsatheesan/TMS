@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { invitationService } from '../api/invitation.service';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 const InvitationAccept = () => {
   const { token } = useParams();
@@ -8,87 +10,87 @@ const InvitationAccept = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [inviteDetails, setInviteDetails] = useState(null);
 
   useEffect(() => {
-    acceptInvitation();
+    verifyInvitation();
   }, [token]);
 
-  const acceptInvitation = async () => {
+  const verifyInvitation = async () => {
     try {
-      await invitationService.acceptInvitation(token);
+      // TODO: Call API to verify invitation token
+      // const response = await invitationService.verify(token);
+      // setInviteDetails(response.data);
       setSuccess(true);
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 3000);
     } catch (err) {
-      setError(err.message || 'Failed to accept invitation');
+      console.error('Verification error:', err);
+      setError(err.response?.data?.message || 'Invalid or expired invitation link');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleAccept = async () => {
+    try {
+      // TODO: Call API to accept invitation
+      // await invitationService.accept(token);
+      navigate('/login');
+    } catch (err) {
+      console.error('Accept error:', err);
+      setError(err.response?.data?.message || 'Failed to accept invitation');
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-50 px-4">
-        <div className="card p-12 text-center max-w-md w-full">
-          <svg className="animate-spin h-16 w-16 text-primary-600 mx-auto mb-6" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Processing Invitation</h2>
-          <p className="text-gray-600">Please wait while we add you to the workspace...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-gray-600">Verifying invitation...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-50 px-4">
-        <div className="card p-12 text-center max-w-md w-full">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
-            <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Unable to Accept</h2>
-          <p className="text-gray-600 mb-8">{error}</p>
-          <button
-            onClick={() => navigate('/login')}
-            className="btn btn-primary"
-          >
-            Go to Login
-          </button>
-        </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 max-w-md w-full">
+        {error ? (
+          <>
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <Button onClick={() => navigate('/login')} className="w-full">
+              Go to Login
+            </Button>
+          </>
+        ) : (
+          <>
+            <div className="text-center mb-6">
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold mb-2">You've been invited!</h1>
+              <p className="text-gray-600">
+                Join your team on TMS and start collaborating.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Button onClick={handleAccept} className="w-full">
+                Accept Invitation
+              </Button>
+              <Button
+                onClick={() => navigate('/login')}
+                variant="outline"
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
+          </>
+        )}
       </div>
-    );
-  }
-
-  if (success) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-blue-50 px-4">
-        <div className="card p-12 text-center max-w-md w-full">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6">
-            <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome Aboard!</h2>
-          <p className="text-gray-600 mb-6">
-            You've successfully joined the workspace. Redirecting to dashboard...
-          </p>
-          <div className="flex items-center justify-center">
-            <svg className="animate-spin h-5 w-5 text-primary-600" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 };
 
 export default InvitationAccept;

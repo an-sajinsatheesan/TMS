@@ -33,4 +33,12 @@ export const authService = {
   resetPassword: async (token, newPassword) => {
     return await axiosInstance.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, { token, newPassword });
   },
+
+  completeProfile: async (accessToken, profileData) => {
+    return await axiosInstance.post(API_ENDPOINTS.ONBOARDING.PROFILE, profileData, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+  },
 };
