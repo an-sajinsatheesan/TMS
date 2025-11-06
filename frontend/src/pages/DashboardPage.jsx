@@ -4,7 +4,7 @@ import DashboardLayout from '../components/dashboard/DashboardLayout';
 import DashboardContent from '../components/dashboard/DashboardContent';
 import { useAuth } from '../contexts/AuthContext';
 
-const Dashboard = () => {
+const DashboardPage = () => {
   const { userId, projectId, viewMode } = useParams();
   const { user } = useAuth();
   const [currentView, setCurrentView] = useState(viewMode || 'list');
@@ -16,4 +16,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default DashboardPage;
