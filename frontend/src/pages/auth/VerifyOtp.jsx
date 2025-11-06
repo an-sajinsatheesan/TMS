@@ -39,19 +39,20 @@ const VerifyOtp = () => {
   const onSubmit = async (data) => {
     try {
       const response = await authService.verifyOtp(email, data.code);
-      console.log('OTP Verification response:', response.data);
+      console.log('OTP Verification response:', response);
 
-      // Extract tokens from response
-      const tokens = response.data?.data?.tokens || response.data?.tokens;
+      // Extract temporary registration token (OTP-protected)
+      // This token can ONLY be used to complete profile
+      const tokens = response.data?.tokens || response.tokens;
 
-      if (tokens?.accessToken && tokens?.refreshToken) {
-        // Store tokens in localStorage for persistent authentication
+      if (tokens?.accessToken) {
+        // Store temporary token - will be replaced with full token after profile completion
         localStorage.setItem('accessToken', tokens.accessToken);
         localStorage.setItem('refreshToken', tokens.refreshToken);
       }
 
-      // After OTP verification, redirect to complete profile
-      // User now has valid token from OTP verification
+      // After email verification, redirect to complete profile
+      // This is where the user will set their name and password
       navigate('/complete-profile', {
         state: {
           email: email,

@@ -47,7 +47,7 @@ const CompleteProfile = () => {
   });
 
   const onSubmit = async (data) => {
-    // Check if user has valid token (from OTP verification or localStorage)
+    // Check if user has valid token (from OTP verification)
     const token = accessToken || localStorage.getItem('accessToken');
 
     if (!token) {
@@ -60,19 +60,26 @@ const CompleteProfile = () => {
     }
 
     try {
-      // Create profile via onboarding API (already has token from OTP verification)
-      await authService.completeProfile(token, {
+      // Complete account registration - Set name and password
+      // Backend will return NEW tokens (full access tokens) and start onboarding at step 1
+      const response = await authService.completeProfile(token, {
         fullName: data.fullName,
         password: data.password
       });
 
-      // Ensure tokens are in localStorage for subsequent requests
-      if (!localStorage.getItem('accessToken')) {
-        localStorage.setItem('accessToken', token);
+      console.log('Profile completion response:', response);
+
+      // Extract the NEW full access tokens from response
+      const newTokens = response.data?.tokens || response.tokens;
+
+      if (newTokens?.accessToken) {
+        // Replace temporary token with full access token
+        localStorage.setItem('accessToken', newTokens.accessToken);
+        localStorage.setItem('refreshToken', newTokens.refreshToken);
       }
 
-      // Redirect to onboarding - user now has valid token and completed profile
-      // No login required - user is already authenticated
+      // ✅ Onboarding now starts at STEP 1 (not step 4!)
+      // Redirect to onboarding - user now has full account with password
       navigate('/onboarding', { replace: true });
     } catch (err) {
       console.error('Profile creation error:', err);

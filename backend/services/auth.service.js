@@ -100,47 +100,34 @@ class AuthService {
     }
 
     /**
-     * Verify OTP and return JWT token
+     * Verify OTP (email verification only - NO token generation)
+     * Token will be generated AFTER account creation with password
      * @param {String} email - User email
      * @param {String} code - OTP code
-     * @returns {Object} User and tokens
+     * @returns {Object} User email verification status
      */
     static async verifyOtp(email, code) {
         // Verify OTP
         await OtpService.verifyOtp(email, code);
 
-        // Update user as verified
+        // Update user as verified (but DON'T generate token yet)
         const user = await prisma.user.update({
             where: { email },
             data: { isEmailVerified: true },
         });
 
-        // Generate tokens
-        const tokens = JwtService.generateAuthTokens(user);
-
-        // Create onboarding data if not exists
-        const onboardingData = await prisma.onboardingData.findUnique({
-            where: { userId: user.id },
-        });
-
-        if (!onboardingData) {
-            await prisma.onboardingData.create({
-                data: {
-                    userId: user.id,
-                    currentStep: 1,
-                },
-            });
-        }
+        // DON'T generate tokens here - user hasn't set password yet!
+        // DON'T create onboarding data yet - account not fully created!
 
         return {
+            success: true,
+            message: "Email verified successfully. Please complete your registration.",
             user: {
                 id: user.id,
                 email: user.email,
-                fullName: user.fullName,
-                avatarUrl: user.avatarUrl,
                 isEmailVerified: user.isEmailVerified,
             },
-            tokens,
+            // NO tokens returned - they'll be generated after password is set
         };
     }
 

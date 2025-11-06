@@ -6,6 +6,7 @@ const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
 const EmailService = require('../services/email.service');
+const JwtService = require('../services/jwt.service');
 
 /**
  * Onboarding Controller
@@ -32,31 +33,75 @@ class OnboardingController {
 
   /**
    * @route   POST /api/v1/onboarding/profile
-   * @desc    Save profile information (Step 3)
-   * @access  Private
+   * @desc    Complete account registration - Sets name and password AFTER OTP verification
+   * @access  Private (requires valid token from OTP verification)
    */
   static saveProfile = asyncHandler(async (req, res) => {
     const { fullName, password, avatarUrl } = req.body;
 
-    // Update user
+    // Validation
+    if (!fullName || !password) {
+      throw ApiError.badRequest('Full name and password are required');
+    }
+
+    // Verify user's email is verified
+    if (!req.user.isEmailVerified) {
+      throw ApiError.unauthorized('Please verify your email first');
+    }
+
+    // Update user with full account details
     const updateData = { fullName };
     if (avatarUrl) updateData.avatarUrl = avatarUrl;
     if (password) {
       updateData.passwordHash = await bcrypt.hash(password, 10);
     }
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: updateData,
     });
 
-    // Update onboarding step
-    const onboardingData = await prisma.onboardingData.update({
+    // Create or update onboarding data - ALWAYS start at step 1 for new users!
+    let onboardingData = await prisma.onboardingData.findUnique({
       where: { userId: req.user.id },
-      data: { currentStep: 4 },
     });
 
-    ApiResponse.success(onboardingData, 'Profile saved successfully').send(res);
+    if (!onboardingData) {
+      // First time - create onboarding data starting at step 1
+      onboardingData = await prisma.onboardingData.create({
+        data: {
+          userId: req.user.id,
+          currentStep: 1, // ← ALWAYS START AT STEP 1, NOT 4!
+        },
+      });
+    } else {
+      // Update existing onboarding data - ensure it's at step 1
+      onboardingData = await prisma.onboardingData.update({
+        where: { userId: req.user.id },
+        data: { currentStep: 1 }, // Reset to step 1 since profile is now complete
+      });
+    }
+
+    // Generate tokens NOW (after password is set)
+    const tokens = JwtService.generateAuthTokens(updatedUser);
+
+    ApiResponse.success(
+      {
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          fullName: updatedUser.fullName,
+          avatarUrl: updatedUser.avatarUrl,
+          isEmailVerified: updatedUser.isEmailVerified,
+        },
+        tokens, // ← Tokens generated ONLY after account is fully created
+        onboardingStatus: {
+          isComplete: false,
+          currentStep: 1, // ← NEW USERS ALWAYS START AT STEP 1
+        },
+      },
+      'Account created successfully. Welcome to the platform!'
+    ).send(res);
   });
 
   /**
