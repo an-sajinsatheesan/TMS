@@ -11,7 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { loginSchema } from '../../utils/validationSchemas';
-import { toast } from '../../hooks/useToast';
+import { toast } from '../../hooks/useToast.jsx';
 import AuthLayout from './AuthLayout';
 
 const Login = () => {

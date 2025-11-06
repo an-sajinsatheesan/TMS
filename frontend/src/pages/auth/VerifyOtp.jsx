@@ -10,7 +10,7 @@ import { AlertCircle, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { verifyOtpSchema } from '../../utils/validationSchemas';
 import { authService } from '../../api/auth.service';
-import { toast } from '../../hooks/useToast';
+import { toast } from '../../hooks/useToast.jsx';
 import AuthLayout from './AuthLayout';
 
 const VerifyOtp = () => {

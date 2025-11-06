@@ -11,7 +11,7 @@ import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authService } from '../../api/auth.service';
 import { useAuth } from '../../contexts/AuthContext';
-import { toast } from '../../hooks/useToast';
+import { toast } from '../../hooks/useToast.jsx';
 import AuthLayout from './AuthLayout';
 
 const profileSchema = yup.object().shape({
