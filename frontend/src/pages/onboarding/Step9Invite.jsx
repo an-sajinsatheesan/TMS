@@ -24,10 +24,12 @@ const Step9Invite = () => {
 
     try {
       const validEmails = [email1, email2, email3].filter(email => email.trim() !== '');
-      await completeOnboarding({ inviteEmails: validEmails });
+      const response = await completeOnboarding({ inviteEmails: validEmails });
       // Refresh onboarding status to mark it as complete
       await refreshOnboardingStatus();
-      navigate('/dashboard');
+      // Redirect to first project if available, otherwise dashboard
+      const redirectPath = response?.redirectTo || '/dashboard';
+      navigate(redirectPath);
     } catch (err) {
       setError(err.message || 'Failed to complete onboarding');
     } finally {
@@ -40,10 +42,12 @@ const Step9Invite = () => {
     setLoading(true);
 
     try {
-      await completeOnboarding({ inviteEmails: [] });
+      const response = await completeOnboarding({ inviteEmails: [] });
       // Refresh onboarding status to mark it as complete
       await refreshOnboardingStatus();
-      navigate('/dashboard');
+      // Redirect to first project if available, otherwise dashboard
+      const redirectPath = response?.redirectTo || '/dashboard';
+      navigate(redirectPath);
     } catch (err) {
       setError(err.message || 'Failed to complete onboarding');
     } finally {

@@ -61,7 +61,21 @@ class ProjectController {
         },
       });
 
-      // 3. Create default columns
+      // 3. Fetch status and priority options from database
+      const [statusOptions, priorityOptions] = await Promise.all([
+        tx.taskStatusOption.findMany({
+          where: { isActive: true },
+          orderBy: { position: 'asc' },
+          select: { label: true, value: true, color: true, icon: true },
+        }),
+        tx.taskPriorityOption.findMany({
+          where: { isActive: true },
+          orderBy: { position: 'asc' },
+          select: { label: true, value: true, color: true, icon: true },
+        }),
+      ]);
+
+      // 4. Create default columns with dynamic options
       const defaultColumns = [
         {
           name: 'Assignee',
@@ -83,11 +97,7 @@ class ProjectController {
           width: 120,
           visible: true,
           position: 2,
-          options: [
-            { label: 'High', value: 'High', color: '#ef4444' },
-            { label: 'Medium', value: 'Medium', color: '#f59e0b' },
-            { label: 'Low', value: 'Low', color: '#3b82f6' },
-          ],
+          options: priorityOptions,
         },
         {
           name: 'Status',
@@ -95,11 +105,7 @@ class ProjectController {
           width: 150,
           visible: true,
           position: 3,
-          options: [
-            { label: 'On Track', value: 'On Track', color: '#10b981' },
-            { label: 'At Risk', value: 'At Risk', color: '#f59e0b' },
-            { label: 'Off Track', value: 'Off Track', color: '#ef4444' },
-          ],
+          options: statusOptions,
         },
       ];
 
@@ -112,7 +118,7 @@ class ProjectController {
         });
       }
 
-      // 4. Create sections if provided
+      // 5. Create sections if provided
       const createdSections = [];
       if (sections && sections.length > 0) {
         for (let i = 0; i < sections.length; i++) {
@@ -129,7 +135,7 @@ class ProjectController {
         }
       }
 
-      // 5. Create tasks if provided
+      // 6. Create tasks if provided
       const createdTasks = [];
       if (tasks && tasks.length > 0) {
         for (const task of tasks) {
@@ -149,7 +155,7 @@ class ProjectController {
         }
       }
 
-      // 6. Send project invitations if provided
+      // 7. Send project invitations if provided
       const invitations = [];
       if (inviteEmails && inviteEmails.length > 0) {
         const expiresAt = new Date();

@@ -343,62 +343,54 @@ model PasswordReset {
   @@map("password_resets")
 }
 
-// Onboarding Option Models
-model AppUsageOption {
+// Unified Onboarding Options Model
+model OnboardingOption {
+  id          String    @id @default(uuid()) @db.Uuid
+  category    String    // 'app_usage', 'industry', 'team_size', 'role'
+  label       String
+  value       String
+  description String?
+  icon        String?
+  minSize     Int?      // For team_size category
+  maxSize     Int?      // For team_size category
+  isActive    Boolean   @default(true)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([category, value])
+  @@index([category])
+  @@map("onboarding_options")
+}
+
+// Task Status Options
+model TaskStatusOption {
   id          String    @id @default(uuid()) @db.Uuid
   label       String
   value       String    @unique
-  description String?
+  color       String
   icon        String?
   isActive    Boolean   @default(true)
   position    Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@map("app_usage_options")
+  @@map("task_status_options")
 }
 
-model IndustryOption {
+// Task Priority Options
+model TaskPriorityOption {
   id          String    @id @default(uuid()) @db.Uuid
   label       String
   value       String    @unique
-  description String?
+  color       String
   icon        String?
   isActive    Boolean   @default(true)
   position    Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  @@map("industry_options")
-}
-
-model TeamSizeOption {
-  id          String    @id @default(uuid()) @db.Uuid
-  label       String
-  value       String    @unique
-  description String?
-  minSize     Int?
-  maxSize     Int?
-  isActive    Boolean   @default(true)
-  position    Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@map("team_size_options")
-}
-
-model RoleOption {
-  id          String    @id @default(uuid()) @db.Uuid
-  label       String
-  value       String    @unique
-  description String?
-  icon        String?
-  isActive    Boolean   @default(true)
-  position    Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@map("role_options")
+  @@map("task_priority_options")
 }
 
 model TaskComment {
