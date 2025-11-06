@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { InputText } from 'primereact/inputtext';
-import 'primereact/resources/themes/lara-light-teal/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const Step2CreateWorkspace = () => {
   const [workspaceName, setWorkspaceName] = useState('');
@@ -29,25 +27,24 @@ const Step2CreateWorkspace = () => {
 
       <div className="space-y-6 mb-8">
         <div className="flex flex-col gap-2">
-          <InputText
+          <Input
             id="workspaceName"
             value={workspaceName}
             onChange={(e) => setWorkspaceName(e.target.value)}
-            className="w-full"
             placeholder="e.g. Cross-functional project plan"
           />
         </div>
       </div>
 
       <div className="flex gap-3">
-        <button
+        <Button
           type="button"
           onClick={handleContinue}
           disabled={!workspaceName.trim()}
-          className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="flex-1"
         >
           Continue
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -2,18 +2,19 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { InputText } from 'primereact/inputtext';
-import { Password } from 'primereact/password';
-import { Message } from 'primereact/message';
-import { classNames } from 'primereact/utils';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { profileSchema } from '../../utils/validationSchemas';
-import 'primereact/resources/themes/lara-light-teal/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 const Step3Profile = () => {
     const navigate = useNavigate();
     const { setCurrentStep, saveProfile } = useOnboarding();
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
         resolver: yupResolver(profileSchema),
         defaultValues: {
@@ -26,7 +27,6 @@ const Step3Profile = () => {
 
     const onSubmit = async (data) => {
         try {
-            debugger
             await saveProfile({
                 fullName: data.fullName,
                 password: data.password,
@@ -43,7 +43,7 @@ const Step3Profile = () => {
     };
 
     return (
-        <div className="card p-6">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
             <div className="mb-6">
                 <h2 className="text-2xl font-bold mb-4">Set Up Your Profile</h2>
                 <p className="text-gray-600">
@@ -52,114 +52,112 @@ const Step3Profile = () => {
             </div>
 
             {errors.root && (
-                <div className="mb-4">
-                    <Message severity="error" text={errors.root.message} className="w-full" />
-                </div>
+                <Alert variant="destructive" className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{errors.root.message}</AlertDescription>
+                </Alert>
             )}
 
             <form onSubmit={handleSubmit(onSubmit)}>
                 <div className="space-y-4 mb-6">
                     <div className="flex flex-col gap-2">
-                        <label htmlFor="fullName" className="block text-gray-700 text-sm font-semibold">
+                        <label htmlFor="fullName" className="block text-sm font-semibold">
                             Full Name *
                         </label>
-                        <InputText
+                        <Input
                             id="fullName"
                             {...register('fullName')}
-                            className={classNames('w-full', { 'p-invalid': errors.fullName })}
+                            className={cn({ 'border-destructive': errors.fullName })}
                             placeholder="John Doe"
-                            aria-describedby="fullName-error"
                         />
                         {errors.fullName && (
-                            <small id="fullName-error" className="p-error">
-                                {errors.fullName.message}
-                            </small>
+                            <p className="text-sm text-destructive">{errors.fullName.message}</p>
                         )}
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label htmlFor="password" className="block text-gray-700 text-sm font-semibold">
+                        <label htmlFor="password" className="block text-sm font-semibold">
                             Password *
                         </label>
-                        <Password
-                            id="password"
-                            inputRef={register('password').ref}
-                            name={register('password').name}
-                            onChange={register('password').onChange}
-                            onBlur={register('password').onBlur}
-                            className={classNames('w-full', { 'p-invalid': errors.password })}
-                            inputClassName="w-full"
-                            placeholder="Create a password"
-                            toggleMask
-                            aria-describedby="password-error"
-                        />
+                        <div className="relative">
+                            <Input
+                                id="password"
+                                type={showPassword ? "text" : "password"}
+                                {...register('password')}
+                                className={cn({ 'border-destructive': errors.password })}
+                                placeholder="Create a password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                            >
+                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
                         {errors.password && (
-                            <small id="password-error" className="p-error">
-                                {errors.password.message}
-                            </small>
+                            <p className="text-sm text-destructive">{errors.password.message}</p>
                         )}
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label htmlFor="confirmPassword" className="block text-gray-700 text-sm font-semibold">
+                        <label htmlFor="confirmPassword" className="block text-sm font-semibold">
                             Confirm Password *
                         </label>
-                        <Password
-                            id="confirmPassword"
-                            inputRef={register('confirmPassword').ref}
-                            name={register('confirmPassword').name}
-                            onChange={register('confirmPassword').onChange}
-                            onBlur={register('confirmPassword').onBlur}
-                            className={classNames('w-full', { 'p-invalid': errors.confirmPassword })}
-                            inputClassName="w-full"
-                            placeholder="Confirm your password"
-                            toggleMask
-                            feedback={false}
-                            aria-describedby="confirmPassword-error"
-                        />
+                        <div className="relative">
+                            <Input
+                                id="confirmPassword"
+                                type={showConfirmPassword ? "text" : "password"}
+                                {...register('confirmPassword')}
+                                className={cn({ 'border-destructive': errors.confirmPassword })}
+                                placeholder="Confirm your password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2"
+                            >
+                                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                        </div>
                         {errors.confirmPassword && (
-                            <small id="confirmPassword-error" className="p-error">
-                                {errors.confirmPassword.message}
-                            </small>
+                            <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
                         )}
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label htmlFor="avatarUrl" className="block text-gray-700 text-sm font-semibold">
+                        <label htmlFor="avatarUrl" className="block text-sm font-semibold">
                             Avatar URL (Optional)
                         </label>
-                        <InputText
+                        <Input
                             id="avatarUrl"
                             type="url"
                             {...register('avatarUrl')}
-                            className={classNames('w-full', { 'p-invalid': errors.avatarUrl })}
+                            className={cn({ 'border-destructive': errors.avatarUrl })}
                             placeholder="https://example.com/avatar.jpg"
-                            aria-describedby="avatarUrl-error"
                         />
                         {errors.avatarUrl && (
-                            <small id="avatarUrl-error" className="p-error">
-                                {errors.avatarUrl.message}
-                            </small>
+                            <p className="text-sm text-destructive">{errors.avatarUrl.message}</p>
                         )}
                     </div>
                 </div>
 
                 <div className="flex gap-3">
-                    <button
+                    <Button
                         type="button"
+                        variant="outline"
                         onClick={() => navigate('/onboarding/step2')}
                         disabled={isSubmitting}
-                        className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                         Back
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                        className="flex-1"
                     >
                         {isSubmitting ? 'Saving...' : 'Continue'}
-                    </button>
+                    </Button>
                 </div>
             </form>
         </div>

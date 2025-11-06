@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Dropdown } from 'primereact/dropdown';
 import PropTypes from 'prop-types';
 import InviteDialog from '../shared/InviteDialog';
 import { useProject } from '../../contexts/ProjectContext';

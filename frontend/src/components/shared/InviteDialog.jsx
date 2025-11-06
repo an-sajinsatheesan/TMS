@@ -1,8 +1,4 @@
 import { useState, useRef } from 'react';
-import { Dialog } from 'primereact/dialog';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
-import { Toast } from 'primereact/toast';
 import { invitationService } from '../../api/invitation.service';
 
 export default function InviteDialog({ visible, onHide, projectId, projectName }) {

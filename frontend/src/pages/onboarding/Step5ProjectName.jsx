@@ -2,12 +2,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { InputText } from 'primereact/inputtext';
-import { classNames } from 'primereact/utils';
 import { projectNameSchema } from '../../utils/validationSchemas';
-import 'primereact/resources/themes/lara-light-teal/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
 
 const Step5ProjectName = () => {
   const navigate = useNavigate();

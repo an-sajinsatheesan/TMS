@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { InputText } from 'primereact/inputtext';
-import 'primereact/resources/themes/lara-light-teal/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
 
 const Step6Sections = () => {
   const [sections, setSections] = useState([

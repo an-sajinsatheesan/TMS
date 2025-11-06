@@ -1,5 +1,14 @@
 import React from "react";
-import { useForm, yupResolver, useNavigate, useAuth, InputText, Password, Button, Message, classNames } from './authImports';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { useAuth } from '../../contexts/AuthContext';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { loginSchema } from '../../utils/validationSchemas';
 import AuthLayout from './AuthLayout';
 
