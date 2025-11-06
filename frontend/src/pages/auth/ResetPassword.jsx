@@ -42,7 +42,6 @@ const ResetPassword = () => {
         message: err.response?.data?.message || err.message || 'Failed to reset password'
       });
     }
-  };
 
   if (resetSuccess) {
     return (

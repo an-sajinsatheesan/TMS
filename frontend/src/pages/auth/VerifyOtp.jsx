@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useAuth } from '../../contexts/AuthContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -10,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { verifyOtpSchema } from '../../utils/validationSchemas';
+import { authService } from '../../api/auth.service';
 import AuthLayout from './AuthLayout';
 
 const VerifyOtp = () => {
@@ -26,7 +26,17 @@ const VerifyOtp = () => {
     }
   });
 
-  const email = location.state?.email;
+    const onSubmit = async (data) => {
+        try {
+            await authService.verifyOtp(email, data.otp);
+            navigate('/onboarding');
+        } catch (err) {
+            setError('root', {
+                type: 'manual',
+                message: err.response?.data?.message || 'Invalid OTP'
+            });
+        }
+    };
 
   // Timer for resend OTP
   useEffect(() => {

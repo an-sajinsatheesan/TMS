@@ -1,74 +1,59 @@
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import { projectNameSchema } from '../../utils/validationSchemas';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 const Step5ProjectName = () => {
+  const [projectName, setProjectName] = useState('');
   const navigate = useNavigate();
-  const { setCurrentStep, onboardingData } = useOnboarding();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    resolver: yupResolver(projectNameSchema),
-    defaultValues: {
-      projectName: ''
-    }
-  });
+  const { setCurrentStep, updateOnboardingData } = useOnboarding();
 
-  const onSubmit = (data) => {
-    // Store in context for later use
-    onboardingData.projectSetup.projectName = data.projectName;
-    setCurrentStep(6);
-    navigate('/onboarding/step6');
+  const handleContinue = () => {
+    if (projectName.trim()) {
+      updateOnboardingData('projectSetup', { projectName });
+      setCurrentStep(6);
+      navigate('/onboarding/step6');
+    }
   };
 
   return (
     <div className="mb-8">
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold mb-3 text-gray-900">Create Your First Project</h2>
+        <h2 className="text-2xl font-semibold mb-3">Name your first project</h2>
         <p className="text-gray-600">
-          Projects help you organize work into manageable units.
+          What would you like to call it?
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="space-y-6 mb-8">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="projectName" className="block text-gray-700 text-sm font-semibold">
-              Project Name *
-            </label>
-            <InputText
-              id="projectName"
-              {...register('projectName')}
-              className={classNames('w-full', { 'p-invalid': errors.projectName })}
-              placeholder="e.g., Website Redesign, Q1 Marketing Campaign"
-              aria-describedby="projectName-error"
-            />
-            {errors.projectName && (
-              <small id="projectName-error" className="p-error">
-                {errors.projectName.message}
-              </small>
-            )}
-          </div>
+      <div className="space-y-6 mb-8">
+        <div className="flex flex-col gap-2">
+          <Input
+            id="projectName"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder="e.g. Website Redesign"
+          />
         </div>
+      </div>
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => navigate('/onboarding/step4')}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            Back
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            Continue
-          </button>
-        </div>
-      </form>
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate('/onboarding/step4')}
+        >
+          Back
+        </Button>
+        <Button
+          type="button"
+          onClick={handleContinue}
+          disabled={!projectName.trim()}
+          className="flex-1"
+        >
+          Continue
+        </Button>
+      </div>
     </div>
   );
 };

@@ -25,39 +25,12 @@ const Register = () => {
 
     const onSubmit = async (data) => {
         try {
-            const response = await registerUser(data.email);
-
-            // Check if user already exists and is verified
-            if (response.data?.userExists && response.data?.isEmailVerified) {
-                // If user can continue onboarding directly (no password set)
-                if (response.data?.canContinueOnboarding) {
-                    // Store tokens and navigate to onboarding
-                    if (response.data.tokens) {
-                        localStorage.setItem('accessToken', response.data.tokens.accessToken);
-                        localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
-                    }
-                    navigate('/onboarding');
-                } else if (!response.data?.onboardingComplete) {
-                    // If onboarding is not complete but password is set, show message to login
-                    setError('root', {
-                        type: 'manual',
-                        message: response.data.message || 'This email is already registered. Please log in to continue your setup.'
-                    });
-                } else {
-                    // If onboarding is complete, show message to login
-                    setError('root', {
-                        type: 'manual',
-                        message: response.data.message || 'User already exists. Please login.'
-                    });
-                }
-            } else {
-                // New user or unverified user - proceed to OTP verification
-                navigate('/verify-otp', { state: { email: data.email } });
-            }
+            await registerUser(data.email);
+            navigate('/verify-otp', { state: { email: data.email } });
         } catch (err) {
             setError('root', {
                 type: 'manual',
-                message: err.message || 'Registration failed'
+                message: err.response?.data?.message || err.message || 'Registration failed'
             });
         }
     };

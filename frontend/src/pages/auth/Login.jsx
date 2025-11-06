@@ -33,7 +33,6 @@ const Login = () => {
             const onboardingStatus = response.data?.onboardingStatus;
 
             if (onboardingStatus && !onboardingStatus.isComplete) {
-                // Map current step to onboarding route
                 const stepMap = {
                     1: '/onboarding',
                     2: '/onboarding/step2',
@@ -51,7 +50,6 @@ const Login = () => {
                 navigate('/dashboard', { replace: true });
             }
         } catch (err) {
-            console.error('Login error:', err);
             setError('root', {
                 type: 'manual',
                 message: err.response?.data?.message || err.message || 'Login failed. Please try again.'
