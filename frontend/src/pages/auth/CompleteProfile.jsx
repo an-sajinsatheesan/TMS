@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -95,12 +95,12 @@ const CompleteProfile = () => {
   };
 
   // Check if user has email and token (either from state or localStorage)
-  const hasToken = accessToken || localStorage.getItem('accessToken');
-
-  if (!email || !hasToken) {
-    navigate('/register');
-    return null;
-  }
+  useEffect(() => {
+    const hasToken = accessToken || localStorage.getItem('accessToken');
+    if (!email || !hasToken) {
+      navigate('/register');
+    }
+  }, [email, accessToken, navigate]);
 
   return (
     <AuthLayout>
