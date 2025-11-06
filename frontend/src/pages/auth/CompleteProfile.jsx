@@ -34,7 +34,6 @@ const CompleteProfile = () => {
   const location = useLocation();
   const { completeProfile } = useAuth();
   const email = location.state?.email || '';
-  const accessToken = location.state?.accessToken || '';
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -48,7 +47,7 @@ const CompleteProfile = () => {
   });
 
   const onSubmit = async (data) => {
-    if (!accessToken) {
+    if (!email) {
       setError('root', {
         type: 'manual',
         message: 'Invalid session. Please register again.'
@@ -58,7 +57,7 @@ const CompleteProfile = () => {
     }
 
     try {
-      await completeProfile(accessToken, {
+      await completeProfile(email, {
         fullName: data.fullName,
         password: data.password
       });
@@ -86,10 +85,10 @@ const CompleteProfile = () => {
   };
 
   useEffect(() => {
-    if (!email || !accessToken) {
+    if (!email) {
       navigate('/register', { replace: true });
     }
-  }, [email, accessToken, navigate]);
+  }, [email, navigate]);
 
   return (
     <AuthLayout>

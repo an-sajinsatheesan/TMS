@@ -33,71 +33,65 @@ class OnboardingController {
 
   /**
    * @route   POST /api/v1/onboarding/profile
-   * @desc    Complete account registration - Sets name and password AFTER OTP verification
-   * @access  Private (requires valid token from OTP verification)
+   * @desc    Complete account registration - CREATE user with name and password AFTER OTP verification
+   * @access  Public (email must be provided from OTP verification)
    */
   static saveProfile = asyncHandler(async (req, res) => {
-    const { fullName, password, avatarUrl } = req.body;
+    const { email, fullName, password, avatarUrl } = req.body;
 
     // Validation
-    if (!fullName || !password) {
-      throw ApiError.badRequest('Full name and password are required');
+    if (!email || !fullName || !password) {
+      throw ApiError.badRequest('Email, full name and password are required');
     }
 
-    // Verify user's email is verified
-    if (!req.user.isEmailVerified) {
-      throw ApiError.unauthorized('Please verify your email first');
-    }
-
-    // Update user with full account details
-    const updateData = { fullName };
-    if (avatarUrl) updateData.avatarUrl = avatarUrl;
-    if (password) {
-      updateData.passwordHash = await bcrypt.hash(password, 10);
-    }
-
-    const updatedUser = await prisma.user.update({
-      where: { id: req.user.id },
-      data: updateData,
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
     });
 
-    // Create or update onboarding data - ALWAYS start at step 1 for new users!
-    let onboardingData = await prisma.onboardingData.findUnique({
-      where: { userId: req.user.id },
+    if (existingUser && existingUser.passwordHash) {
+      throw ApiError.badRequest('User already exists. Please login.');
+    }
+
+    // Hash password
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Create user NOW (after OTP verification)
+    const newUser = await prisma.user.create({
+      data: {
+        email,
+        fullName,
+        passwordHash,
+        avatarUrl: avatarUrl || null,
+        authProvider: 'EMAIL',
+        isEmailVerified: true,
+      },
     });
 
-    if (!onboardingData) {
-      // First time - create onboarding data starting at step 1
-      onboardingData = await prisma.onboardingData.create({
-        data: {
-          userId: req.user.id,
-          currentStep: 1, // ← ALWAYS START AT STEP 1, NOT 4!
-        },
-      });
-    } else {
-      // Update existing onboarding data - ensure it's at step 1
-      onboardingData = await prisma.onboardingData.update({
-        where: { userId: req.user.id },
-        data: { currentStep: 1 }, // Reset to step 1 since profile is now complete
-      });
-    }
+    // Create onboarding data - ALWAYS start at step 1
+    const onboardingData = await prisma.onboardingData.create({
+      data: {
+        userId: newUser.id,
+        currentStep: 1,
+      },
+    });
 
     // Generate tokens NOW (after password is set)
-    const tokens = JwtService.generateAuthTokens(updatedUser);
+    const tokens = JwtService.generateAuthTokens(newUser);
 
     ApiResponse.success(
       {
         user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          fullName: updatedUser.fullName,
-          avatarUrl: updatedUser.avatarUrl,
-          isEmailVerified: updatedUser.isEmailVerified,
+          id: newUser.id,
+          email: newUser.email,
+          fullName: newUser.fullName,
+          avatarUrl: newUser.avatarUrl,
+          isEmailVerified: newUser.isEmailVerified,
         },
-        tokens, // ← Tokens generated ONLY after account is fully created
+        tokens,
         onboardingStatus: {
           isComplete: false,
-          currentStep: 1, // ← NEW USERS ALWAYS START AT STEP 1
+          currentStep: 1,
         },
       },
       'Account created successfully. Welcome to the platform!'

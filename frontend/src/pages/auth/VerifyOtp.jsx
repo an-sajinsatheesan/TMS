@@ -46,16 +46,11 @@ const VerifyOtp = () => {
         description: 'Please complete your profile to continue'
       });
 
-      // Extract temporary registration token (OTP-protected)
-      // This token can ONLY be used to complete profile
-      const tokens = response.data?.tokens || response.tokens;
-
       // After email verification, redirect to complete profile
       // This is where the user will set their name and password
       navigate('/complete-profile', {
         state: {
-          email: email,
-          accessToken: tokens?.accessToken || tokens?.access_token
+          email: email
         },
         replace: true
       });

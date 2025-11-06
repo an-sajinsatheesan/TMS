@@ -43,7 +43,7 @@ function App() {
                     <Routes>
                         {/* Public Routes */}
                         <Route path="/register" element={<Register />} />
-                        <Route path="/login" element={<Login />} />
+                        <Route path="/login" element={<Dashboard />} />
                         <Route path="/verify-otp" element={<VerifyOtp />} />
                         <Route path="/complete-profile" element={<CompleteProfile />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />
