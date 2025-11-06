@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
 import { ProjectProvider } from './contexts/ProjectContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import { Toaster } from './components/ui/sonner';
 
 // Auth Pages
 import Register from './pages/auth/Register';
@@ -38,6 +39,7 @@ function App() {
             <OnboardingProvider>
                 <ProjectProvider>
                     <Router>
+                    <Toaster />
                     <Routes>
                         {/* Public Routes */}
                         <Route path="/register" element={<Register />} />

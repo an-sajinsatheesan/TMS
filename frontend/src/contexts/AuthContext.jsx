@@ -47,14 +47,28 @@ export const AuthProvider = ({ children }) => {
     };
 
     const login = async (email, password) => {
-        const response = await authService.login(email, password);
-        if (response.success) {
-            localStorage.setItem('accessToken', response.data.tokens.accessToken);
-            localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
-            setUser(response.data.user);
-            setOnboardingStatus(response.data.onboardingStatus);
+        try {
+            console.log('🔐 Attempting login with email:', email);
+            const response = await authService.login(email, password);
+            console.log('✅ Login response:', response);
+
+            if (response.success) {
+                localStorage.setItem('accessToken', response.data.tokens.accessToken);
+                localStorage.setItem('refreshToken', response.data.tokens.refreshToken);
+                setUser(response.data.user);
+                setOnboardingStatus(response.data.onboardingStatus);
+                console.log('✅ Login successful! User:', response.data.user);
+            }
+            return response;
+        } catch (error) {
+            console.error('❌ Login failed:', error);
+            console.error('❌ Error details:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
+            throw error;
         }
-        return response;
     };
 
     const register = async (email) => {
@@ -110,6 +124,37 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const completeProfile = async (accessToken, profileData) => {
+        try {
+            const response = await authService.completeProfile(accessToken, profileData);
+
+            // Extract tokens and user from response
+            const tokens = response.data?.tokens || response.tokens;
+            const userData = response.data?.user || response.user;
+            const onboardingData = response.data?.onboardingStatus;
+
+            if (tokens?.accessToken) {
+                // Store new tokens
+                localStorage.setItem('accessToken', tokens.accessToken);
+                localStorage.setItem('refreshToken', tokens.refreshToken);
+            }
+
+            // Update AuthContext state immediately
+            if (userData) {
+                setUser(userData);
+            }
+
+            if (onboardingData) {
+                setOnboardingStatus(onboardingData);
+            }
+
+            return response;
+        } catch (error) {
+            console.error('Profile completion error in AuthContext:', error);
+            throw error;
+        }
+    };
+
     const value = {
         user,
         loading,
@@ -120,6 +165,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         checkAuth,
         refreshOnboardingStatus,
+        completeProfile, // ← New method for profile completion
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

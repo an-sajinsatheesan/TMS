@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { loginSchema } from '../../utils/validationSchemas';
+import { toast } from '../../hooks/useToast';
 import AuthLayout from './AuthLayout';
 
 const Login = () => {
@@ -28,6 +29,11 @@ const Login = () => {
     const onSubmit = async (data) => {
         try {
             const response = await login(data.email, data.password);
+
+            // Show success toast
+            toast.success('Login successful!', {
+                description: 'Welcome back!'
+            });
 
             // Check onboarding status and redirect accordingly
             const onboardingStatus = response.data?.onboardingStatus;
@@ -50,9 +56,16 @@ const Login = () => {
                 navigate('/dashboard', { replace: true });
             }
         } catch (err) {
+            const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+
+            // Show error toast
+            toast.error('Login failed', {
+                description: errorMessage
+            });
+
             setError('root', {
                 type: 'manual',
-                message: err.response?.data?.message || err.message || 'Login failed. Please try again.'
+                message: errorMessage
             });
         }
     };

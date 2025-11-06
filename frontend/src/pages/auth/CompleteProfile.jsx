@@ -11,6 +11,7 @@ import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authService } from '../../api/auth.service';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../../hooks/useToast';
 import AuthLayout from './AuthLayout';
 
 const profileSchema = yup.object().shape({
@@ -31,7 +32,7 @@ const profileSchema = yup.object().shape({
 const CompleteProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { completeProfile } = useAuth(); // ← Use completeProfile from AuthContext
   const email = location.state?.email || '';
   const accessToken = location.state?.accessToken || '';
   const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +48,7 @@ const CompleteProfile = () => {
   });
 
   const onSubmit = async (data) => {
-    // Check if user has valid token (from OTP verification or localStorage)
+    // Check if user has valid token (from OTP verification)
     const token = accessToken || localStorage.getItem('accessToken');
 
     if (!token) {
@@ -60,25 +61,35 @@ const CompleteProfile = () => {
     }
 
     try {
-      // Create profile via onboarding API (already has token from OTP verification)
-      await authService.completeProfile(token, {
+      // Complete account registration using AuthContext method
+      // This will store tokens AND update user state automatically
+      await completeProfile(token, {
         fullName: data.fullName,
         password: data.password
       });
 
-      // Ensure tokens are in localStorage for subsequent requests
-      if (!localStorage.getItem('accessToken')) {
-        localStorage.setItem('accessToken', token);
-      }
+      // Show success toast
+      toast.success('Account created successfully! Welcome aboard!', {
+        description: 'Redirecting to onboarding...'
+      });
 
-      // Redirect to onboarding - user now has valid token and completed profile
-      // No login required - user is already authenticated
-      navigate('/onboarding', { replace: true });
+      // ✅ User is now fully authenticated and AuthContext is updated
+      // Redirect to onboarding which starts at STEP 1
+      setTimeout(() => {
+        navigate('/onboarding', { replace: true });
+      }, 1000);
     } catch (err) {
-      console.error('Profile creation error:', err);
+      console.error('❌ Profile creation error:', err);
+
+      // Show error toast
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to complete profile. Please try again.';
+      toast.error('Profile creation failed', {
+        description: errorMessage
+      });
+
       setError('root', {
         type: 'manual',
-        message: err.response?.data?.message || err.message || 'Failed to complete profile'
+        message: errorMessage
       });
     }
   };
