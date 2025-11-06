@@ -1,124 +1,60 @@
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Base styles */
-body {
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
 }
 
-/* PrimeReact Component Global Styling */
-.p-component {
-    font-size: 0.9rem;
-}
-
-/* All input components - consistent padding and font-size */
-.p-inputtext,
-/* .p-dropdown, */
-/* .p-multiselect, */
-.p-multiselect .p-multiselect-label,
-.p-autocomplete .p-autocomplete-input,
-.p-password input,
-input[type="text"],
-input[type="password"],
-input[type="email"],
-input[type="number"],
-textarea.p-inputtextarea,
-.p-calendar input,
-.p-chips .p-chips-multiple-container {
-    font-size: 0.9rem;
-    padding: 0.5rem 0.5rem;
-}
-.p-multiselect-panel .p-multiselect-items {
-    padding: 0;
-}
-
-/* Dropdown and MultiSelect item padding */
-.p-multiselect-panel .p-multiselect-header,
-.p-multiselect-panel .p-multiselect-items .p-multiselect-item,
-.p-dropdown-panel .p-dropdown-items .p-dropdown-item,
-.p-autocomplete-panel .p-autocomplete-items .p-autocomplete-item {
-    padding: 0.5rem 1rem;
-}
-
-.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight,
-.p-multiselect-panel .p-multiselect-items .p-multiselect-item.p-highlight {
-    color: white;
-}
-.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight.p-focus,
-.p-multiselect-panel .p-multiselect-items .p-multiselect-item.p-highlight.p-focus {
-    color: black;
-}
-
-/* Small variant styles */
-.p-inputtext-sm {
-    font-size: 0.875rem;
-    padding: 0.5rem 0.75rem;
-}
-
-.p-button-sm {
-    font-size: 0.875rem;
-    padding: 0.5rem 1rem;
-}
-
-.p-password .p-icon-field {
-    width: 100%;
-}
-
-/* Fix for PrimeReact Dropdown overlay visibility */
-.p-dropdown-panel {
-    z-index: 9999 !important;
-}
-
-.p-multiselect-panel {
-    z-index: 9999 !important;
-}
-
-.p-menu-overlay {
-    z-index: 9999 !important;
-}
-
-.p-dialog {
-    z-index: 10000 !important;
-}
-
-/* Custom sticky positioning for list view */
-.left-22 {
-    left: 5.5rem; /* 22 * 0.25rem = 5.5rem (w-10 + w-12 = 2.5rem + 3rem) */
-}
-
-/* Scroll shadow for sticky task name column - Enhanced */
-.sticky-shadow {
-    box-shadow: 4px 0 8px -2px rgba(0, 0, 0, 0.15);
-}
-
-/* Compact list view styling - 0.775rem */
-.list-view-text {
-    font-size: 0.775rem;
-    font-weight: 400;
-}
-
-.list-view-header {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-}
-
-/* Hide PrimeReact dropdown/multiselect clear button */
-.p-dropdown-clear-icon,
-.p-multiselect-clear-icon {
-    display: none !important;
-}
-
-/* Ensure all table borders are visible */
-.list-view-border {
-    border-color: #d1d5db !important;
-}
-
-/* Tag component height fix */
-.p-tag {
-    line-height: normal !important;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }

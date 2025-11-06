@@ -355,6 +355,7 @@ class OnboardingController {
         tenant,
         project,
         invitationsSent: invitations.length,
+        redirectTo: `/projects/${project.id}`, // Frontend should redirect to first project
       },
       'Onboarding completed successfully'
     ).send(res);

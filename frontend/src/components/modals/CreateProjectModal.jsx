@@ -1,10 +1,5 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { Dialog } from 'primereact/dialog';
-import { Button } from 'primereact/button';
-import { InputText } from 'primereact/inputtext';
-import { Stepper } from 'primereact/stepper';
-import { StepperPanel } from 'primereact/stepperpanel';
 import { projectsService } from '../../services/api';
 
 const SECTION_COLORS = [

@@ -75,23 +75,22 @@ class EmailService {
             const info = await transporter.sendMail(mailOptions);
 
             logger.info(`OTP email sent to ${email}: ${info.messageId}`);
-            console.log(`✓ OTP email sent successfully to ${email}`);
 
             return { success: true, email, messageId: info.messageId };
         } catch (error) {
             logger.error(`Failed to send OTP email to ${email}:`, error);
 
-            // Fallback to console logging in development
+            // Fallback to logger in development
             if (process.env.NODE_ENV === 'development') {
-                console.log('\n========== EMAIL FALLBACK (Failed to send) ==========');
-                console.log(`To: ${email}`);
-                console.log(`Subject: Your Verification Code`);
-                console.log(`\nYour verification code is: ${code}`);
-                console.log(`This code will expire in 10 minutes.`);
-                console.log('====================================================\n');
+                logger.warn('========== EMAIL FALLBACK (Failed to send) ==========');
+                logger.warn(`To: ${email}`);
+                logger.warn(`Subject: Your Verification Code`);
+                logger.warn(`Your verification code is: ${code}`);
+                logger.warn(`This code will expire in 10 minutes.`);
+                logger.warn('====================================================');
 
                 // In development, return success even if email fails
-                // The OTP is logged to console for testing
+                // The OTP is logged for testing
                 return { success: true, email, messageId: 'dev-fallback', devMode: true };
             }
 

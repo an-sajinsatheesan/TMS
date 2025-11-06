@@ -14,8 +14,11 @@ class OnboardingOptionsController {
    * @access  Public
    */
   static getAppUsageOptions = asyncHandler(async (req, res) => {
-    const options = await prisma.appUsageOption.findMany({
-      where: { isActive: true },
+    const options = await prisma.onboardingOption.findMany({
+      where: {
+        category: 'app_usage',
+        isActive: true
+      },
       orderBy: { position: 'asc' },
       select: {
         id: true,
@@ -35,8 +38,11 @@ class OnboardingOptionsController {
    * @access  Public
    */
   static getIndustryOptions = asyncHandler(async (req, res) => {
-    const options = await prisma.industryOption.findMany({
-      where: { isActive: true },
+    const options = await prisma.onboardingOption.findMany({
+      where: {
+        category: 'industry',
+        isActive: true
+      },
       orderBy: { position: 'asc' },
       select: {
         id: true,
@@ -56,8 +62,11 @@ class OnboardingOptionsController {
    * @access  Public
    */
   static getTeamSizeOptions = asyncHandler(async (req, res) => {
-    const options = await prisma.teamSizeOption.findMany({
-      where: { isActive: true },
+    const options = await prisma.onboardingOption.findMany({
+      where: {
+        category: 'team_size',
+        isActive: true
+      },
       orderBy: { position: 'asc' },
       select: {
         id: true,
@@ -78,8 +87,11 @@ class OnboardingOptionsController {
    * @access  Public
    */
   static getRoleOptions = asyncHandler(async (req, res) => {
-    const options = await prisma.roleOption.findMany({
-      where: { isActive: true },
+    const options = await prisma.onboardingOption.findMany({
+      where: {
+        category: 'role',
+        isActive: true
+      },
       orderBy: { position: 'asc' },
       select: {
         id: true,
@@ -99,28 +111,26 @@ class OnboardingOptionsController {
    * @access  Public
    */
   static getAllOptions = asyncHandler(async (req, res) => {
-    const [appUsage, industries, teamSizes, roles] = await Promise.all([
-      prisma.appUsageOption.findMany({
-        where: { isActive: true },
-        orderBy: { position: 'asc' },
-        select: { id: true, label: true, value: true, description: true, icon: true },
-      }),
-      prisma.industryOption.findMany({
-        where: { isActive: true },
-        orderBy: { position: 'asc' },
-        select: { id: true, label: true, value: true, description: true, icon: true },
-      }),
-      prisma.teamSizeOption.findMany({
-        where: { isActive: true },
-        orderBy: { position: 'asc' },
-        select: { id: true, label: true, value: true, description: true, minSize: true, maxSize: true },
-      }),
-      prisma.roleOption.findMany({
-        where: { isActive: true },
-        orderBy: { position: 'asc' },
-        select: { id: true, label: true, value: true, description: true, icon: true },
-      }),
-    ]);
+    const allOptions = await prisma.onboardingOption.findMany({
+      where: { isActive: true },
+      orderBy: { position: 'asc' },
+      select: {
+        id: true,
+        category: true,
+        label: true,
+        value: true,
+        description: true,
+        icon: true,
+        minSize: true,
+        maxSize: true
+      },
+    });
+
+    // Group by category
+    const appUsage = allOptions.filter(opt => opt.category === 'app_usage');
+    const industries = allOptions.filter(opt => opt.category === 'industry');
+    const teamSizes = allOptions.filter(opt => opt.category === 'team_size');
+    const roles = allOptions.filter(opt => opt.category === 'role');
 
     ApiResponse.success(
       {

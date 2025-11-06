@@ -2,13 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { onboardingService } from '../../api/onboarding.service';
-import { MultiSelect } from 'primereact/multiselect';
-import { Dropdown } from 'primereact/dropdown';
-import { Message } from 'primereact/message';
-import { ProgressSpinner } from 'primereact/progressspinner';
-import 'primereact/resources/themes/lara-light-teal/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
 
 const Step4CompanyInfo = () => {
   const navigate = useNavigate();

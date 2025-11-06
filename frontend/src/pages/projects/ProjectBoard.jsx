@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ProgressSpinner } from 'primereact/progressspinner';
-import { Message } from 'primereact/message';
 import ViewTabs from '../../components/project-views/shared/ViewTabs';
 import ListView from '../../components/project-views/list-view/ListView';
 import KanbanView from '../../components/project-views/kanban-view/KanbanView';
