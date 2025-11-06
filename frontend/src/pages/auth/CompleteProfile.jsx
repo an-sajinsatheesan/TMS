@@ -33,8 +33,8 @@ const CompleteProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { completeProfile } = useAuth(); // ← Use completeProfile from AuthContext
-  const email = location.state?.email || '';
-  const accessToken = location.state?.accessToken || '';
+  const email = location.state?.email || localStorage.getItem('userEmail') || '';
+  const accessToken = location.state?.accessToken || localStorage.getItem('accessToken') || '';
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 

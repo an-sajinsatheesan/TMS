@@ -54,6 +54,7 @@ const VerifyOtp = () => {
         // Store temporary token - will be replaced with full token after profile completion
         localStorage.setItem('accessToken', tokens.accessToken);
         localStorage.setItem('refreshToken', tokens.refreshToken);
+        localStorage.setItem('userEmail', email);
       }
 
       // After email verification, redirect to complete profile
