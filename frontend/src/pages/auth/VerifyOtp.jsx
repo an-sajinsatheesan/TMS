@@ -41,11 +41,21 @@ const VerifyOtp = () => {
       const response = await authService.verifyOtp(email, data.code);
       console.log('OTP Verification response:', response.data);
 
-      // After OTP verification, redirect to complete profile with access token
+      // Extract tokens from response
+      const tokens = response.data?.data?.tokens || response.data?.tokens;
+
+      if (tokens?.accessToken && tokens?.refreshToken) {
+        // Store tokens in localStorage for persistent authentication
+        localStorage.setItem('accessToken', tokens.accessToken);
+        localStorage.setItem('refreshToken', tokens.refreshToken);
+      }
+
+      // After OTP verification, redirect to complete profile
+      // User now has valid token from OTP verification
       navigate('/complete-profile', {
         state: {
           email: email,
-          accessToken: response.data.data?.tokens?.accessToken || response.data.tokens?.accessToken
+          accessToken: tokens?.accessToken
         },
         replace: true
       });

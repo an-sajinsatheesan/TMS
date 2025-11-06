@@ -23,6 +23,12 @@ import Step6Tasks from './pages/onboarding/Step7Tasks';
 import Step7Layout from './pages/onboarding/Step8Layout';
 import Step8Invite from './pages/onboarding/Step9Invite';
  
+// Dashboard
+import Dashboard from './pages/Dashboard';
+
+// Guards
+import OnboardingStepGuard from './components/common/OnboardingStepGuard';
+
 // Other Pages
 import InvitationAccept from './pages/InvitationAccept';
 
@@ -52,18 +58,50 @@ function App() {
                                 </ProtectedRoute>
                             }
                         >
-                            <Route index element={<Step1Welcome />} />
-                            <Route path="step2" element={<Step2CreateWorkspace />} />
-                            <Route path="step3" element={<Step3CompanyInfo />} />
-                            <Route path="step4" element={<Step4ProjectName />} />
-                            <Route path="step5" element={<Step5Sections />} />
-                            <Route path="step6" element={<Step6Tasks />} />
-                            <Route path="step7" element={<Step7Layout />} />
-                            <Route path="step8" element={<Step8Invite />} />
+                            <Route index element={
+                                <OnboardingStepGuard requiredStep={1}>
+                                    <Step1Welcome />
+                                </OnboardingStepGuard>
+                            } />
+                            <Route path="step2" element={
+                                <OnboardingStepGuard requiredStep={2}>
+                                    <Step2CreateWorkspace />
+                                </OnboardingStepGuard>
+                            } />
+                            <Route path="step3" element={
+                                <OnboardingStepGuard requiredStep={3}>
+                                    <Step3CompanyInfo />
+                                </OnboardingStepGuard>
+                            } />
+                            <Route path="step4" element={
+                                <OnboardingStepGuard requiredStep={4}>
+                                    <Step4ProjectName />
+                                </OnboardingStepGuard>
+                            } />
+                            <Route path="step5" element={
+                                <OnboardingStepGuard requiredStep={5}>
+                                    <Step5Sections />
+                                </OnboardingStepGuard>
+                            } />
+                            <Route path="step6" element={
+                                <OnboardingStepGuard requiredStep={6}>
+                                    <Step6Tasks />
+                                </OnboardingStepGuard>
+                            } />
+                            <Route path="step7" element={
+                                <OnboardingStepGuard requiredStep={7}>
+                                    <Step7Layout />
+                                </OnboardingStepGuard>
+                            } />
+                            <Route path="step8" element={
+                                <OnboardingStepGuard requiredStep={8}>
+                                    <Step8Invite />
+                                </OnboardingStepGuard>
+                            } />
                         </Route>
 
                         {/* Protected Dashboard Routes */}
-                        {/* <Route
+                        <Route
                             path="/dashboard"
                             element={
                                 <ProtectedRoute>
@@ -87,30 +125,6 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
-                        <Route
-                            path="/workspace/:tenantId"
-                            element={
-                                <ProtectedRoute>
-                                    <Workspace />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/:userId/project/:projectId/:viewMode"
-                            element={
-                                <ProtectedRoute>
-                                    <ProjectBoard />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/:userId/project/:projectId"
-                            element={
-                                <ProtectedRoute>
-                                    <ProjectBoard />
-                                </ProtectedRoute>
-                            }
-                        /> */}
 
                         {/* Default Route */}
                         <Route path="/" element={<Navigate to="/login" replace />} />
