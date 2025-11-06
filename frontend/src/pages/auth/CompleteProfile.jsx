@@ -31,7 +31,7 @@ const profileSchema = yup.object().shape({
 const CompleteProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { completeProfile } = useAuth(); // ← Use completeProfile from AuthContext
   const email = location.state?.email || '';
   const accessToken = location.state?.accessToken || '';
   const [showPassword, setShowPassword] = useState(false);
@@ -60,32 +60,23 @@ const CompleteProfile = () => {
     }
 
     try {
-      // Complete account registration - Set name and password
-      // Backend will return NEW tokens (full access tokens) and start onboarding at step 1
-      const response = await authService.completeProfile(token, {
+      // Complete account registration using AuthContext method
+      // This will store tokens AND update user state automatically
+      await completeProfile(token, {
         fullName: data.fullName,
         password: data.password
       });
 
-      console.log('Profile completion response:', response);
+      console.log('✅ Profile completed successfully! User is now logged in.');
 
-      // Extract the NEW full access tokens from response
-      const newTokens = response.data?.tokens || response.tokens;
-
-      if (newTokens?.accessToken) {
-        // Replace temporary token with full access token
-        localStorage.setItem('accessToken', newTokens.accessToken);
-        localStorage.setItem('refreshToken', newTokens.refreshToken);
-      }
-
-      // ✅ Onboarding now starts at STEP 1 (not step 4!)
-      // Redirect to onboarding - user now has full account with password
+      // ✅ User is now fully authenticated and AuthContext is updated
+      // Redirect to onboarding which starts at STEP 1
       navigate('/onboarding', { replace: true });
     } catch (err) {
-      console.error('Profile creation error:', err);
+      console.error('❌ Profile creation error:', err);
       setError('root', {
         type: 'manual',
-        message: err.response?.data?.message || err.message || 'Failed to complete profile'
+        message: err.response?.data?.message || err.message || 'Failed to complete profile. Please try again.'
       });
     }
   };
