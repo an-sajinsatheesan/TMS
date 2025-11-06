@@ -2,6 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { onboardingService } from '../../api/onboarding.service';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MultiSelect } from '@/components/ui/multi-select';
+import { AlertCircle, Loader2 } from 'lucide-react';
 
 const Step4CompanyInfo = () => {
   const navigate = useNavigate();
@@ -27,30 +32,15 @@ const Step4CompanyInfo = () => {
     fetchAllOptions();
   }, []);
 
-  useEffect(() => {
-    console.log('teamSizeOptions state updated:', teamSizeOptions);
-    console.log('teamSizeOptions is array?', Array.isArray(teamSizeOptions));
-    console.log('teamSizeOptions length:', teamSizeOptions.length);
-  }, [teamSizeOptions]);
-
   const fetchAllOptions = async () => {
     try {
       const response = await onboardingService.getAllOptions();
       const data = response.data;
       
-      
       setAppUsageOptions(data.appUsage || []);
       setIndustryOptions(data.industries || []);
       setTeamSizeOptions(data.teamSizes || []);
       setRoleOptions(data.roles || []);
- 
-
-
-      console.log(appUsageOptions, 'appUsageOptions');
-      console.log(industryOptions, 'industryOptions');
-      console.log(teamSizeOptions, 'teamSizeOptions');
-      console.log(roleOptions, 'roleOptions');
-       
     } catch (error) {
       console.error('Error fetching options:', error);
       setError('Failed to load options. Please refresh the page.');
@@ -105,16 +95,16 @@ const Step4CompanyInfo = () => {
 
   if (loading) {
     return (
-      <div className="card p-6">
+      <div className="rounded-lg border bg-card p-6">
         <div className="flex justify-center items-center py-12">
-          <ProgressSpinner style={{ width: '50px', height: '50px' }} />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="card p-6">
+    <div className="rounded-lg border bg-card p-6">
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-4">Tell us about your company</h2>
         <p className="text-gray-600">
@@ -123,115 +113,94 @@ const Step4CompanyInfo = () => {
       </div>
 
       {error && (
-        <div className="mb-4">
-          <Message severity="error" text={error} className="w-full" />
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-6 mb-6">
           {/* App Usage */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="appUsage" className="block text-gray-700 text-sm font-semibold">
-              What will you use StackFlow for? *
+            <label htmlFor="appUsage" className="block text-sm font-semibold">
+              What will you use TMS for? *
             </label>
             <MultiSelect
-              id="appUsage"
-              value={selectedAppUsageIds}
-              onChange={(e) => setSelectedAppUsageIds(e.value)}
               options={appUsageOptions}
+              value={selectedAppUsageIds}
+              onChange={setSelectedAppUsageIds}
               optionLabel="label"
               optionValue="id"
               placeholder="Select usage types"
-              display="chip"
-              className="w-full"
-              showSelectAll={false}
-              filter={false}
               disabled={saving}
             />
           </div>
 
           {/* Industry */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="industries" className="block text-gray-700 text-sm font-semibold">
+            <label htmlFor="industries" className="block text-sm font-semibold">
               What industry best describes your company? *
             </label>
             <MultiSelect
-              id="industries"
-              value={selectedIndustryIds}
-              onChange={(e) => setSelectedIndustryIds(e.value)}
               options={industryOptions}
+              value={selectedIndustryIds}
+              onChange={setSelectedIndustryIds}
               optionLabel="label"
               optionValue="id"
               placeholder="Select industries"
-              display="chip"
-              className="w-full"
-              showSelectAll={false}
-              filter={false}
               disabled={saving}
             />
           </div>
 
           {/* Team Size */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="teamSize" className="block text-gray-700 text-sm font-semibold">
+            <label htmlFor="teamSize" className="block text-sm font-semibold">
               How big is your team? *
             </label>
-            <Dropdown
-              id="teamSize"
-              value={selectedTeamSizeId}
-              onChange={(e) => {
-                console.log('Selected team size:', e.value);
-                setSelectedTeamSizeId(e.value);
-              }}
-              options={teamSizeOptions}
-              optionLabel="label"
-              optionValue="id"
-              placeholder="Select team size"
-              className="w-full"
-              disabled={saving}
-              appendTo="self"
-            />
+            <Select value={selectedTeamSizeId} onValueChange={setSelectedTeamSizeId} disabled={saving}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select team size" />
+              </SelectTrigger>
+              <SelectContent>
+                {teamSizeOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Role */}
           <div className="flex flex-col gap-2">
-            <label htmlFor="roles" className="block text-gray-700 text-sm font-semibold">
+            <label htmlFor="roles" className="block text-sm font-semibold">
               What best describes your role? *
             </label>
             <MultiSelect
-              id="roles"
-              value={selectedRoleIds}
-              onChange={(e) => setSelectedRoleIds(e.value)}
               options={roleOptions}
+              value={selectedRoleIds}
+              onChange={setSelectedRoleIds}
               optionLabel="label"
               optionValue="id"
               placeholder="Select your role(s)"
-              display="chip"
-              className="w-full"
-              showSelectAll={false}
-              filter={false}
               disabled={saving}
             />
           </div>
         </div>
 
         <div className="flex gap-3">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => navigate('/onboarding/step3')}
             disabled={saving}
-            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
             Back
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
+          </Button>
+          <Button type="submit" disabled={saving} className="flex-1">
             {saving ? 'Saving...' : 'Continue'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

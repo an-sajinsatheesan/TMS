@@ -1,142 +1,107 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { invitationService } from '../../api/invitation.service';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info, Send, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function InviteDialog({ visible, onHide, projectId, projectName }) {
   const [emails, setEmails] = useState('');
   const [loading, setLoading] = useState(false);
-  const toast = useRef(null);
+  const [error, setError] = useState('');
 
   const handleInvite = async () => {
     if (!emails.trim()) {
-      toast.current?.show({
-        severity: 'warn',
-        summary: 'Warning',
-        detail: 'Please enter at least one email address',
-        life: 3000
-      });
+      toast.warning('Please enter at least one email address');
       return;
     }
 
-    // Parse emails (comma or space separated)
     const emailList = emails
       .split(/[,\s]+/)
       .map(e => e.trim())
       .filter(e => e.length > 0);
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const invalidEmails = emailList.filter(e => !emailRegex.test(e));
 
     if (invalidEmails.length > 0) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Invalid Email',
-        detail: `Invalid email format: ${invalidEmails.join(', ')}`,
-        life: 4000
-      });
+      setError('Invalid email format');
       return;
     }
 
     setLoading(true);
+    setError('');
     try {
       await invitationService.sendProjectInvitations(projectId, emailList);
-
-      toast.current?.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: `Invitation${emailList.length > 1 ? 's' : ''} sent to ${emailList.length} email${emailList.length > 1 ? 's' : ''}`,
-        life: 3000
-      });
-
-      // Reset and close
+      toast.success('Invitations sent successfully');
       setEmails('');
       onHide();
     } catch (error) {
       console.error('Error sending invitations:', error);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: error.response?.data?.message || 'Failed to send invitations',
-        life: 4000
-      });
+      setError(error.response?.data?.message || 'Failed to send invitations');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleInvite();
-    }
-  };
-
-  const footer = (
-    <div className="flex justify-end gap-2">
-      <Button
-        label="Cancel"
-        icon="pi pi-times"
-        onClick={onHide}
-        className="p-button-text"
-        disabled={loading}
-      />
-      <Button
-        label="Send Invitations"
-        icon="pi pi-send"
-        onClick={handleInvite}
-        loading={loading}
-        disabled={!emails.trim()}
-      />
-    </div>
-  );
-
   return (
-    <>
-      <Toast ref={toast} />
-      <Dialog
-        header={`Invite to ${projectName || 'Project'}`}
-        visible={visible}
-        style={{ width: '450px' }}
-        onHide={onHide}
-        footer={footer}
-        draggable={false}
-        resizable={false}
-      >
-        <div className="flex flex-col gap-4">
+    <Dialog open={visible} onOpenChange={onHide}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>Invite to {projectName || 'Project'}</DialogTitle>
+          <DialogDescription>
+            Invite team members to collaborate
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4 py-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div>
             <label htmlFor="emails" className="block text-sm font-medium mb-2">
               Email Addresses
             </label>
-            <InputText
+            <Input
               id="emails"
               value={emails}
               onChange={(e) => setEmails(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Enter email addresses (comma or space separated)"
-              className="w-full"
-              autoFocus
+              placeholder="Enter emails (comma separated)"
               disabled={loading}
             />
             <small className="text-gray-500 block mt-1">
-              Separate multiple emails with commas or spaces
+              Separate multiple emails with commas
             </small>
           </div>
 
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 text-sm">
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 text-sm rounded">
             <div className="flex items-start gap-2">
-              <i className="pi pi-info-circle text-blue-500 mt-0.5" />
+              <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-blue-900 mb-1">What happens next?</p>
                 <ul className="text-blue-800 text-xs space-y-1 ml-4 list-disc">
-                  <li>Invited users will receive an email invitation</li>
-                  <li>They'll join your tenant after accepting</li>
-                  <li>They'll have access only to this project</li>
+                  <li>Users will receive email invitations</li>
+                  <li>They will join after accepting</li>
                 </ul>
               </div>
             </div>
           </div>
         </div>
-      </Dialog>
-    </>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onHide} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={handleInvite} disabled={!emails.trim() || loading}>
+            {loading ? 'Sending...' : 'Send Invitations'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
