@@ -11,6 +11,7 @@ import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { authService } from '../../api/auth.service';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from '../../hooks/useToast';
 import AuthLayout from './AuthLayout';
 
 const profileSchema = yup.object().shape({
@@ -67,16 +68,28 @@ const CompleteProfile = () => {
         password: data.password
       });
 
-      console.log('✅ Profile completed successfully! User is now logged in.');
+      // Show success toast
+      toast.success('Account created successfully! Welcome aboard!', {
+        description: 'Redirecting to onboarding...'
+      });
 
       // ✅ User is now fully authenticated and AuthContext is updated
       // Redirect to onboarding which starts at STEP 1
-      navigate('/onboarding', { replace: true });
+      setTimeout(() => {
+        navigate('/onboarding', { replace: true });
+      }, 1000);
     } catch (err) {
       console.error('❌ Profile creation error:', err);
+
+      // Show error toast
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to complete profile. Please try again.';
+      toast.error('Profile creation failed', {
+        description: errorMessage
+      });
+
       setError('root', {
         type: 'manual',
-        message: err.response?.data?.message || err.message || 'Failed to complete profile. Please try again.'
+        message: errorMessage
       });
     }
   };

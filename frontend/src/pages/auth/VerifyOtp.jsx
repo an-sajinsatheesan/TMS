@@ -10,6 +10,7 @@ import { AlertCircle, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { verifyOtpSchema } from '../../utils/validationSchemas';
 import { authService } from '../../api/auth.service';
+import { toast } from '../../hooks/useToast';
 import AuthLayout from './AuthLayout';
 
 const VerifyOtp = () => {
@@ -39,7 +40,11 @@ const VerifyOtp = () => {
   const onSubmit = async (data) => {
     try {
       const response = await authService.verifyOtp(email, data.code);
-      console.log('OTP Verification response:', response);
+
+      // Show success toast
+      toast.success('Email verified successfully!', {
+        description: 'Please complete your profile to continue'
+      });
 
       // Extract temporary registration token (OTP-protected)
       // This token can ONLY be used to complete profile
@@ -53,18 +58,27 @@ const VerifyOtp = () => {
 
       // After email verification, redirect to complete profile
       // This is where the user will set their name and password
-      navigate('/complete-profile', {
-        state: {
-          email: email,
-          accessToken: tokens?.accessToken
-        },
-        replace: true
-      });
+      setTimeout(() => {
+        navigate('/complete-profile', {
+          state: {
+            email: email,
+            accessToken: tokens?.accessToken
+          },
+          replace: true
+        });
+      }, 1000);
     } catch (err) {
       console.error('OTP Verification error:', err);
+      const errorMessage = err.response?.data?.message || err.message || 'Verification failed';
+
+      // Show error toast
+      toast.error('Verification failed', {
+        description: errorMessage
+      });
+
       setError('root', {
         type: 'manual',
-        message: err.response?.data?.message || err.message || 'Verification failed'
+        message: errorMessage
       });
     }
   };
@@ -72,9 +86,19 @@ const VerifyOtp = () => {
   const handleResend = async () => {
     if (!canResend) return;
 
-    // TODO: Implement resend OTP API call
-    setResendTimer(60);
-    setCanResend(false);
+    try {
+      // TODO: Implement resend OTP API call
+      toast.info('Code resent', {
+        description: 'Check your email for a new verification code'
+      });
+
+      setResendTimer(60);
+      setCanResend(false);
+    } catch (err) {
+      toast.error('Failed to resend code', {
+        description: err.message || 'Please try again later'
+      });
+    }
   };
 
   if (!email) {
