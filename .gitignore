@@ -1,0 +1,38 @@
+# --- Global node modules ---
+node_modules/
+**/node_modules/
+
+# --- Build outputs ---
+dist/
+build/
+*.log
+
+# --- Environment files ---
+.env
+**/.env
+.env.local
+**/.env.local
+
+# --- Editor / OS files ---
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- Vite / Next / React cache ---
+.vite/
+.next/
+.cache/
+
+# --- TypeScript build artifacts ---
+*.tsbuildinfo
+
+# --- IDE configs ---
+.vscode/
+.idea/
+
+# --- Prisma generated folder (optional if large) ---
+backend/prisma/migrations/
+
+# --- Local runtime / data ---
+*.sqlite
+*.db

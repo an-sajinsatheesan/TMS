@@ -1,0 +1,80 @@
+/* Custom styles for react-big-calendar */
+.rbc-calendar {
+  font-family: inherit;
+}
+
+.rbc-header {
+  padding: 10px 3px;
+  font-weight: 600;
+  font-size: 14px;
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.rbc-today {
+  background-color: #eff6ff;
+}
+
+.rbc-event {
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.rbc-event:focus {
+  outline: 2px solid #3b82f6;
+}
+
+.rbc-day-slot .rbc-time-slot {
+  border-top: 1px solid #f3f4f6;
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid #e5e7eb;
+}
+
+.rbc-time-content {
+  border-top: 2px solid #e5e7eb;
+}
+
+.rbc-current-time-indicator {
+  background-color: #ef4444;
+  height: 2px;
+}
+
+/* Custom styles for gantt-task-react */
+._1ughC {
+  font-family: inherit;
+}
+
+.gantt-task-react-container {
+  font-family: inherit;
+}
+
+/* Gantt header */
+._2DjbI {
+  font-weight: 600;
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+/* Gantt grid row */
+._26rgC {
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Gantt bar */
+._2gBWh {
+  cursor: pointer;
+}
+
+/* Gantt bar label */
+._1l8Xf {
+  font-size: 12px;
+}
+
+/* Today line */
+._3T9Lj {
+  stroke: #ef4444;
+  stroke-width: 2;
+}

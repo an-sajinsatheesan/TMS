@@ -1,0 +1,114 @@
+import { createContext, useContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import { projectsService } from '../services/api';
+
+const ProjectContext = createContext();
+
+export const useProject = () => {
+  const context = useContext(ProjectContext);
+  if (!context) {
+    throw new Error('useProject must be used within ProjectProvider');
+  }
+  return context;
+};
+
+export const ProjectProvider = ({ children }) => {
+  const [projects, setProjects] = useState([]);
+  const [activeProject, setActiveProject] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [initialized, setInitialized] = useState(false);
+
+  const fetchProjects = async () => {
+    // Only fetch if user is authenticated (token exists)
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await projectsService.getAll();
+      // Handle nested response structure: response.data.data
+      const projectsData = response?.data?.data || [];
+      setProjects(Array.isArray(projectsData) ? projectsData : []);
+
+      // Set first project as active if none selected
+      if (!activeProject && projectsData.length > 0) {
+        setActiveProject(projectsData[0]);
+      }
+      setInitialized(true);
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+      setError(err.message || 'Failed to load projects');
+      setProjects([]); // Ensure projects is always an array even on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectProject = (project) => {
+    setActiveProject(project);
+  };
+
+  const createProject = async (projectData) => {
+    try {
+      const response = await projectsService.create(projectData);
+      const newProject = response?.data?.data || response?.data;
+      setProjects([...projects, newProject]);
+      setActiveProject(newProject);
+      return newProject;
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      throw err;
+    }
+  };
+
+  const updateProject = async (projectId, updates) => {
+    try {
+      const response = await projectsService.update(projectId, updates);
+      const updatedProject = response.data;
+      setProjects(projects.map(p => p.id === projectId ? updatedProject : p));
+      if (activeProject?.id === projectId) {
+        setActiveProject(updatedProject);
+      }
+      return updatedProject;
+    } catch (err) {
+      console.error('Failed to update project:', err);
+      throw err;
+    }
+  };
+
+  const deleteProject = async (projectId) => {
+    try {
+      await projectsService.delete(projectId);
+      setProjects(projects.filter(p => p.id !== projectId));
+      if (activeProject?.id === projectId) {
+        setActiveProject(projects.find(p => p.id !== projectId) || null);
+      }
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      throw err;
+    }
+  };
+
+  const value = {
+    projects,
+    activeProject,
+    loading,
+    error,
+    selectProject,
+    createProject,
+    updateProject,
+    deleteProject,
+    refreshProjects: fetchProjects,
+  };
+
+  return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
+};
+
+ProjectProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};

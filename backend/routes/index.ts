@@ -1,0 +1,33 @@
+const express = require('express');
+const router = express.Router();
+
+// Import route modules
+const authRoutes = require('./auth.routes');
+const onboardingRoutes = require('./onboarding.routes');
+const tenantRoutes = require('./tenant.routes');
+const invitationRoutes = require('./invitation.routes');
+const projectRoutes = require('./project.routes');
+const sectionByIdRoutes = require('./sectionById.routes');
+const taskByIdRoutes = require('./taskById.routes');
+const commentByIdRoutes = require('./commentById.routes');
+
+// Health check route
+router.get('/health', (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: 'API is running',
+        timestamp: new Date().toISOString(),
+    });
+});
+
+// API Routes
+router.use('/auth', authRoutes);
+router.use('/onboarding', onboardingRoutes);
+router.use('/tenants', tenantRoutes);
+router.use('/invitations', invitationRoutes);
+router.use('/projects', projectRoutes);
+router.use('/sections', sectionByIdRoutes);
+router.use('/tasks', taskByIdRoutes);
+router.use('/comments', commentByIdRoutes);
+
+module.exports = router;

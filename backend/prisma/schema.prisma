@@ -1,0 +1,419 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enable UUID extension
+// Run this SQL first: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+// Enums
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+}
+
+enum TenantRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ProjectLayout {
+  LIST
+  BOARD
+  TIMELINE
+  CALENDAR
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+enum InvitationType {
+  TENANT
+  PROJECT
+}
+
+enum ProjectRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum TaskType {
+  TASK
+  MILESTONE
+}
+
+// Models
+
+model User {
+  id               String    @id @default(uuid()) @db.Uuid
+  email            String    @unique
+  authProvider     AuthProvider @default(EMAIL)
+  googleId         String?   @unique
+  passwordHash     String?
+  fullName         String?
+  avatarUrl        String?
+  isEmailVerified  Boolean   @default(false)
+  twoFaEnabled     Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  onboardingData   OnboardingData?
+  ownedTenants     Tenant[]          @relation("TenantOwner")
+  tenantUsers      TenantUser[]
+  createdProjects  Project[]
+  createdTasks     Task[]
+  assignedTasks    Task[]            @relation("TaskAssignee")
+  sentInvitations  Invitation[]
+  projectMembers   ProjectMember[]
+  taskComments     TaskComment[]
+
+  @@index([email])
+  @@index([googleId])
+  @@map("users")
+}
+
+model Tenant {
+  id                  String    @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String    @unique
+  ownerId             String    @db.Uuid
+  subscriptionPlanId  String    @db.Uuid
+  trialEndsAt         DateTime?
+  productKey          String?
+  emailConfig         Json?
+  messageConfig       Json?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relations
+  owner               User              @relation("TenantOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  subscriptionPlan    SubscriptionPlan  @relation(fields: [subscriptionPlanId], references: [id])
+  tenantUsers         TenantUser[]
+  projects            Project[]
+  invitations         Invitation[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@map("tenants")
+}
+
+model TenantUser {
+  id        String      @id @default(uuid()) @db.Uuid
+  tenantId  String      @db.Uuid
+  userId    String      @db.Uuid
+  role      TenantRole  @default(MEMBER)
+  joinedAt  DateTime    @default(now())
+
+  // Relations
+  tenant    Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("tenant_users")
+}
+
+model OnboardingData {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @unique @db.Uuid
+  currentStep       Int       @default(1)
+
+  // New fields with IDs
+  appUsageIds       String[]  @db.Uuid
+  industryIds       String[]  @db.Uuid
+  teamSizeId        String?   @db.Uuid
+  roleIds           String[]  @db.Uuid
+
+  // Legacy fields (keeping for backward compatibility)
+  role              String?
+  functions         String[]
+  useCases          String[]
+
+  projectName       String?
+  tasks             Json?
+  sections          Json?
+  layoutPreference  String?
+  completedAt       DateTime?
+  data              Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_data")
+}
+
+model Project {
+  id          String         @id @default(uuid()) @db.Uuid
+  tenantId    String         @db.Uuid
+  name        String
+  layout      ProjectLayout  @default(LIST)
+  createdBy   String         @db.Uuid
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  creator     User           @relation(fields: [createdBy], references: [id])
+  sections    ProjectSection[]
+  tasks       Task[]
+  invitations Invitation[]
+  members     ProjectMember[]
+  columns     ProjectColumn[]
+
+  @@index([tenantId])
+  @@index([createdBy])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id          String       @id @default(uuid()) @db.Uuid
+  projectId   String       @db.Uuid
+  userId      String       @db.Uuid
+  role        ProjectRole  @default(MEMBER)
+  joinedAt    DateTime     @default(now())
+
+  // Relations
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model ProjectColumn {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @db.Uuid
+  name        String
+  type        String    // 'text', 'date', 'select', 'user', 'number', etc.
+  width       Int       @default(150)
+  visible     Boolean   @default(true)
+  position    Int
+  options     Json?     // For select type columns
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_columns")
+}
+
+model ProjectSection {
+  id             String    @id @default(uuid()) @db.Uuid
+  projectId      String    @db.Uuid
+  name           String
+  position       Int
+  color          String?   @default("#94a3b8")
+  isCollapsed    Boolean   @default(false)
+  kanbanWipLimit Int?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  @@index([projectId])
+  @@map("project_sections")
+}
+
+model Task {
+  id             String          @id @default(uuid()) @db.Uuid
+  projectId      String          @db.Uuid
+  sectionId      String?         @db.Uuid
+  title          String
+  description    String?
+  type           TaskType        @default(TASK)
+  completed      Boolean         @default(false)
+  assigneeId     String?         @db.Uuid
+  startDate      DateTime?
+  dueDate        DateTime?
+  priority       String?
+  status         String?
+  approvalStatus String?
+  tags           String[]
+  customFields   Json?
+  orderIndex     Float           @default(0)
+  completedAt    DateTime?
+  parentId       String?         @db.Uuid
+  level          Int             @default(0)
+  createdBy      String          @db.Uuid
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section     ProjectSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  creator     User            @relation(fields: [createdBy], references: [id])
+  assignee    User?           @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  parent      Task?           @relation("Subtasks", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subtasks    Task[]          @relation("Subtasks")
+  comments    TaskComment[]
+
+  @@index([projectId])
+  @@index([sectionId])
+  @@index([createdBy])
+  @@index([assigneeId])
+  @@index([parentId])
+  @@map("tasks")
+}
+
+model Invitation {
+  id          String           @id @default(uuid()) @db.Uuid
+  tenantId    String           @db.Uuid
+  projectId   String?          @db.Uuid
+  email       String
+  invitedBy   String           @db.Uuid
+  token       String           @unique
+  type        InvitationType   @default(TENANT)
+  role        TenantRole       @default(MEMBER)
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime         @default(now())
+
+  // Relations
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inviter     User             @relation(fields: [invitedBy], references: [id])
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([email])
+  @@index([token])
+  @@map("invitations")
+}
+
+model SubscriptionPlan {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  features    Json
+  price       Decimal   @db.Decimal(10, 2)
+  trialDays   Int       @default(14)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  tenants     Tenant[]
+
+  @@map("subscription_plans")
+}
+
+model OtpCode {
+  id          String    @id @default(uuid()) @db.Uuid
+  email       String
+  code        String
+  expiresAt   DateTime
+  isVerified  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+  @@map("otp_codes")
+}
+
+model PasswordReset {
+  id          String    @id @default(uuid()) @db.Uuid
+  email       String
+  token       String    @unique
+  expiresAt   DateTime
+  isUsed      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@map("password_resets")
+}
+
+// Onboarding Option Models
+model AppUsageOption {
+  id          String    @id @default(uuid()) @db.Uuid
+  label       String
+  value       String    @unique
+  description String?
+  icon        String?
+  isActive    Boolean   @default(true)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("app_usage_options")
+}
+
+model IndustryOption {
+  id          String    @id @default(uuid()) @db.Uuid
+  label       String
+  value       String    @unique
+  description String?
+  icon        String?
+  isActive    Boolean   @default(true)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("industry_options")
+}
+
+model TeamSizeOption {
+  id          String    @id @default(uuid()) @db.Uuid
+  label       String
+  value       String    @unique
+  description String?
+  minSize     Int?
+  maxSize     Int?
+  isActive    Boolean   @default(true)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("team_size_options")
+}
+
+model RoleOption {
+  id          String    @id @default(uuid()) @db.Uuid
+  label       String
+  value       String    @unique
+  description String?
+  icon        String?
+  isActive    Boolean   @default(true)
+  position    Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("role_options")
+}
+
+model TaskComment {
+  id          String    @id @default(uuid()) @db.Uuid
+  taskId      String    @db.Uuid
+  userId      String    @db.Uuid
+  content     String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@map("task_comments")
+}
