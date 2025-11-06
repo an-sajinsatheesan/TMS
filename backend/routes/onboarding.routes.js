@@ -18,14 +18,14 @@ router.get('/options/industries', OnboardingOptionsController.getIndustryOptions
 router.get('/options/team-sizes', OnboardingOptionsController.getTeamSizeOptions);
 router.get('/options/roles', OnboardingOptionsController.getRoleOptions);
 
+// POST /profile - Save profile information (PUBLIC - creates user account after OTP)
+router.post('/profile', validate(onboardingValidators.profile), OnboardingController.saveProfile);
+
 // Apply authentication to all remaining routes
 router.use(authenticate);
 
 // GET /progress - Get current step and saved data
 router.get('/progress', OnboardingController.getProgress);
-
-// POST /profile - Save profile information (Step 3)
-router.post('/profile', validate(onboardingValidators.profile), OnboardingController.saveProfile);
 
 // POST /app-usage - Save app usage selection (Step 4)
 router.post('/app-usage', OnboardingController.saveAppUsage);
