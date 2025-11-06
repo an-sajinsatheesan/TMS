@@ -47,8 +47,8 @@ const authValidators = {
         'string.email': 'Please provide a valid email address',
         'any.required': 'Email is required',
       }),
-      password: Joi.string().min(6).required().messages({
-        'string.min': 'Password must be at least 6 characters',
+      password: Joi.string().min(8).required().messages({
+        'string.min': 'Password must be at least 8 characters',
         'any.required': 'Password is required',
       }),
     }),
@@ -70,9 +70,23 @@ const authValidators = {
       token: Joi.string().required().messages({
         'any.required': 'Reset token is required',
       }),
-      newPassword: Joi.string().min(6).required().messages({
-        'string.min': 'Password must be at least 6 characters',
-        'any.required': 'New password is required',
+      newPassword: Joi.string()
+        .min(8)
+        .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .required()
+        .messages({
+          'string.min': 'Password must be at least 8 characters',
+          'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+          'any.required': 'New password is required',
+        }),
+    }),
+  },
+
+  // POST /refresh-token
+  refreshToken: {
+    body: Joi.object({
+      refreshToken: Joi.string().required().messages({
+        'any.required': 'Refresh token is required',
       }),
     }),
   },

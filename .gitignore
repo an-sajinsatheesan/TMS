@@ -30,9 +30,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# --- Prisma generated folder (optional if large) ---
-backend/prisma/migrations/
-
 # --- Local runtime / data ---
 *.sqlite
 *.db

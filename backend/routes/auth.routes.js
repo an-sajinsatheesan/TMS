@@ -34,4 +34,7 @@ router.get('/me', authenticate, AuthController.getMe);
 // GET /onboarding-status - Get onboarding status (protected)
 router.get('/onboarding-status', authenticate, AuthController.getOnboardingStatus);
 
+// POST /refresh-token - Refresh access token
+router.post('/refresh-token', validate(authValidators.refreshToken), AuthController.refreshToken);
+
 module.exports = router;

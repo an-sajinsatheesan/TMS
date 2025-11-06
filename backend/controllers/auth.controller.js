@@ -107,6 +107,19 @@ class AuthController {
 
     ApiResponse.success(result, 'Onboarding status retrieved').send(res);
   });
+
+  /**
+   * @route   POST /api/v1/auth/refresh-token
+   * @desc    Refresh access token using refresh token
+   * @access  Public
+   */
+  static refreshToken = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
+
+    const result = await AuthService.refreshAccessToken(refreshToken);
+
+    ApiResponse.success(result, 'Token refreshed successfully').send(res);
+  });
 }
 
 module.exports = AuthController;

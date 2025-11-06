@@ -26,8 +26,6 @@ class AuthService {
             include: { onboardingData: true },
         });
 
-        console.log(existingUser, "existingUser");
-
         if (existingUser && existingUser.isEmailVerified) {
             // Check if onboarding is incomplete and user has no password
             if (
@@ -413,6 +411,52 @@ class AuthService {
                 currentStep: user.onboardingData?.currentStep || 1,
             },
         };
+    }
+
+    /**
+     * Refresh access token
+     * @param {String} refreshToken - Refresh token
+     * @returns {Object} New access token
+     */
+    static async refreshAccessToken(refreshToken) {
+        if (!refreshToken) {
+            throw ApiError.badRequest("Refresh token is required");
+        }
+
+        try {
+            // Verify refresh token
+            const decoded = JwtService.verifyToken(refreshToken);
+
+            // Get user from database
+            const user = await prisma.user.findUnique({
+                where: { id: decoded.id },
+            });
+
+            if (!user) {
+                throw ApiError.unauthorized("User not found");
+            }
+
+            // Generate new access token
+            const payload = {
+                id: user.id,
+                email: user.email,
+            };
+
+            const accessToken = JwtService.generateToken(payload);
+
+            return {
+                accessToken,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    fullName: user.fullName,
+                    avatarUrl: user.avatarUrl,
+                    isEmailVerified: user.isEmailVerified,
+                },
+            };
+        } catch (error) {
+            throw ApiError.unauthorized("Invalid or expired refresh token");
+        }
     }
 }
 
