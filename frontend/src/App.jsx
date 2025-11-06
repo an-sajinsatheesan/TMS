@@ -39,7 +39,7 @@ function App() {
             <OnboardingProvider>
                 <ProjectProvider>
                     <Router>
-                    <Toaster />
+                    <Toaster position="top-right" />
                     <Routes>
                         {/* Public Routes */}
                         <Route path="/register" element={<Register />} />

@@ -101,10 +101,11 @@ const VerifyOtp = () => {
     }
   };
 
-  if (!email) {
-    navigate('/register');
-    return null;
-  }
+  useEffect(() => {
+    if (!email) {
+      navigate('/register');
+    }
+  }, [email, navigate]);
 
   return (
     <AuthLayout>
