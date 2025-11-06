@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { onboardingService } from '../api/onboarding.service';
+import { useAuth } from './AuthContext';
 
 const OnboardingContext = createContext(null);
 
@@ -12,7 +13,15 @@ export const useOnboarding = () => {
 };
 
 export const OnboardingProvider = ({ children }) => {
+  const { onboardingStatus } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Sync with backend onboarding status
+  useEffect(() => {
+    if (onboardingStatus?.currentStep) {
+      setCurrentStep(onboardingStatus.currentStep);
+    }
+  }, [onboardingStatus]);
   const [onboardingData, setOnboardingData] = useState({
     profile: {},
     appUsage: {},
