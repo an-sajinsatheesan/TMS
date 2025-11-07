@@ -49,12 +49,12 @@ const Step9Invite = () => {
 
       toast.success('Onboarding completed successfully!');
 
-      // Navigate to dashboard with proper parameters
+      // Navigate to project board with proper parameters
       const project = response?.project;
       const userId = user?.id;
 
       if (project?.id && userId) {
-        navigate(`/dashboard/${userId}/${project.id}/board`, { replace: true });
+        navigate(`/project-board/${userId}/${project.id}/list`, { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
       }
@@ -76,12 +76,12 @@ const Step9Invite = () => {
 
       toast.success('Onboarding completed successfully!');
 
-      // Navigate to dashboard with proper parameters
+      // Navigate to project board with proper parameters
       const project = response?.project;
       const userId = user?.id;
 
       if (project?.id && userId) {
-        navigate(`/dashboard/${userId}/${project.id}/board`, { replace: true });
+        navigate(`/project-board/${userId}/${project.id}/list`, { replace: true });
       } else {
         navigate('/dashboard', { replace: true });
       }

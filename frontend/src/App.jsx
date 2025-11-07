@@ -27,6 +27,7 @@ import Step9Invite from './pages/onboarding/Step9Invite';
  
 // Dashboard
 import Dashboard from './pages/Dashboard';
+import ProjectBoard from './pages/ProjectBoard';
 
 // Guards
 import OnboardingStepGuard from './components/common/OnboardingStepGuard';
@@ -113,19 +114,21 @@ function App() {
                                 </ProtectedRoute>
                             }
                         />
+
+                        {/* Protected Project Board Routes */}
                         <Route
-                            path="/dashboard/:userId/:projectId/:viewMode"
+                            path="/project-board/:userId/:projectId/:viewMode"
                             element={
                                 <ProtectedRoute>
-                                    <Dashboard />
+                                    <ProjectBoard />
                                 </ProtectedRoute>
                             }
                         />
                         <Route
-                            path="/dashboard/:userId/:projectId"
+                            path="/project-board/:userId/:projectId"
                             element={
                                 <ProtectedRoute>
-                                    <Dashboard />
+                                    <ProjectBoard />
                                 </ProtectedRoute>
                             }
                         />
