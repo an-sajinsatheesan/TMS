@@ -4,6 +4,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { saveCompanyInfo, clearError } from '../../store/slices/onboardingSlice';
 import { onboardingService } from '../../api/onboarding.service';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from '../../hooks/useToast.jsx';
@@ -17,16 +20,14 @@ const Step4CompanyInfo = () => {
   const [appUsageOptions, setAppUsageOptions] = useState([]);
   const [industryOptions, setIndustryOptions] = useState([]);
   const [teamSizeOptions, setTeamSizeOptions] = useState([]);
-  const [roleOptions, setRoleOptions] = useState([]);
 
   // Form values
   const [selectedAppUsageIds, setSelectedAppUsageIds] = useState([]);
   const [selectedIndustryIds, setSelectedIndustryIds] = useState([]);
   const [selectedTeamSizeId, setSelectedTeamSizeId] = useState('');
-  const [selectedRoleIds, setSelectedRoleIds] = useState([]);
 
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loadingOptions, setLoadingOptions] = useState(true);
 
   useEffect(() => {
     fetchAllOptions();
@@ -41,14 +42,25 @@ const Step4CompanyInfo = () => {
       setAppUsageOptions(data.appUsage || []);
       setIndustryOptions(data.industries || []);
       setTeamSizeOptions(data.teamSizes || []);
-      setRoleOptions(data.roles || []);
     } catch (error) {
       console.error('Error fetching options:', error);
       setError('Failed to load options. Please refresh the page.');
       toast.error('Failed to load options');
     } finally {
-      setLoading(false);
+      setLoadingOptions(false);
     }
+  };
+
+  const handleAppUsageToggle = (id) => {
+    setSelectedAppUsageIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleIndustryToggle = (id) => {
+    setSelectedIndustryIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -89,14 +101,6 @@ const Step4CompanyInfo = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="mb-8">
       <div className="mb-8">
@@ -113,19 +117,110 @@ const Step4CompanyInfo = () => {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* App Usage Section */}
+        <div className="space-y-4">
+          <Label className="text-base font-medium">What will you use this app for? *</Label>
+          {loadingOptions ? (
+            <div className="flex items-center gap-2 text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading options...</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {appUsageOptions.map((option) => (
+                <div key={option.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`app-usage-${option.id}`}
+                    checked={selectedAppUsageIds.includes(option.id)}
+                    onCheckedChange={() => handleAppUsageToggle(option.id)}
+                    disabled={saving}
+                  />
+                  <label
+                    htmlFor={`app-usage-${option.id}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {option.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Industry Section */}
+        <div className="space-y-4">
+          <Label className="text-base font-medium">What industry are you in? *</Label>
+          {loadingOptions ? (
+            <div className="flex items-center gap-2 text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading options...</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {industryOptions.map((option) => (
+                <div key={option.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`industry-${option.id}`}
+                    checked={selectedIndustryIds.includes(option.id)}
+                    onCheckedChange={() => handleIndustryToggle(option.id)}
+                    disabled={saving}
+                  />
+                  <label
+                    htmlFor={`industry-${option.id}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    {option.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Team Size Section */}
+        <div className="space-y-4">
+          <Label className="text-base font-medium">What's your team size? *</Label>
+          {loadingOptions ? (
+            <div className="flex items-center gap-2 text-gray-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading options...</span>
+            </div>
+          ) : (
+            <RadioGroup
+              value={selectedTeamSizeId}
+              onValueChange={setSelectedTeamSizeId}
+              disabled={saving}
+            >
+              <div className="space-y-3">
+                {teamSizeOptions.map((option) => (
+                  <div key={option.id} className="flex items-center space-x-2">
+                    <RadioGroupItem value={option.id} id={`team-size-${option.id}`} />
+                    <label
+                      htmlFor={`team-size-${option.id}`}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {option.range}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </RadioGroup>
+          )}
+        </div>
+
         <div className="flex gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate('/onboarding/step2')}
-            disabled={saving}
+            disabled={saving || loadingOptions}
           >
             Back
           </Button>
           <Button
             type="submit"
-            disabled={saving}
+            disabled={saving || loadingOptions}
             className="flex-1"
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
