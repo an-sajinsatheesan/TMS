@@ -74,7 +74,7 @@ const onboardingValidators = {
         Joi.string().email().messages({
           'string.email': 'Each invite must be a valid email address',
         })
-      ).default([]),
+      ).default([]).required(),
     }),
   },
 };

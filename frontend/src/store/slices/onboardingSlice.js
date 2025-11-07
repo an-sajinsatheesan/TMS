@@ -51,9 +51,19 @@ export const saveCompanyInfo = createAsyncThunk(
 
 export const saveProjectName = createAsyncThunk(
   'onboarding/saveProjectName',
-  async (projectName, { dispatch, rejectWithValue }) => {
+  async (projectName, { dispatch, getState, rejectWithValue }) => {
     try {
-      await onboardingService.updateStep(5);
+      // Get existing sections and tasks from state
+      const state = getState();
+      const sections = state.onboarding.data.projectSetup?.sections || [];
+      const tasks = state.onboarding.data.projectSetup?.tasks || [];
+
+      // Save to backend using project-setup endpoint
+      await onboardingService.saveProjectSetup({
+        projectName,
+        sections: sections.map((name, index) => ({ name, position: index })),
+        tasks: tasks.map(title => ({ title, sectionName: null }))
+      });
       await dispatch(refreshOnboardingStatus());
       return { projectName, nextStep: 5 };
     } catch (error) {
@@ -64,9 +74,19 @@ export const saveProjectName = createAsyncThunk(
 
 export const saveSections = createAsyncThunk(
   'onboarding/saveSections',
-  async (sections, { dispatch, rejectWithValue }) => {
+  async (sections, { dispatch, getState, rejectWithValue }) => {
     try {
-      await onboardingService.updateStep(6);
+      // Get existing project name and tasks from state
+      const state = getState();
+      const projectName = state.onboarding.data.projectSetup?.projectName || 'My First Project';
+      const tasks = state.onboarding.data.projectSetup?.tasks || [];
+
+      // Save to backend using project-setup endpoint
+      await onboardingService.saveProjectSetup({
+        projectName,
+        sections: sections.map((name, index) => ({ name, position: index })),
+        tasks: tasks.map(title => ({ title, sectionName: null }))
+      });
       await dispatch(refreshOnboardingStatus());
       return { sections, nextStep: 6 };
     } catch (error) {
@@ -77,9 +97,19 @@ export const saveSections = createAsyncThunk(
 
 export const saveTasks = createAsyncThunk(
   'onboarding/saveTasks',
-  async (tasks, { dispatch, rejectWithValue }) => {
+  async (tasks, { dispatch, getState, rejectWithValue }) => {
     try {
-      await onboardingService.updateStep(7);
+      // Get existing project name and sections from state
+      const state = getState();
+      const projectName = state.onboarding.data.projectSetup?.projectName || 'My First Project';
+      const sections = state.onboarding.data.projectSetup?.sections || [];
+
+      // Save to backend using project-setup endpoint
+      await onboardingService.saveProjectSetup({
+        projectName,
+        sections: sections.map((name, index) => ({ name, position: index })),
+        tasks: tasks.map(title => ({ title, sectionName: null }))
+      });
       await dispatch(refreshOnboardingStatus());
       return { tasks, nextStep: 7 };
     } catch (error) {
@@ -116,9 +146,10 @@ export const saveLayout = createAsyncThunk(
 
 export const completeOnboarding = createAsyncThunk(
   'onboarding/complete',
-  async (inviteEmails, { rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
     try {
-      const response = await onboardingService.complete({ inviteEmails });
+      // data should be { inviteEmails: [] }
+      const response = await onboardingService.complete(data);
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to complete onboarding');
