@@ -2,6 +2,7 @@ import { CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ListView } from './ListView';
 
 const ProjectBoardContent = ({ viewMode = 'list' }) => {
   // Mock tasks data
@@ -89,116 +90,7 @@ const ProjectBoardContent = ({ viewMode = 'list' }) => {
   };
 
   if (viewMode === 'list') {
-    // Group tasks by section
-    const sections = [...new Set(tasks.map((task) => task.section))];
-
-    return (
-      <div className="space-y-8">
-        {/* Project Overview Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{tasks.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Across all sections
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {tasks.filter((t) => t.status === 'completed').length}
-              </div>
-              <Progress value={33} className="mt-2" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-              <Clock className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {tasks.filter((t) => t.status === 'in-progress').length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Currently active
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Blocked</CardTitle>
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {tasks.filter((t) => t.status === 'blocked').length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Needs attention
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tasks by Section */}
-        {sections.map((section) => {
-          const sectionTasks = tasks.filter((task) => task.section === section);
-          return (
-            <div key={section}>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <div className="h-1 w-8 bg-primary rounded" />
-                {section}
-                <span className="text-sm text-gray-500 font-normal">
-                  ({sectionTasks.length})
-                </span>
-              </h3>
-              <div className="space-y-2">
-                {sectionTasks.map((task) => (
-                  <Card
-                    key={task.id}
-                    className="hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
-                        {getStatusIcon(task.status)}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">{task.title}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge
-                              variant="outline"
-                              className={getPriorityColor(task.priority)}
-                            >
-                              {task.priority}
-                            </Badge>
-                            <span className="text-sm text-gray-500">
-                              {task.assignee}
-                            </span>
-                            <span className="text-sm text-gray-400">•</span>
-                            <span className="text-sm text-gray-500">
-                              Due {task.dueDate}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
+    return <ListView />;
   }
 
   if (viewMode === 'kanban') {
