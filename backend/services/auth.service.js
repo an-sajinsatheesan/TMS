@@ -20,77 +20,22 @@ class AuthService {
      * @returns {Object} Success message
      */
     static async registerWithEmail(email) {
-        // Check if user already exists and is verified
+        // Check if user already exists with password (fully registered)
         const existingUser = await prisma.user.findUnique({
             where: { email },
             include: { onboardingData: true },
         });
 
-        if (existingUser && existingUser.isEmailVerified) {
-            // Check if onboarding is incomplete and user has no password
-            if (
-                existingUser.onboardingData &&
-                !existingUser.onboardingData.completedAt &&
-                !existingUser.passwordHash
-            ) {
-                // Allow user to continue onboarding without re-verifying email
-                // Generate tokens for the user to continue
-                const tokens = JwtService.generateAuthTokens(existingUser);
-                return {
-                    userExists: true,
-                    isEmailVerified: true,
-                    onboardingComplete: false,
-                    currentStep: existingUser.onboardingData.currentStep || 1,
-                    canContinueOnboarding: true,
-                    user: {
-                        id: existingUser.id,
-                        email: existingUser.email,
-                        fullName: existingUser.fullName,
-                        avatarUrl: existingUser.avatarUrl,
-                        isEmailVerified: existingUser.isEmailVerified,
-                    },
-                    tokens,
-                    message:
-                        "Welcome back! Continue setting up your account.",
-                };
-            }
-            // Check if onboarding is incomplete but user has password
-            if (
-                existingUser.onboardingData &&
-                !existingUser.onboardingData.completedAt &&
-                existingUser.passwordHash
-            ) {
-                return {
-                    userExists: true,
-                    isEmailVerified: true,
-                    onboardingComplete: false,
-                    currentStep: existingUser.onboardingData.currentStep || 1,
-                    message:
-                        "This email is already registered. Please log in to continue your setup.",
-                };
-            }
+        if (existingUser && existingUser.passwordHash) {
             return {
                 userExists: true,
-                isEmailVerified: true,
-                onboardingComplete: true,
-                message: "User already exists. Please login.",
+                message: "This email is already registered. Please login.",
             };
         }
 
-        // Generate and send OTP
+        // Generate and send OTP (DON'T create user yet)
         const otp = await OtpService.createOtp(email);
         await EmailService.sendOtpEmail(email, otp.code);
-
-        // Create or update user record (unverified)
-        if (!existingUser) {
-            await prisma.user.create({
-                data: {
-                    email,
-                    authProvider: "EMAIL",
-                    isEmailVerified: false,
-                },
-            });
-        }
 
         return {
             userExists: false,
@@ -100,34 +45,23 @@ class AuthService {
     }
 
     /**
-     * Verify OTP (email verification only - NO token generation)
-     * Token will be generated AFTER account creation with password
+     * Verify OTP (email verification only - NO user creation)
+     * User will be created AFTER completing profile with password
      * @param {String} email - User email
      * @param {String} code - OTP code
-     * @returns {Object} User email verification status
+     * @returns {Object} Email verification status
      */
     static async verifyOtp(email, code) {
         // Verify OTP
         await OtpService.verifyOtp(email, code);
 
-        // Update user as verified (but DON'T generate token yet)
-        const user = await prisma.user.update({
-            where: { email },
-            data: { isEmailVerified: true },
-        });
-
-        // DON'T generate tokens here - user hasn't set password yet!
-        // DON'T create onboarding data yet - account not fully created!
-
+        // DON'T create user yet - wait until they complete profile
+        // Just return success with verified email
         return {
             success: true,
             message: "Email verified successfully. Please complete your registration.",
-            user: {
-                id: user.id,
-                email: user.email,
-                isEmailVerified: user.isEmailVerified,
-            },
-            // NO tokens returned - they'll be generated after password is set
+            email,
+            // NO user, NO tokens - they'll be created after password is set
         };
     }
 

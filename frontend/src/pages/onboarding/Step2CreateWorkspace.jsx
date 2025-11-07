@@ -1,38 +1,49 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { saveWorkspace, clearError } from '../../store/slices/onboardingSlice';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { toast } from '../../hooks/useToast.jsx';
 
 const Step2CreateWorkspace = () => {
   const [workspaceName, setWorkspaceName] = useState('');
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [localError, setLocalError] = useState('');
   const navigate = useNavigate();
-  const { setCurrentStep, saveWorkspace } = useOnboarding();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.onboarding);
 
-  const handleContinue = async () => {
+  const handleContinue = async (e) => {
+    e.preventDefault();
+
     if (!workspaceName.trim()) {
-      setError('Please enter a workspace name');
+      setLocalError('Please enter a workspace name');
       return;
     }
 
-    setError('');
-    setSaving(true);
+    setLocalError('');
 
     try {
-      await saveWorkspace({ name: workspaceName });
-      setCurrentStep(3);
+      await dispatch(saveWorkspace({ name: workspaceName })).unwrap();
+      toast.success('Workspace saved successfully');
       navigate('/onboarding/step3');
     } catch (err) {
-      console.error('Save error:', err);
-      setError(err.response?.data?.message || 'Failed to save workspace. Please try again.');
-    } finally {
-      setSaving(false);
+      toast.error('Failed to save workspace', {
+        description: err || 'Please try again'
+      });
     }
   };
+
+  // Clear Redux error when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  const displayError = localError || error;
 
   return (
     <div className="mb-8">
@@ -43,14 +54,14 @@ const Step2CreateWorkspace = () => {
         </p>
       </div>
 
-      {error && (
+      {displayError && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{displayError}</AlertDescription>
         </Alert>
       )}
 
-      <div className="space-y-6 mb-8">
+      <form onSubmit={handleContinue} className="space-y-6 mb-8">
         <div className="flex flex-col gap-2">
           <label htmlFor="workspaceName" className="block text-sm font-semibold">
             Workspace Name *
@@ -58,31 +69,34 @@ const Step2CreateWorkspace = () => {
           <Input
             id="workspaceName"
             value={workspaceName}
-            onChange={(e) => setWorkspaceName(e.target.value)}
+            onChange={(e) => {
+              setWorkspaceName(e.target.value);
+              setLocalError('');
+            }}
             placeholder="e.g. My Company"
-            disabled={saving}
+            disabled={loading}
+            autoFocus
           />
         </div>
-      </div>
 
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate('/onboarding')}
-          disabled={saving}
-        >
-          Back
-        </Button>
-        <Button
-          type="button"
-          onClick={handleContinue}
-          disabled={!workspaceName.trim() || saving}
-          className="flex-1"
-        >
-          {saving ? 'Creating...' : 'Continue'}
-        </Button>
-      </div>
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/onboarding')}
+            disabled={loading}
+          >
+            Back
+          </Button>
+          <Button
+            type="submit"
+            disabled={!workspaceName.trim() || loading}
+            className="flex-1"
+          >
+            {loading ? 'Saving...' : 'Continue'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { saveLayout, clearError } from '../../store/slices/onboardingSlice';
 import { Button } from '@/components/ui/button';
 import { LayoutList, LayoutGrid, Calendar, GanttChart } from 'lucide-react';
 import { toast } from '../../hooks/useToast';
@@ -50,28 +51,12 @@ const Step8Layout = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {layouts.map((layout) => {
-          const Icon = layout.icon;
-          return (
-            <button
-              key={layout.id}
-              onClick={() => setSelectedLayout(layout.id)}
-              className={`p-6 border-2 rounded-lg text-left transition-all ${
-                selectedLayout === layout.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <Icon className={`h-8 w-8 mb-3 ${
-                selectedLayout === layout.id ? 'text-primary' : 'text-gray-600'
-              }`} />
-              <div className="font-semibold mb-1">{layout.name}</div>
-              <div className="text-sm text-gray-600">{layout.description}</div>
-            </button>
-          );
-        })}
-      </div>
+      {(localError || reduxError) && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{localError || reduxError}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="flex gap-3">
         <Button

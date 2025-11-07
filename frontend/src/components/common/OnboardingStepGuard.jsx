@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 
 /**
  * OnboardingStepGuard - Prevents users from accessing onboarding steps out of order
  * Case 4: Ensures onboarding always starts from /onboarding and follows proper step order
  */
 const OnboardingStepGuard = ({ children, requiredStep }) => {
-  const { onboardingStatus, loading } = useAuth();
+  const { onboardingStatus, loading } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -22,8 +22,9 @@ const OnboardingStepGuard = ({ children, requiredStep }) => {
 
     const currentStep = onboardingStatus.currentStep || 1;
 
-    // If user tries to access a step they haven't reached yet, redirect to current step
-    if (requiredStep > currentStep) {
+    // Allow users to access current step or next step (currentStep + 1)
+    // But prevent skipping multiple steps ahead
+    if (requiredStep > currentStep + 1) {
       const stepMap = {
         1: '/onboarding',
         2: '/onboarding/step2',

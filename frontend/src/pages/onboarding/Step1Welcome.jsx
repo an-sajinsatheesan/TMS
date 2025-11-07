@@ -1,15 +1,36 @@
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useEffect } from 'react';
+import { updateStep } from '../../store/slices/onboardingSlice';
 import { Button } from '@/components/ui/button';
+import { toast } from '../../hooks/useToast.jsx';
 
 const Step1Welcome = () => {
   const navigate = useNavigate();
-  const { setCurrentStep } = useOnboarding();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.onboarding);
 
-  const handleGetStarted = () => {
-    setCurrentStep(2);
-    navigate('/onboarding/step2');
+  const handleGetStarted = async (e) => {
+    e.preventDefault();
+
+    try {
+      await dispatch(updateStep(2)).unwrap();
+      navigate('/onboarding/step2');
+    } catch (err) {
+      toast.error('Failed to start onboarding', {
+        description: err || 'Please try again'
+      });
+    }
   };
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error('Error', {
+        description: error
+      });
+    }
+  }, [error]);
 
   return (
     <div className="text-center">
@@ -39,8 +60,8 @@ const Step1Welcome = () => {
         </div>
       </div>
 
-      <Button onClick={handleGetStarted} size="lg" className="px-8">
-        Get Started
+      <Button onClick={handleGetStarted} size="lg" className="px-8" disabled={loading}>
+        {loading ? 'Loading...' : 'Get Started'}
       </Button>
     </div>
   );

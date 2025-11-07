@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { useAuth } from '../../contexts/AuthContext';
+import { register as registerAction, clearError } from '../../store/slices/authSlice';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -11,12 +12,15 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { registerSchema } from '../../utils/validationSchemas';
+import { toast } from '../../hooks/useToast.jsx';
 import AuthLayout from './AuthLayout';
 
 const Register = () => {
     const navigate = useNavigate();
-    const { register: registerUser } = useAuth();
-    const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+    const dispatch = useDispatch();
+    const { loading, error } = useSelector((state) => state.auth);
+
+    const { register, handleSubmit, formState: { errors }, setError } = useForm({
         resolver: yupResolver(registerSchema),
         defaultValues: {
             email: ''
@@ -25,53 +29,35 @@ const Register = () => {
 
     const onSubmit = async (data) => {
         try {
-            const response = await registerUser(data.email);
+            await dispatch(registerAction(data.email)).unwrap();
 
-            // Case 2: Handle incomplete registration scenarios
-            // If user has verified OTP but hasn't completed profile/onboarding
-            if (response.data?.canContinueOnboarding) {
-                // User can continue onboarding - tokens are already set by AuthContext
-                // Redirect to complete profile if no password, or to onboarding step
-                const currentStep = response.data?.currentStep || 1;
+            toast.success('Registration successful!', {
+                description: 'Please check your email for the OTP code'
+            });
 
-                if (currentStep === 1 && !response.data?.user?.fullName) {
-                    // Profile not completed - redirect to complete profile
-                    navigate('/complete-profile', {
-                        state: { email: data.email },
-                        replace: true
-                    });
-                } else {
-                    // Profile completed - redirect to appropriate onboarding step
-                    const stepMap = {
-                        1: '/onboarding',
-                        2: '/onboarding/step2',
-                        3: '/onboarding/step3',
-                        4: '/onboarding/step4',
-                        5: '/onboarding/step5',
-                        6: '/onboarding/step6',
-                        7: '/onboarding/step7',
-                        8: '/onboarding/step8',
-                    };
-                    const redirectPath = stepMap[currentStep] || '/onboarding';
-                    navigate(redirectPath, { replace: true });
-                }
-            } else if (response.data?.userExists && response.data?.isEmailVerified) {
-                // User exists and has password - should login instead
-                setError('root', {
-                    type: 'manual',
-                    message: response.data?.message || 'This email is already registered. Please log in.'
-                });
-            } else {
-                // New user - proceed to OTP verification
-                navigate('/verify-otp', { state: { email: data.email } });
-            }
+            // Navigate to OTP verification
+            navigate('/verify-otp', {
+                state: { email: data.email },
+                replace: true
+            });
         } catch (err) {
+            toast.error('Registration failed', {
+                description: err || 'Please try again'
+            });
+
             setError('root', {
                 type: 'manual',
-                message: err.response?.data?.message || err.message || 'Registration failed'
+                message: err || 'Registration failed'
             });
         }
     };
+
+    // Clear error on unmount
+    useEffect(() => {
+        return () => {
+            dispatch(clearError());
+        };
+    }, [dispatch]);
 
     return (
         <AuthLayout>
@@ -79,66 +65,32 @@ const Register = () => {
                 {/* Header */}
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-semibold text-gray-900 mb-2">Create your account</h1>
-                    <p className="text-gray-600">Get started with your free account today</p>
-                </div>
-
-                {/* Google Sign Up Button */}
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {/* Handle Google OAuth */}}
-                >
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                        <path
-                            fill="currentColor"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        />
-                        <path
-                            fill="currentColor"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        />
-                        <path
-                            fill="currentColor"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        />
-                        <path
-                            fill="currentColor"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        />
-                    </svg>
-                    Continue with Google
-                </Button>
-
-                {/* Divider */}
-                <div className="relative my-6">
-                    <div className="absolute inset-0 flex items-center">
-                        <Separator />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-white px-2 text-gray-500">Or continue with email</span>
-                    </div>
+                    <p className="text-gray-600">Get started with your free account</p>
                 </div>
 
                 {/* Error Alert */}
-                {errors.root && (
+                {(errors.root || error) && (
                     <Alert variant="destructive" className="mb-6">
                         <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{errors.root.message}</AlertDescription>
+                        <AlertDescription>{errors.root?.message || error}</AlertDescription>
                     </Alert>
                 )}
 
-                {/* Registration Form */}
+                {/* Register Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     {/* Email Field */}
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email address</Label>
+                        <Label htmlFor="email">Email</Label>
                         <Input
                             id="email"
                             type="email"
-                            placeholder="name@example.com"
+                            placeholder="Enter your email"
+                            autoFocus
                             {...register('email')}
-                            className={cn(errors.email && "border-red-500 focus-visible:ring-red-500")}
+                            className={cn(
+                                errors.email && "border-red-500 focus-visible:ring-red-500"
+                            )}
+                            disabled={loading}
                         />
                         {errors.email && (
                             <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -149,38 +101,34 @@ const Register = () => {
                     <Button
                         type="submit"
                         className="w-full"
-                        disabled={isSubmitting}
+                        disabled={loading}
                     >
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {isSubmitting ? 'Creating account...' : 'Continue'}
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {loading ? 'Sending OTP...' : 'Continue with Email'}
                     </Button>
                 </form>
 
-                {/* Terms and Privacy */}
-                <p className="mt-4 text-xs text-center text-gray-500">
-                    By continuing, you agree to our{' '}
-                    <a href="/terms" className="underline hover:text-gray-700">
-                        Terms of Service
-                    </a>{' '}
-                    and{' '}
-                    <a href="/privacy" className="underline hover:text-gray-700">
-                        Privacy Policy
-                    </a>
-                </p>
+                {/* Divider */}
+                <div className="my-6">
+                    <Separator />
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-white px-2 text-gray-500 -mt-3">
+                            Or
+                        </span>
+                    </div>
+                </div>
 
                 {/* Login Link */}
-                <div className="mt-6 text-center">
-                    <p className="text-sm text-gray-600">
-                        Already have an account?{' '}
-                        <Button
-                            type="button"
-                            variant="link"
-                            className="px-0"
-                            onClick={() => navigate('/login')}
-                        >
-                            Sign in
-                        </Button>
-                    </p>
+                <div className="text-center text-sm">
+                    <span className="text-gray-600">Already have an account? </span>
+                    <button
+                        type="button"
+                        onClick={() => navigate('/login')}
+                        className="text-primary hover:underline font-medium"
+                        disabled={loading}
+                    >
+                        Sign in
+                    </button>
                 </div>
             </div>
         </AuthLayout>

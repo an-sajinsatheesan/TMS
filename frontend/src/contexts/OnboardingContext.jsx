@@ -1,5 +1,6 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { onboardingService } from '../api/onboarding.service';
+import { useAuth } from './AuthContext';
 
 const OnboardingContext = createContext(null);
 
@@ -12,7 +13,15 @@ export const useOnboarding = () => {
 };
 
 export const OnboardingProvider = ({ children }) => {
+  const { onboardingStatus, refreshOnboardingStatus } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Sync with backend onboarding status
+  useEffect(() => {
+    if (onboardingStatus?.currentStep) {
+      setCurrentStep(onboardingStatus.currentStep);
+    }
+  }, [onboardingStatus]);
   const [onboardingData, setOnboardingData] = useState({
     profile: {},
     appUsage: {},
@@ -101,6 +110,15 @@ export const OnboardingProvider = ({ children }) => {
     return true;
   };
 
+  const saveWorkspace = async (data) => {
+    // Save workspace name locally and update step to 3
+    updateOnboardingData('workspace', data);
+    await onboardingService.updateStep(3);
+    // Refresh onboarding status from backend
+    await refreshOnboardingStatus();
+    return true;
+  };
+
   const value = {
     currentStep,
     onboardingData,
@@ -109,6 +127,7 @@ export const OnboardingProvider = ({ children }) => {
     prevStep,
     updateOnboardingData,
     saveProfile,
+    saveWorkspace,
     saveAppUsage,
     saveIndustry,
     saveTeamSize,

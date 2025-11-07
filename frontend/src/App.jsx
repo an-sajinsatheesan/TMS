@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import AuthInit from './components/common/AuthInit';
 import { AuthProvider } from './contexts/AuthContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
 import { ProjectProvider } from './contexts/ProjectContext';
@@ -17,12 +18,12 @@ import ResetPassword from './pages/auth/ResetPassword';
 import OnboardingLayout from './pages/onboarding/OnboardingLayout';
 import Step1Welcome from './pages/onboarding/Step1Welcome';
 import Step2CreateWorkspace from './pages/onboarding/Step2CreateWorkspace';
-import Step3CompanyInfo from './pages/onboarding/Step4CompanyInfo';
-import Step4ProjectName from './pages/onboarding/Step5ProjectName';
-import Step5Sections from './pages/onboarding/Step6Sections';
-import Step6Tasks from './pages/onboarding/Step7Tasks';
-import Step7Layout from './pages/onboarding/Step8Layout';
-import Step8Invite from './pages/onboarding/Step9Invite';
+import Step4CompanyInfo from './pages/onboarding/Step4CompanyInfo';
+import Step5ProjectName from './pages/onboarding/Step5ProjectName';
+import Step6Sections from './pages/onboarding/Step6Sections';
+import Step7Tasks from './pages/onboarding/Step7Tasks';
+import Step8Layout from './pages/onboarding/Step8Layout';
+import Step9Invite from './pages/onboarding/Step9Invite';
  
 // Dashboard
 import Dashboard from './pages/Dashboard';
@@ -39,7 +40,8 @@ function App() {
             <OnboardingProvider>
                 <ProjectProvider>
                     <Router>
-                    <Toaster />
+                    <AuthInit>
+                    <Toaster position="top-right" />
                     <Routes>
                         {/* Public Routes */}
                         <Route path="/register" element={<Register />} />
@@ -72,32 +74,32 @@ function App() {
                             } />
                             <Route path="step3" element={
                                 <OnboardingStepGuard requiredStep={3}>
-                                    <Step3CompanyInfo />
+                                    <Step4CompanyInfo />
                                 </OnboardingStepGuard>
                             } />
                             <Route path="step4" element={
                                 <OnboardingStepGuard requiredStep={4}>
-                                    <Step4ProjectName />
+                                    <Step5ProjectName />
                                 </OnboardingStepGuard>
                             } />
                             <Route path="step5" element={
                                 <OnboardingStepGuard requiredStep={5}>
-                                    <Step5Sections />
+                                    <Step6Sections />
                                 </OnboardingStepGuard>
                             } />
                             <Route path="step6" element={
                                 <OnboardingStepGuard requiredStep={6}>
-                                    <Step6Tasks />
+                                    <Step7Tasks />
                                 </OnboardingStepGuard>
                             } />
                             <Route path="step7" element={
                                 <OnboardingStepGuard requiredStep={7}>
-                                    <Step7Layout />
+                                    <Step8Layout />
                                 </OnboardingStepGuard>
                             } />
                             <Route path="step8" element={
                                 <OnboardingStepGuard requiredStep={8}>
-                                    <Step8Invite />
+                                    <Step9Invite />
                                 </OnboardingStepGuard>
                             } />
                         </Route>
@@ -132,6 +134,7 @@ function App() {
                         <Route path="/" element={<Navigate to="/login" replace />} />
                         <Route path="*" element={<Navigate to="/login" replace />} />
                     </Routes>
+                    </AuthInit>
                 </Router>
                 </ProjectProvider>
             </OnboardingProvider>

@@ -124,9 +124,9 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const completeProfile = async (accessToken, profileData) => {
+    const completeProfile = async (email, profileData) => {
         try {
-            const response = await authService.completeProfile(accessToken, profileData);
+            const response = await authService.completeProfile(email, profileData);
 
             // Extract tokens and user from response
             const tokens = response.data?.tokens || response.tokens;
