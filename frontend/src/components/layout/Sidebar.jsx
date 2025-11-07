@@ -9,6 +9,7 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Plus,
   Settings,
   LogOut,
@@ -36,14 +37,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
   const [hoveredItem, setHoveredItem] = useState(null);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isFavoritesExpanded, setIsFavoritesExpanded] = useState(true);
+  const [isProjectsExpanded, setIsProjectsExpanded] = useState(true);
 
   const mainNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Bell, label: 'Notifications', path: '/notifications', badge: 3 },
     { icon: Users, label: 'Teams', path: '/teams' },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-    { icon: FolderKanban, label: 'Projects', path: '/projects' },
-    { icon: Star, label: 'Favorites', path: '/favorites' },
   ];
 
   // Fetch projects on component mount
@@ -166,54 +167,30 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
         {/* Favorites Section */}
         {favoriteProjects.length > 0 && (
           <div className="mt-6">
-            <div className="flex items-center gap-2 px-3 mb-2">
-              <Star className="h-4 w-4 text-gray-500" />
-              {!isCollapsed && (
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Favorites
-                </h3>
-              )}
-            </div>
-            <nav className="space-y-1">
-              {favoriteProjects.slice(0, 5).map((project) => (
-                <button
-                  key={project.id}
-                  onClick={() => handleProjectClick(project.id)}
-                  className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors relative group"
-                  onMouseEnter={() => setHoveredItem(project.name)}
-                  onMouseLeave={() => setHoveredItem(null)}
-                >
-                  <div className={cn('h-2 w-2 rounded-full flex-shrink-0', getProjectColorClass(project.color))} />
-                  {!isCollapsed && <span className="truncate text-left">{project.name}</span>}
-                  {isCollapsed && hoveredItem === project.name && (
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-                      {project.name}
-                    </div>
-                  )}
-                </button>
-              ))}
-            </nav>
-          </div>
-        )}
-
-        {/* Recent Projects Section */}
-        {recentProjects.length > 0 && (
-          <div className="mt-6">
-            <div className="flex items-center gap-2 px-3 mb-2">
-              <FolderKanban className="h-4 w-4 text-gray-500" />
-              {!isCollapsed && (
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Recent Projects
-                </h3>
-              )}
-            </div>
-            {loading ? (
-              <div className="flex items-center justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            <button
+              onClick={() => setIsFavoritesExpanded(!isFavoritesExpanded)}
+              className="flex items-center justify-between w-full px-3 py-2 mb-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Star className="h-4 w-4 text-gray-500" />
+                {!isCollapsed && (
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Favorites
+                  </h3>
+                )}
               </div>
-            ) : (
+              {!isCollapsed && (
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-gray-500 transition-transform',
+                    isFavoritesExpanded ? 'transform rotate-0' : 'transform -rotate-90'
+                  )}
+                />
+              )}
+            </button>
+            {isFavoritesExpanded && (
               <nav className="space-y-1">
-                {recentProjects.map((project) => (
+                {favoriteProjects.slice(0, 5).map((project) => (
                   <button
                     key={project.id}
                     onClick={() => handleProjectClick(project.id)}
@@ -235,15 +212,72 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
           </div>
         )}
 
-        {/* View All Projects Link */}
-        {!isCollapsed && projects.length > 5 && (
-          <div className="mt-2 px-3">
-            <Link
-              to="/projects"
-              className="text-xs text-primary hover:underline"
+        {/* Projects Section */}
+        {recentProjects.length > 0 && (
+          <div className="mt-6">
+            <button
+              onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
+              className="flex items-center justify-between w-full px-3 py-2 mb-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              View all {projects.length} projects →
-            </Link>
+              <div className="flex items-center gap-2">
+                <FolderKanban className="h-4 w-4 text-gray-500" />
+                {!isCollapsed && (
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Projects
+                  </h3>
+                )}
+              </div>
+              {!isCollapsed && (
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-gray-500 transition-transform',
+                    isProjectsExpanded ? 'transform rotate-0' : 'transform -rotate-90'
+                  )}
+                />
+              )}
+            </button>
+            {isProjectsExpanded && (
+              <>
+                {loading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <>
+                    <nav className="space-y-1">
+                      {recentProjects.map((project) => (
+                        <button
+                          key={project.id}
+                          onClick={() => handleProjectClick(project.id)}
+                          className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors relative group"
+                          onMouseEnter={() => setHoveredItem(project.name)}
+                          onMouseLeave={() => setHoveredItem(null)}
+                        >
+                          <div className={cn('h-2 w-2 rounded-full flex-shrink-0', getProjectColorClass(project.color))} />
+                          {!isCollapsed && <span className="truncate text-left">{project.name}</span>}
+                          {isCollapsed && hoveredItem === project.name && (
+                            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                              {project.name}
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </nav>
+                    {/* View All Projects Link */}
+                    {!isCollapsed && projects.length > 5 && (
+                      <div className="mt-2 px-3">
+                        <Link
+                          to="/projects"
+                          className="text-xs text-primary hover:underline"
+                        >
+                          View all {projects.length} projects →
+                        </Link>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
