@@ -14,12 +14,11 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Plus } from 'lucide-react';
 import GroupHeader from './GroupHeader';
 import TaskRow from './TaskRow';
 import AddTaskRow from './AddTaskRow';
 import ColumnHeader from './ColumnHeader';
-import AddColumnDialog from './AddColumnDialog';
+import AddColumnPopover from './AddColumnPopover';
 import { cn } from '@/lib/utils';
 import { useProjectData } from '@/hooks/useProjectData';
 import { fetchColumns, updateColumn, clearColumns } from '@/store/slices/columnsSlice';
@@ -60,7 +59,6 @@ const ListView = ({ projectId }) => {
   const [activeId, setActiveId] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
-  const [isAddColumnDialogOpen, setIsAddColumnDialogOpen] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -85,16 +83,44 @@ const ListView = ({ projectId }) => {
     };
   }, [projectId, dispatch]);
 
-  // Group tasks by section
+  // Group tasks by section with sorting
   const tasksBySection = useMemo(() => {
     const grouped = {};
     sections.forEach((section) => {
-      grouped[section.id] = tasks
-        .filter((task) => task.sectionId === section.id)
-        .sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      let sectionTasks = tasks.filter((task) => task.sectionId === section.id);
+
+      // Apply sorting if configured
+      if (sortConfig.column && sortConfig.direction) {
+        sectionTasks = sectionTasks.sort((a, b) => {
+          let aValue = a[sortConfig.column];
+          let bValue = b[sortConfig.column];
+
+          // Handle custom fields
+          if (a.customFields && a.customFields[sortConfig.column]) {
+            aValue = a.customFields[sortConfig.column];
+          }
+          if (b.customFields && b.customFields[sortConfig.column]) {
+            bValue = b.customFields[sortConfig.column];
+          }
+
+          // Handle null values
+          if (aValue === null || aValue === undefined) return 1;
+          if (bValue === null || bValue === undefined) return -1;
+
+          // Compare values
+          if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+          return 0;
+        });
+      } else {
+        // Default sorting by orderIndex
+        sectionTasks.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      }
+
+      grouped[section.id] = sectionTasks;
     });
     return grouped;
-  }, [sections, tasks]);
+  }, [sections, tasks, sortConfig]);
 
   // Get visible columns
   const visibleColumns = useMemo(
@@ -293,6 +319,7 @@ const ListView = ({ projectId }) => {
                       onHide={handleHideColumn}
                       onSwap={handleSwapColumn}
                       widthClass={widthClass}
+                      sortConfig={sortConfig}
                     />
                   </div>
                 );
@@ -309,6 +336,7 @@ const ListView = ({ projectId }) => {
                       onHide={handleHideColumn}
                       onSwap={handleSwapColumn}
                       widthClass={widthClass}
+                      sortConfig={sortConfig}
                     />
                   </div>
                 );
@@ -316,13 +344,7 @@ const ListView = ({ projectId }) => {
 
               {/* Add Column Button - Sticky Right */}
               <div className={cn(COLUMN_WIDTHS.addColumn, 'sticky right-0 z-20 bg-gray-50 border-l border-gray-200 flex items-center justify-center')}>
-                <button
-                  onClick={() => setIsAddColumnDialogOpen(true)}
-                  className="text-gray-500 hover:text-gray-700 transition-colors p-1 rounded hover:bg-gray-100"
-                  title="Add Column"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
+                <AddColumnPopover projectId={projectId} />
               </div>
             </div>
           </div>
@@ -383,13 +405,6 @@ const ListView = ({ projectId }) => {
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      {/* Add Column Dialog */}
-      <AddColumnDialog
-        isOpen={isAddColumnDialogOpen}
-        onClose={() => setIsAddColumnDialogOpen(false)}
-        projectId={projectId}
-      />
     </>
   );
 };
