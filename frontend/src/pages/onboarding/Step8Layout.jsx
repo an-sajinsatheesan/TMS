@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { Button } from '@/components/ui/button';
 import { LayoutList, LayoutGrid, Calendar, GanttChart } from 'lucide-react';
+import { toast } from '../../hooks/useToast';
 
 const Step8Layout = () => {
   const [selectedLayout, setSelectedLayout] = useState('list');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { setCurrentStep, updateOnboardingData } = useOnboarding();
+  const { setCurrentStep, saveLayout } = useOnboarding();
 
   const layouts = [
     { id: 'list', name: 'List', icon: LayoutList, description: 'Simple list view' },
@@ -16,10 +18,27 @@ const Step8Layout = () => {
     { id: 'timeline', name: 'Timeline', icon: GanttChart, description: 'Gantt timeline' },
   ];
 
-  const handleContinue = () => {
-    updateOnboardingData('projectSetup', { defaultLayout: selectedLayout });
-    setCurrentStep(8);
-    navigate('/onboarding/step8');
+  const handleContinue = async () => {
+    try {
+      setIsSubmitting(true);
+      // Convert lowercase to uppercase for backend validation
+      await saveLayout({ layout: selectedLayout.toUpperCase() });
+
+      toast.success('Layout saved!', {
+        description: `Your default layout is set to ${layouts.find(l => l.id === selectedLayout)?.name}`
+      });
+
+      setCurrentStep(8);
+      navigate('/onboarding/step8');
+    } catch (error) {
+      console.error('Failed to save layout:', error);
+
+      toast.error('Failed to save layout', {
+        description: error.response?.data?.message || 'Please try again'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -66,8 +85,9 @@ const Step8Layout = () => {
           type="button"
           onClick={handleContinue}
           className="flex-1"
+          disabled={isSubmitting}
         >
-          Continue
+          {isSubmitting ? 'Saving...' : 'Continue'}
         </Button>
       </div>
     </div>
