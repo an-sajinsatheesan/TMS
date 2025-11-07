@@ -123,11 +123,11 @@ Action toolbar for task and view management.
 
 ---
 
-### `DashboardContent.jsx`
+### `ProjectBoardContent.jsx`
 Content renderer supporting multiple view modes.
 
 **Features:**
-- List view with project overview cards and grouped tasks
+- List view with advanced ListView component
 - Kanban view with status-based columns
 - Table view with comprehensive task details
 - Status icons and priority badges
@@ -147,6 +147,264 @@ Content renderer supporting multiple view modes.
   dueDate: '2024-01-20',
   section: 'Design'
 }
+```
+
+---
+
+## 📋 ListView Components
+
+The ListView is a comprehensive list view implementation with drag-and-drop, grouping, and interactive features.
+
+### Component Structure
+
+```
+ListView/
+├── ListView.jsx          - Main container with DnD context
+├── GroupHeader.jsx       - Collapsible group headers
+├── TaskRow.jsx          - Individual task rows with subtasks
+├── AddTaskRow.jsx       - Add new task functionality
+├── ColumnHeader.jsx     - Column headers with menus
+├── ColumnMenu.jsx       - Dropdown menu for columns
+└── index.js            - Export barrel file
+```
+
+### `ListView.jsx`
+Main list view component with full drag-and-drop functionality.
+
+**Features:**
+- Drag-and-drop for groups and tasks (using @dnd-kit)
+- Fixed columns (Drag Icon, #, Task Name)
+- Scrollable columns (Assignee, Status, Due Date, Priority, etc.)
+- Group collapse/expand state management
+- Task completion toggling
+- Add task inline functionality
+- Redux integration for state management
+- Responsive horizontal scroll
+- Sticky header row
+
+**Redux State:**
+- `sections` - Array of task sections/groups
+- `tasks` - Array of all tasks and subtasks
+- `collapsedGroups` - Object tracking collapsed state
+- `columns` - Array of column configurations
+- `sortConfig` - Sorting configuration
+
+**Key Interactions:**
+- Drag groups to reorder
+- Drag tasks within or between groups
+- Click group arrow to collapse/expand
+- Click task icon to toggle completion
+- Click "Add Task" to create new task
+- Hover to reveal drag handles and actions
+
+---
+
+### `GroupHeader.jsx`
+Collapsible group header component.
+
+**Features:**
+- Drag handle for group reordering (visible on hover)
+- Collapse/expand toggle button
+- Color indicator dot
+- Group title and task count
+- WIP limit display (if applicable)
+- Sticky positioning within groups
+
+**Props:**
+- `section` - Section object with id, name, color, etc.
+- `taskCount` - Number of tasks in the section
+- `isCollapsed` - Collapsed state boolean
+- `onToggleCollapse` - Handler for toggle action
+
+**Visual States:**
+- Default: Gray background with hover effect
+- Dragging: Blue ring and shadow
+- Hover: Shows drag handle (≡ icon)
+
+---
+
+### `TaskRow.jsx`
+Individual task row with support for subtasks and all task data.
+
+**Features:**
+- Drag handle (visible on hover, except for subtasks)
+- Task type icon (Milestone/Task/Subtask)
+- Completion toggle (click icon)
+- Task name with right arrow on hover
+- Subtask count badge
+- Assignee with avatar
+- Status, Priority, Due Date badges
+- Tags display
+- Indentation for subtasks (level-based)
+- Connector line for subtask hierarchy
+- Completed state styling (line-through)
+
+**Props:**
+- `task` - Task object with all properties
+- `columns` - Array of visible columns
+- `onToggleComplete` - Handler for completion toggle
+- `isSubtask` - Boolean indicating if task is a subtask
+
+**Icons:**
+- Milestone: Flag icon (gray/green)
+- Task: Circle/CheckCircle (gray/green)
+- Completed: Green color
+- Incomplete: Gray color
+
+**Visual States:**
+- Default: White background
+- Hover: Light gray background with drag handle
+- Dragging: Blue ring and shadow
+- Completed: Gray text with line-through
+
+---
+
+### `AddTaskRow.jsx`
+Inline task creation component at the bottom of each group.
+
+**Features:**
+- Compact button when not active
+- Expands to input field on click
+- Enter key to submit
+- Escape key to cancel
+- Check/X buttons for confirm/cancel
+- Auto-focus on input field
+- Validation (requires task name)
+
+**Props:**
+- `sectionId` - ID of the section to add task to
+- `onAddTask` - Handler receiving sectionId and taskName
+- `columns` - Array of columns for proper alignment
+
+**Usage:**
+```jsx
+<AddTaskRow
+  sectionId="section-1"
+  onAddTask={(sectionId, name) => dispatch(addTask({ sectionId, taskName: name }))}
+  columns={visibleColumns}
+/>
+```
+
+---
+
+### `ColumnHeader.jsx`
+Column header with dropdown menu for actions.
+
+**Features:**
+- Column label display
+- Fixed column styling (sticky left)
+- Scrollable column styling
+- Dropdown menu trigger (down arrow)
+- Resizable width (via column config)
+
+**Props:**
+- `column` - Column configuration object
+- `onSort` - Handler for sort actions
+- `onHide` - Handler for hide column
+- `onSwap` - Handler for swap columns
+
+**Column Types:**
+- Fixed: Drag Icon, #, Task Name
+- Scrollable: Assignee, Status, Due Date, Priority, Start Date, Tags
+
+---
+
+### `ColumnMenu.jsx`
+Dropdown menu for column actions.
+
+**Features:**
+- Sort Ascending
+- Sort Descending
+- Swap Columns
+- Hide Column (not available for fixed columns)
+- Keyboard navigation
+- Click outside to close
+
+**Props:**
+- `column` - Column configuration
+- `onSort` - Handler for sort (columnId, direction)
+- `onHide` - Handler for hide (columnId)
+- `onSwap` - Handler for swap (columnId)
+
+---
+
+## 🎯 Redux State Management
+
+### List View Slice (`listViewSlice.js`)
+
+**State Structure:**
+```javascript
+{
+  sections: [...],        // Array of sections
+  tasks: [...],          // Array of tasks
+  collapsedGroups: {},   // { sectionId: boolean }
+  columns: [...],        // Array of column configs
+  sortConfig: {          // Current sort state
+    column: null,
+    direction: 'asc'
+  }
+}
+```
+
+**Actions:**
+- `toggleGroupCollapse(sectionId)` - Toggle group collapsed state
+- `reorderSections({ sourceIndex, destinationIndex })` - Reorder groups
+- `reorderTasks({ taskId, sourceSectionId, destinationSectionId, destinationIndex })` - Move tasks
+- `toggleTaskCompletion(taskId)` - Toggle task completion
+- `addTask({ sectionId, taskName })` - Add new task
+- `toggleColumnVisibility(columnId)` - Show/hide column
+- `reorderColumns({ sourceIndex, destinationIndex })` - Reorder columns
+- `setSortConfig({ column, direction })` - Set sort configuration
+- `toggleTaskExpand(taskId)` - Expand/collapse task subtasks
+
+**Data Flow:**
+1. User interacts with UI (drag, click, etc.)
+2. Component dispatches Redux action
+3. Reducer updates state
+4. Components re-render with new state
+
+---
+
+## 🎨 Drag and Drop Implementation
+
+### Technology: @dnd-kit
+
+**Features:**
+- Keyboard accessible
+- Touch support
+- Custom drag overlay
+- Collision detection
+- Activation constraints (8px distance)
+
+**Draggable Items:**
+- Group headers (section-{id})
+- Top-level tasks (taskId)
+- Subtasks are NOT draggable
+
+**Drop Zones:**
+- Other group headers (for group reordering)
+- Other tasks (for task reordering)
+- Different sections (for moving between groups)
+
+**Sensors:**
+- PointerSensor: Mouse and touch dragging
+- KeyboardSensor: Accessibility support
+
+**Usage:**
+```jsx
+<DndContext
+  sensors={sensors}
+  collisionDetection={closestCenter}
+  onDragStart={handleDragStart}
+  onDragEnd={handleDragEnd}
+>
+  <SortableContext items={allDraggableIds}>
+    {/* Groups and Tasks */}
+  </SortableContext>
+  <DragOverlay>
+    {/* Custom overlay */}
+  </DragOverlay>
+</DndContext>
 ```
 
 ---
