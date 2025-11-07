@@ -70,14 +70,22 @@ export const checkAuth = createAsyncThunk(
       }
 
       const response = await authService.getCurrentUser();
-      const user = response.data.user;
+
+      // Handle both response.data.user and response.data directly being the user
+      const user = response.data?.user || response.data;
 
       // Fetch onboarding status
-      const statusResponse = await authService.getOnboardingStatus();
-      const onboardingStatus = statusResponse.success ? statusResponse.data.onboardingStatus : null;
-
-      return { user, onboardingStatus };
+      try {
+        const statusResponse = await authService.getOnboardingStatus();
+        const onboardingStatus = statusResponse.success ? statusResponse.data.onboardingStatus : null;
+        return { user, onboardingStatus };
+      } catch (statusError) {
+        // If onboarding status fails, still return the user
+        console.warn('Failed to fetch onboarding status:', statusError);
+        return { user, onboardingStatus: null };
+      }
     } catch (error) {
+      console.error('Auth check failed:', error);
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       return rejectWithValue('Authentication failed');

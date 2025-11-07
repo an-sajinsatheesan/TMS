@@ -12,7 +12,7 @@ const ViewModeBar = ({ currentView, onViewChange }) => {
   ];
 
   return (
-    <div className="sticky top-16 z-30 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div className="sticky top-0 z-30 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="flex h-12 items-center justify-between px-6">
         {/* Left Side - View Tabs */}
         <Tabs value={currentView} onValueChange={onViewChange} className="w-auto">

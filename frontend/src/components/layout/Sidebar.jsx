@@ -47,17 +47,29 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   ];
 
+  const collapsibleMenuItems = [
+    { icon: Star, label: 'Favorites', key: 'favorites' },
+    { icon: FolderKanban, label: 'Projects', key: 'projects' },
+  ];
+
   // Fetch projects on component mount
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         setLoading(true);
         const response = await projectsService.getAll();
-        if (response.data) {
-          setProjects(response.data);
+
+        // Handle nested data structure: response.data.data
+        const projectsData = response.data?.data || response.data;
+
+        if (projectsData && Array.isArray(projectsData)) {
+          setProjects(projectsData);
+        } else {
+          setProjects([]);
         }
       } catch (error) {
         console.error('Failed to fetch projects:', error);
+        setProjects([]);
       } finally {
         setLoading(false);
       }
@@ -66,9 +78,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
     fetchProjects();
   }, []);
 
-  // Filter favorite projects
-  const favoriteProjects = projects.filter((project) => project.isFavorite);
-  const recentProjects = projects.slice(0, 5); // Show only 5 most recent
+  // Filter favorite projects - ensure projects is always an array
+  const favoriteProjects = Array.isArray(projects) ? projects.filter((project) => project.isFavorite) : [];
+  const recentProjects = Array.isArray(projects) ? projects.slice(0, 5) : []; // Show only 5 most recent
 
   const isActive = (path) => location.pathname === path;
 
@@ -162,124 +174,93 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
               )}
             </Link>
           ))}
-        </nav>
 
-        {/* Favorites Section */}
-        {favoriteProjects.length > 0 && (
-          <div className="mt-6">
-            <button
-              onClick={() => setIsFavoritesExpanded(!isFavoritesExpanded)}
-              className="flex items-center justify-between w-full px-3 py-2 mb-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-gray-500" />
-                {!isCollapsed && (
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Favorites
-                  </h3>
-                )}
-              </div>
-              {!isCollapsed && (
-                <ChevronDown
+          {/* Collapsible Menu Items - Favorites and Projects */}
+          {collapsibleMenuItems.map((menuItem) => {
+            const isExpanded = menuItem.key === 'favorites' ? isFavoritesExpanded : isProjectsExpanded;
+            const toggleExpanded = menuItem.key === 'favorites'
+              ? () => setIsFavoritesExpanded(!isFavoritesExpanded)
+              : () => setIsProjectsExpanded(!isProjectsExpanded);
+            const projectList = menuItem.key === 'favorites' ? favoriteProjects : recentProjects;
+
+            return (
+              <div key={menuItem.key} className="mt-1">
+                {/* Main Menu Item with Chevron */}
+                <button
+                  onClick={toggleExpanded}
                   className={cn(
-                    'h-4 w-4 text-gray-500 transition-transform',
-                    isFavoritesExpanded ? 'transform rotate-0' : 'transform -rotate-90'
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors relative group w-full',
+                    'text-gray-700 hover:bg-gray-100'
                   )}
-                />
-              )}
-            </button>
-            {isFavoritesExpanded && (
-              <nav className="space-y-1">
-                {favoriteProjects.slice(0, 5).map((project) => (
-                  <button
-                    key={project.id}
-                    onClick={() => handleProjectClick(project.id)}
-                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors relative group"
-                    onMouseEnter={() => setHoveredItem(project.name)}
-                    onMouseLeave={() => setHoveredItem(null)}
-                  >
-                    <div className={cn('h-2 w-2 rounded-full flex-shrink-0', getProjectColorClass(project.color))} />
-                    {!isCollapsed && <span className="truncate text-left">{project.name}</span>}
-                    {isCollapsed && hoveredItem === project.name && (
-                      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-                        {project.name}
+                  onMouseEnter={() => setHoveredItem(menuItem.label)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  <menuItem.icon className="h-5 w-5 flex-shrink-0" />
+                  {!isCollapsed && (
+                    <>
+                      <span>{menuItem.label}</span>
+                      <ChevronDown
+                        className={cn(
+                          'h-4 w-4 text-gray-500 transition-transform ml-auto',
+                          isExpanded ? 'transform rotate-0' : 'transform -rotate-90'
+                        )}
+                      />
+                    </>
+                  )}
+                  {/* Tooltip for collapsed state */}
+                  {isCollapsed && hoveredItem === menuItem.label && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                      {menuItem.label}
+                    </div>
+                  )}
+                </button>
+
+                {/* Submenu - Project List */}
+                {!isCollapsed && isExpanded && (
+                  <div className="mt-1">
+                    {loading && menuItem.key === 'projects' ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                      </div>
+                    ) : projectList.length > 0 ? (
+                      <>
+                        <nav className="space-y-1 ml-4">
+                          {projectList.slice(0, 5).map((project) => (
+                            <button
+                              key={project.id}
+                              onClick={() => handleProjectClick(project.id)}
+                              className="w-full flex items-center gap-3 rounded-lg px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors relative group"
+                              onMouseEnter={() => setHoveredItem(project.name)}
+                              onMouseLeave={() => setHoveredItem(null)}
+                            >
+                              <div className={cn('h-2 w-2 rounded-full flex-shrink-0', getProjectColorClass(project.color))} />
+                              <span className="truncate text-left">{project.name}</span>
+                            </button>
+                          ))}
+                        </nav>
+                        {/* View All Link */}
+                        {menuItem.key === 'projects' && projects.length > 5 && (
+                          <div className="mt-2 ml-4 px-2">
+                            <Link
+                              to="/projects"
+                              className="text-xs text-primary hover:underline"
+                            >
+                              View all {projects.length} projects →
+                            </Link>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="ml-4 px-3 py-2 text-xs text-gray-500">
+                        No {menuItem.key} yet
                       </div>
                     )}
-                  </button>
-                ))}
-              </nav>
-            )}
-          </div>
-        )}
-
-        {/* Projects Section */}
-        {recentProjects.length > 0 && (
-          <div className="mt-6">
-            <button
-              onClick={() => setIsProjectsExpanded(!isProjectsExpanded)}
-              className="flex items-center justify-between w-full px-3 py-2 mb-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <FolderKanban className="h-4 w-4 text-gray-500" />
-                {!isCollapsed && (
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Projects
-                  </h3>
-                )}
-              </div>
-              {!isCollapsed && (
-                <ChevronDown
-                  className={cn(
-                    'h-4 w-4 text-gray-500 transition-transform',
-                    isProjectsExpanded ? 'transform rotate-0' : 'transform -rotate-90'
-                  )}
-                />
-              )}
-            </button>
-            {isProjectsExpanded && (
-              <>
-                {loading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                   </div>
-                ) : (
-                  <>
-                    <nav className="space-y-1">
-                      {recentProjects.map((project) => (
-                        <button
-                          key={project.id}
-                          onClick={() => handleProjectClick(project.id)}
-                          className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors relative group"
-                          onMouseEnter={() => setHoveredItem(project.name)}
-                          onMouseLeave={() => setHoveredItem(null)}
-                        >
-                          <div className={cn('h-2 w-2 rounded-full flex-shrink-0', getProjectColorClass(project.color))} />
-                          {!isCollapsed && <span className="truncate text-left">{project.name}</span>}
-                          {isCollapsed && hoveredItem === project.name && (
-                            <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
-                              {project.name}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </nav>
-                    {/* View All Projects Link */}
-                    {!isCollapsed && projects.length > 5 && (
-                      <div className="mt-2 px-3">
-                        <Link
-                          to="/projects"
-                          className="text-xs text-primary hover:underline"
-                        >
-                          View all {projects.length} projects →
-                        </Link>
-                      </div>
-                    )}
-                  </>
                 )}
-              </>
-            )}
-          </div>
-        )}
+              </div>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Footer Section */}

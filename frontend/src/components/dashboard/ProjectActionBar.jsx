@@ -21,7 +21,7 @@ const ProjectActionBar = ({
   onFilter,
 }) => {
   return (
-    <div className="sticky top-28 z-20 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div className="sticky top-[3.05rem] z-20 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="flex h-14 items-center justify-between px-6">
         {/* Left Side - Add Actions */}
         <div className="flex items-center gap-2">
