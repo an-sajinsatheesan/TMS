@@ -28,6 +28,11 @@ import Step9Invite from './pages/onboarding/Step9Invite';
 // Dashboard
 import Dashboard from './pages/Dashboard';
 import ProjectBoard from './pages/ProjectBoard';
+import Projects from './pages/Projects';
+import Favorites from './pages/Favorites';
+import Teams from './pages/Teams';
+import Analytics from './pages/Analytics';
+import Notifications from './pages/Notifications';
 
 // Guards
 import OnboardingStepGuard from './components/common/OnboardingStepGuard';
@@ -111,6 +116,56 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     <Dashboard />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Projects Routes */}
+                        <Route
+                            path="/projects"
+                            element={
+                                <ProtectedRoute>
+                                    <Projects />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Favorites Routes */}
+                        <Route
+                            path="/favorites"
+                            element={
+                                <ProtectedRoute>
+                                    <Favorites />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Teams Routes */}
+                        <Route
+                            path="/teams"
+                            element={
+                                <ProtectedRoute>
+                                    <Teams />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Analytics Routes */}
+                        <Route
+                            path="/analytics"
+                            element={
+                                <ProtectedRoute>
+                                    <Analytics />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Notifications Routes */}
+                        <Route
+                            path="/notifications"
+                            element={
+                                <ProtectedRoute>
+                                    <Notifications />
                                 </ProtectedRoute>
                             }
                         />
