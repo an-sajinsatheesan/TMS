@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { saveLayout, clearError } from '../../store/slices/onboardingSlice';
 import { Button } from '@/components/ui/button';
 import { LayoutList, LayoutGrid, Calendar, GanttChart } from 'lucide-react';
-import { toast } from '../../hooks/useToast';
+// import { toast } from '../../hooks/useToast';
 
 const Step8Layout = () => {
   const [selectedLayout, setSelectedLayout] = useState('list');
@@ -25,18 +25,20 @@ const Step8Layout = () => {
       // Convert lowercase to uppercase for backend validation
       await saveLayout({ layout: selectedLayout.toUpperCase() });
 
-      toast.success('Layout saved!', {
-        description: `Your default layout is set to ${layouts.find(l => l.id === selectedLayout)?.name}`
-      });
+      // toast.success('Layout saved!', {
+      //   description: `Your default layout is set to ${layouts.find(l => l.id === selectedLayout)?.name}`
+      // });
+      console.log('✅ Layout saved successfully!');
 
       setCurrentStep(8);
       navigate('/onboarding/step8');
     } catch (error) {
       console.error('Failed to save layout:', error);
 
-      toast.error('Failed to save layout', {
-        description: error.response?.data?.message || 'Please try again'
-      });
+      // toast.error('Failed to save layout', {
+      //   description: error.response?.data?.message || 'Please try again'
+      // });
+      alert(error.response?.data?.message || 'Failed to save layout. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
