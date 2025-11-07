@@ -32,7 +32,7 @@ export const projectMembersService = {
    */
   updateRole: async (projectId, memberId, role) => {
     try {
-      const response = await axiosInstance.patch(`/projects/${projectId}/members/${memberId}/role`, { role });
+      const response = await axiosInstance.patch(`/projects/${projectId}/members/${memberId}`, { role });
       return response;
     } catch (error) {
       console.error('Error updating member role:', error);

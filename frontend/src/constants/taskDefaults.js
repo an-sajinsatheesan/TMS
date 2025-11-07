@@ -1,7 +1,7 @@
 export const TASK_TYPES = [
-  { value: 'task', label: 'Task', icon: 'pi pi-check-circle' },
-  { value: 'milestone', label: 'Milestone', icon: 'pi pi-flag' },
-  { value: 'approval', label: 'Approval', icon: 'pi pi-verified' },
+  { value: 'TASK', label: 'Task', icon: 'pi pi-check-circle' },
+  { value: 'MILESTONE', label: 'Milestone', icon: 'pi pi-flag' },
+  { value: 'APPROVAL', label: 'Approval', icon: 'pi pi-verified' },
 ];
 
 export const PRIORITY_OPTIONS = [
@@ -25,7 +25,7 @@ export const APPROVAL_STATUS_OPTIONS = [
 export const DEFAULT_TASK = {
   name: '',
   description: '',
-  type: 'task',
+  type: 'TASK',
   completed: false,
   sectionId: null,
   projectId: null,

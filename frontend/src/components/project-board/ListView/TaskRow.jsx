@@ -26,7 +26,7 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false, columnWid
   };
 
   const getTaskIcon = () => {
-    if (task.type === 'milestone') {
+    if (task.type === 'MILESTONE') {
       return (
         <Flag
           className={cn(
