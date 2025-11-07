@@ -13,7 +13,7 @@ const ProjectBoard = () => {
   return (
     <AppLayout>
       <ProjectBoardWrapper>
-        <ProjectBoardContent viewMode={currentView} />
+        <ProjectBoardContent viewMode={currentView} projectId={projectId} />
       </ProjectBoardWrapper>
     </AppLayout>
   );

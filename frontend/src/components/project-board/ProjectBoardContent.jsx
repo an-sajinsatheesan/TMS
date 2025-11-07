@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ListView } from './ListView';
 
-const ProjectBoardContent = ({ viewMode = 'list' }) => {
+const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
   // Mock tasks data
   const tasks = [
     {
@@ -90,7 +90,7 @@ const ProjectBoardContent = ({ viewMode = 'list' }) => {
   };
 
   if (viewMode === 'list') {
-    return <ListView />;
+    return <ListView projectId={projectId} />;
   }
 
   if (viewMode === 'kanban') {
