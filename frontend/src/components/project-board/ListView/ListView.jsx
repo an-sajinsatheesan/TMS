@@ -30,6 +30,20 @@ import {
 } from '@/store/slices/listViewSlice';
 import { cn } from '@/lib/utils';
 
+// Centralized column width constants
+const COLUMN_WIDTHS = {
+  drag: 'w-10',
+  taskNumber: 'w-16',
+  taskName: 'w-80',
+  assignee: 'w-48',
+  status: 'w-32',
+  priority: 'w-32',
+  dueDate: 'w-36',
+  startDate: 'w-36',
+  tags: 'w-48',
+  addColumn: 'w-12',
+};
+
 const ListView = () => {
   const dispatch = useDispatch();
   const { sections, tasks, collapsedGroups, columns, sortConfig } = useSelector(
@@ -169,6 +183,7 @@ const ListView = () => {
         <TaskRow
           task={task}
           columns={visibleColumns}
+          columnWidths={COLUMN_WIDTHS}
           onToggleComplete={handleToggleComplete}
           isSubtask={level > 0}
         />
@@ -192,30 +207,33 @@ const ListView = () => {
     >
       <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200">
         {/* Table Header - Sticky */}
-        <div className="sticky top-0 z-30 flex bg-gray-50 border-b-2 border-gray-300">
+        <div className="sticky top-0 z-40 flex bg-gray-50 border-b-2 border-gray-300">
           {/* Fixed Columns Header */}
           <div className="flex sticky left-0 z-20 bg-gray-50">
             {/* Drag Icon Column */}
-            <div className="w-10 flex-shrink-0 border-r border-gray-200" />
+            <div className={`${COLUMN_WIDTHS.drag} flex-shrink-0 border-r border-gray-200`} />
 
             {/* Fixed Columns */}
-            {fixedColumns.map((column) => (
+            {fixedColumns.map((column, index) => (
               <ColumnHeader
                 key={column.id}
                 column={column}
+                widthClass={COLUMN_WIDTHS[column.id]}
                 onSort={handleSort}
                 onHide={handleHideColumn}
                 onSwap={handleSwapColumn}
+                isLastFixed={index === fixedColumns.length - 1}
               />
             ))}
           </div>
 
           {/* Scrollable Columns Header */}
-          <div className="flex overflow-x-auto">
+          <div className="flex overflow-x-auto w-max min-w-full">
             {scrollableColumns.map((column) => (
               <ColumnHeader
                 key={column.id}
                 column={column}
+                widthClass={COLUMN_WIDTHS[column.id]}
                 onSort={handleSort}
                 onHide={handleHideColumn}
                 onSwap={handleSwapColumn}
@@ -224,7 +242,7 @@ const ListView = () => {
           </div>
 
           {/* Add Column Button */}
-          <div className="w-12 flex-shrink-0 flex items-center justify-center border-l border-gray-200 bg-gray-50">
+          <div className={`${COLUMN_WIDTHS.addColumn} flex-shrink-0 flex items-center justify-center border-l border-gray-200 bg-gray-50 sticky right-0 z-20`}>
             <button className="text-gray-500 hover:text-gray-700 transition-colors">
               <span className="text-lg">+</span>
             </button>
@@ -232,7 +250,7 @@ const ListView = () => {
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto h-[calc(100vh-280px)]">
           <SortableContext items={allDraggableIds} strategy={verticalListSortingStrategy}>
             {sections.map((section) => {
               const sectionTasks = tasksBySection[section.id] || [];
@@ -259,6 +277,7 @@ const ListView = () => {
                         sectionId={section.id}
                         onAddTask={handleAddTask}
                         columns={visibleColumns}
+                        columnWidths={COLUMN_WIDTHS}
                       />
                     </div>
                   )}

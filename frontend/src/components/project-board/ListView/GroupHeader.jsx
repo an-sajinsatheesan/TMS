@@ -26,7 +26,7 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse }) => {
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group sticky top-0 z-10 flex items-center gap-2 px-3 py-3 bg-gray-100 border-b-2 border-gray-300',
+        'group sticky top-0 z-10 flex items-center gap-2 px-2 py-1 bg-gray-100 border-b-2 border-gray-300',
         'hover:bg-gray-150 transition-colors',
         isDragging && 'shadow-lg ring-2 ring-blue-400'
       )}
@@ -37,29 +37,29 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse }) => {
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="h-5 w-5 text-gray-500" />
+        <GripVertical className="h-4 w-4 text-gray-500" />
       </div>
 
       {/* Collapse/Expand Icon */}
       <button
         onClick={() => onToggleCollapse(section.id)}
-        className="flex-shrink-0 hover:bg-gray-200 rounded p-1 transition-colors"
+        className="flex-shrink-0 hover:bg-gray-200 rounded p-0.5 transition-colors"
       >
         {isCollapsed ? (
-          <ChevronRight className="h-4 w-4 text-gray-600" />
+          <ChevronRight className="h-3.5 w-3.5 text-gray-600" />
         ) : (
-          <ChevronDown className="h-4 w-4 text-gray-600" />
+          <ChevronDown className="h-3.5 w-3.5 text-gray-600" />
         )}
       </button>
 
       {/* Color Indicator */}
       <div
-        className="w-3 h-3 rounded-full flex-shrink-0"
+        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
         style={{ backgroundColor: section.color }}
       />
 
       {/* Section Title */}
-      <h3 className="text-sm font-semibold text-gray-800">{section.name}</h3>
+      <h3 className="text-xs font-semibold text-gray-800">{section.name}</h3>
 
       {/* Task Count */}
       {taskCount > 0 && (

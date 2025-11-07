@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
-const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false }) => {
+const TaskRow = ({ task, columns, columnWidths, onToggleComplete, isSubtask = false }) => {
   const {
     attributes,
     listeners,
@@ -27,10 +27,10 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false }) => {
 
   const getTaskIcon = () => {
     if (task.type === 'milestone') {
-      return <Flag className={cn('h-4 w-4', task.completed ? 'text-green-600' : 'text-gray-600')} />;
+      return <Flag className={cn('h-4 w-4', task.completed ? 'text-emerald-500 fill-emerald-500' : 'text-gray-600')} />;
     }
     return task.completed ? (
-      <CheckCircle2 className="h-4 w-4 text-green-600" />
+      <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-500" />
     ) : (
       <Circle className="h-4 w-4 text-gray-400" />
     );
@@ -86,39 +86,42 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false }) => {
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group flex items-center border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors',
+        'group flex items-center border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors relative',
         isDragging && 'shadow-lg ring-2 ring-blue-400'
       )}
     >
       {/* Drag Icon */}
       {!isSubtask && (
         <div
-          className="w-10 flex-shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
+          className={`${columnWidths.drag} flex-shrink-0 flex items-center justify-center cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity`}
           {...attributes}
           {...listeners}
         >
           <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
       )}
-      {isSubtask && <div className="w-10 flex-shrink-0" />}
+      {isSubtask && <div className={`${columnWidths.drag} flex-shrink-0 relative`}>
+        {/* Vertical line from parent */}
+        <div className="absolute left-5 top-0 bottom-0 w-px bg-gray-300" />
+        {/* Horizontal connector line */}
+        <div className="absolute left-5 top-1/2 w-3 h-px bg-gray-300" />
+        {/* Circular dot at connection point */}
+        <div className="absolute left-[18px] top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-gray-400" />
+      </div>}
 
       {/* Task Number */}
-      <div className="w-16 flex-shrink-0 px-3 py-3 text-xs text-gray-500">
+      <div className={`${columnWidths.taskNumber} flex-shrink-0 px-2 py-1 text-xs text-gray-500`}>
         {task.id}
       </div>
 
-      {/* Task Name */}
+      {/* Task Name - Fixed with shadow */}
       <div
         className={cn(
-          'flex-1 min-w-0 px-3 py-3 flex items-center gap-2',
+          columnWidths.taskName,
+          'flex-shrink-0 px-2 py-1 flex items-center gap-2 sticky left-[104px] z-10 bg-white group-hover:bg-gray-50 shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]',
           isSubtask && 'pl-8'
         )}
       >
-        {/* Connector line for subtasks */}
-        {isSubtask && (
-          <div className="absolute left-14 w-4 h-px bg-gray-300" />
-        )}
-
         {/* Task Icon */}
         <button
           onClick={() => onToggleComplete(task.id)}
@@ -130,7 +133,7 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false }) => {
         {/* Task Name Text */}
         <span
           className={cn(
-            'text-sm font-medium truncate',
+            'text-xs font-medium truncate',
             task.completed && 'line-through text-gray-400'
           )}
         >
@@ -139,7 +142,7 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false }) => {
 
         {/* Subtask count badge */}
         {task.subtaskCount > 0 && (
-          <Badge variant="secondary" className="ml-2 text-xs">
+          <Badge variant="secondary" className="ml-1 px-1.5 py-0 text-xs">
             {task.subtaskCount}
           </Badge>
         )}
@@ -154,36 +157,35 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false }) => {
         .map((column) => (
           <div
             key={column.id}
-            className="px-3 py-3 border-l border-gray-100 text-sm text-gray-700 truncate"
-            style={{ width: column.width }}
+            className={cn(columnWidths[column.id], 'flex-shrink-0 px-2 py-1 border-l border-gray-100 text-xs text-gray-700 truncate')}
           >
             {column.id === 'assignee' && task.assigneeName && (
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
+              <div className="flex items-center gap-1.5">
+                <Avatar className="h-5 w-5">
                   <AvatarImage src={task.assigneeAvatar} alt={task.assigneeName} />
                   <AvatarFallback className="text-xs">
                     {getInitials(task.assigneeName)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="truncate">{task.assigneeName}</span>
+                <span className="truncate text-xs">{task.assigneeName}</span>
               </div>
             )}
             {column.id === 'status' && task.status && (
-              <Badge variant="outline" className={cn('text-xs', getStatusColor(task.status))}>
+              <Badge variant="outline" className={cn('px-1.5 py-0 text-xs', getStatusColor(task.status))}>
                 {task.status}
               </Badge>
             )}
-            {column.id === 'dueDate' && <span>{formatDate(task.dueDate)}</span>}
+            {column.id === 'dueDate' && <span className="text-xs">{formatDate(task.dueDate)}</span>}
             {column.id === 'priority' && task.priority && (
-              <Badge variant="outline" className={cn('text-xs', getPriorityColor(task.priority))}>
+              <Badge variant="outline" className={cn('px-1.5 py-0 text-xs', getPriorityColor(task.priority))}>
                 {task.priority}
               </Badge>
             )}
-            {column.id === 'startDate' && <span>{formatDate(task.startDate)}</span>}
+            {column.id === 'startDate' && <span className="text-xs">{formatDate(task.startDate)}</span>}
             {column.id === 'tags' && task.tags?.length > 0 && (
               <div className="flex gap-1 flex-wrap">
                 {task.tags.map((tag, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-xs">
+                  <Badge key={idx} variant="secondary" className="px-1.5 py-0 text-xs">
                     {tag}
                   </Badge>
                 ))}
