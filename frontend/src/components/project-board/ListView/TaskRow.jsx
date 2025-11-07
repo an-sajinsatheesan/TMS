@@ -173,49 +173,99 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false, columnWid
 
       {/* Scrollable Columns */}
       {columns
-        .filter((col) => col.visible && !col.fixed)
-        .map((column) => (
-          <div
-            key={column.id}
-            className={cn(
-              columnWidths[column.id] || 'w-40',
-              'px-2 py-1 border-l border-gray-100 text-sm text-gray-700 truncate'
-            )}
-          >
-            {column.id === 'assignee' && task.assigneeName && (
-              <div className="flex items-center gap-2">
-                <Avatar className="h-5 w-5">
-                  <AvatarImage src={task.assigneeAvatar} alt={task.assigneeName} />
-                  <AvatarFallback className="text-xs">
-                    {getInitials(task.assigneeName)}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate text-xs">{task.assigneeName}</span>
-              </div>
-            )}
-            {column.id === 'status' && task.status && (
-              <Badge variant="outline" className={cn('text-xs px-1.5 py-0', getStatusColor(task.status))}>
-                {task.status}
-              </Badge>
-            )}
-            {column.id === 'dueDate' && <span className="text-xs">{formatDate(task.dueDate)}</span>}
-            {column.id === 'priority' && task.priority && (
-              <Badge variant="outline" className={cn('text-xs px-1.5 py-0', getPriorityColor(task.priority))}>
-                {task.priority}
-              </Badge>
-            )}
-            {column.id === 'startDate' && <span className="text-xs">{formatDate(task.startDate)}</span>}
-            {column.id === 'tags' && task.tags?.length > 0 && (
-              <div className="flex gap-1 flex-wrap">
-                {task.tags.map((tag, idx) => (
-                  <Badge key={idx} variant="secondary" className="text-xs px-1.5 py-0">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+        .filter((col) => col.visible && !col.isSystem)
+        .map((column) => {
+          // Get value from task or custom fields
+          let value = task[column.id] || task.customFields?.[column.id];
+
+          // For system fields, use specific task properties
+          if (column.name === 'Assignee') value = task.assigneeId || task.assigneeName;
+          if (column.name === 'Status') value = task.status;
+          if (column.name === 'Priority') value = task.priority;
+          if (column.name === 'Due Date') value = task.dueDate;
+
+          return (
+            <div
+              key={column.id}
+              className={cn(
+                columnWidths[column.id] || 'w-40',
+                'px-2 py-1 border-l border-gray-100 text-sm text-gray-700 truncate'
+              )}
+            >
+              {/* Render based on column type */}
+              {column.type === 'user' && task.assigneeName && (
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-5 w-5">
+                    <AvatarImage src={task.assigneeAvatar} alt={task.assigneeName} />
+                    <AvatarFallback className="text-xs">
+                      {getInitials(task.assigneeName)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate text-xs">{task.assigneeName}</span>
+                </div>
+              )}
+
+              {column.type === 'select' && value && (
+                <Badge
+                  variant="outline"
+                  className="text-xs px-1.5 py-0"
+                  style={{
+                    backgroundColor: column.options?.find(opt => opt.value === value)?.color + '20' || 'transparent',
+                    borderColor: column.options?.find(opt => opt.value === value)?.color || 'gray',
+                    color: column.options?.find(opt => opt.value === value)?.color || 'inherit',
+                  }}
+                >
+                  {column.options?.find(opt => opt.value === value)?.label || value}
+                </Badge>
+              )}
+
+              {column.type === 'multiselect' && Array.isArray(value) && value.length > 0 && (
+                <div className="flex gap-1 flex-wrap">
+                  {value.map((val, idx) => (
+                    <Badge
+                      key={idx}
+                      variant="outline"
+                      className="text-xs px-1.5 py-0"
+                      style={{
+                        backgroundColor: column.options?.find(opt => opt.value === val)?.color + '20' || 'transparent',
+                        borderColor: column.options?.find(opt => opt.value === val)?.color || 'gray',
+                        color: column.options?.find(opt => opt.value === val)?.color || 'inherit',
+                      }}
+                    >
+                      {column.options?.find(opt => opt.value === val)?.label || val}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {column.type === 'date' && value && (
+                <span className="text-xs">{formatDate(value)}</span>
+              )}
+
+              {column.type === 'text' && value && (
+                <span className="text-xs">{value}</span>
+              )}
+
+              {column.type === 'number' && value !== null && value !== undefined && (
+                <span className="text-xs">{value}</span>
+              )}
+
+              {column.type === 'checkbox' && (
+                <input
+                  type="checkbox"
+                  checked={!!value}
+                  readOnly
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+
+              {/* Show empty state if no value */}
+              {!value && column.type !== 'checkbox' && (
+                <span className="text-xs text-gray-400">-</span>
+              )}
+            </div>
+          );
+        })}
     </div>
   );
 };
