@@ -3,20 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { saveLayout, clearError } from '../../store/slices/onboardingSlice';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { LayoutList, LayoutGrid, Calendar, GanttChart, AlertCircle, Loader2 } from 'lucide-react';
-import { toast } from '../../hooks/useToast.jsx';
+import { LayoutList, LayoutGrid, Calendar, GanttChart } from 'lucide-react';
+import { toast } from '../../hooks/useToast';
 
 const Step8Layout = () => {
   const [selectedLayout, setSelectedLayout] = useState('list');
-  const [localError, setLocalError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const { loading, error: reduxError } = useSelector((state) => state.onboarding);
-
-  useEffect(() => {
-    return () => dispatch(clearError());
-  }, [dispatch]);
+  const { setCurrentStep, saveLayout } = useOnboarding();
 
   const layouts = [
     { id: 'list', name: 'List', icon: LayoutList, description: 'Simple list view' },
@@ -25,19 +19,26 @@ const Step8Layout = () => {
     { id: 'timeline', name: 'Timeline', icon: GanttChart, description: 'Gantt timeline' },
   ];
 
-  const handleContinue = async (e) => {
-    e.preventDefault();
-    setLocalError('');
-
+  const handleContinue = async () => {
     try {
-      await dispatch(saveLayout(selectedLayout)).unwrap();
-      toast.success('Layout saved successfully');
-      navigate('/onboarding/step8');
-    } catch (err) {
-      toast.error('Failed to save layout', {
-        description: err || 'Please try again'
+      setIsSubmitting(true);
+      // Convert lowercase to uppercase for backend validation
+      await saveLayout({ layout: selectedLayout.toUpperCase() });
+
+      toast.success('Layout saved!', {
+        description: `Your default layout is set to ${layouts.find(l => l.id === selectedLayout)?.name}`
       });
-      setLocalError(err || 'Failed to save. Please try again.');
+
+      setCurrentStep(8);
+      navigate('/onboarding/step8');
+    } catch (error) {
+      console.error('Failed to save layout:', error);
+
+      toast.error('Failed to save layout', {
+        description: error.response?.data?.message || 'Please try again'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -57,51 +58,23 @@ const Step8Layout = () => {
         </Alert>
       )}
 
-      <form onSubmit={handleContinue}>
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          {layouts.map((layout) => {
-            const Icon = layout.icon;
-            return (
-              <button
-                key={layout.id}
-                type="button"
-                onClick={() => setSelectedLayout(layout.id)}
-                disabled={loading}
-                className={`p-6 border-2 rounded-lg text-left transition-all ${
-                  selectedLayout === layout.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-gray-200 hover:border-gray-300'
-                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <Icon className={`h-8 w-8 mb-3 ${
-                  selectedLayout === layout.id ? 'text-primary' : 'text-gray-600'
-                }`} />
-                <div className="font-semibold mb-1">{layout.name}</div>
-                <div className="text-sm text-gray-600">{layout.description}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate('/onboarding/step6')}
-            disabled={loading}
-          >
-            Back
-          </Button>
-          <Button
-            type="submit"
-            className="flex-1"
-            disabled={loading}
-          >
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {loading ? 'Saving...' : 'Continue'}
-          </Button>
-        </div>
-      </form>
+      <div className="flex gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate('/onboarding/step6')}
+        >
+          Back
+        </Button>
+        <Button
+          type="button"
+          onClick={handleContinue}
+          className="flex-1"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Saving...' : 'Continue'}
+        </Button>
+      </div>
     </div>
   );
 };
