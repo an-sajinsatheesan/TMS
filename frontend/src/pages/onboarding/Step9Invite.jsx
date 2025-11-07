@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOnboarding } from '../../contexts/OnboardingContext';
-import { useAuth } from '../../contexts/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { completeOnboarding, clearError } from '../../store/slices/onboardingSlice';
+import { refreshOnboardingStatus } from '../../store/slices/authSlice';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { X, Plus, AlertCircle } from 'lucide-react';
+import { X, Plus, AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from '../../hooks/useToast.jsx';
 
 const Step9Invite = () => {
   const [emails, setEmails] = useState(['']);
-  const [error, setError] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [localError, setLocalError] = useState('');
   const navigate = useNavigate();
-  const { completeOnboarding } = useOnboarding();
-  const { refreshOnboardingStatus, user } = useAuth();
+  const dispatch = useDispatch();
+  const { loading, error: reduxError } = useSelector((state) => state.onboarding);
+  const { user } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    return () => dispatch(clearError());
+  }, [dispatch]);
 
   const handleAddEmail = () => {
     setEmails([...emails, '']);
@@ -31,60 +37,59 @@ const Step9Invite = () => {
     setEmails(newEmails);
   };
 
-  const handleFinish = async () => {
+  const handleFinish = async (e) => {
+    e.preventDefault();
+    setLocalError('');
+
     const validEmails = emails.filter(email => email.trim());
-    setError('');
-    setSaving(true);
 
     try {
-      const response = await completeOnboarding({ inviteEmails: validEmails });
-      await refreshOnboardingStatus();
+      const response = await dispatch(completeOnboarding({ inviteEmails: validEmails })).unwrap();
+      await dispatch(refreshOnboardingStatus());
+
+      toast.success('Onboarding completed successfully!');
 
       // Navigate to dashboard with proper parameters
-      // Backend returns project data (axios interceptor unwraps response.data)
-      const project = response.data?.project;
+      const project = response?.project;
       const userId = user?.id;
 
       if (project?.id && userId) {
-        // Redirect to dashboard with userId, projectId, and default viewMode
         navigate(`/dashboard/${userId}/${project.id}/board`, { replace: true });
       } else {
-        // Fallback to generic dashboard if IDs not available
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      console.error('Complete error:', err);
-      setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');
-    } finally {
-      setSaving(false);
+      toast.error('Failed to complete onboarding', {
+        description: err || 'Please try again'
+      });
+      setLocalError(err || 'Failed to complete onboarding. Please try again.');
     }
   };
 
-  const handleSkip = async () => {
-    setError('');
-    setSaving(true);
+  const handleSkip = async (e) => {
+    e.preventDefault();
+    setLocalError('');
 
     try {
-      const response = await completeOnboarding({ inviteEmails: [] });
-      await refreshOnboardingStatus();
+      const response = await dispatch(completeOnboarding({ inviteEmails: [] })).unwrap();
+      await dispatch(refreshOnboardingStatus());
+
+      toast.success('Onboarding completed successfully!');
 
       // Navigate to dashboard with proper parameters
-      // Backend returns project data (axios interceptor unwraps response.data)
-      const project = response.data?.project;
+      const project = response?.project;
       const userId = user?.id;
 
       if (project?.id && userId) {
-        // Redirect to dashboard with userId, projectId, and default viewMode
         navigate(`/dashboard/${userId}/${project.id}/board`, { replace: true });
       } else {
-        // Fallback to generic dashboard if IDs not available
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      console.error('Complete error:', err);
-      setError(err.response?.data?.message || 'Failed to complete onboarding. Please try again.');
-    } finally {
-      setSaving(false);
+      toast.error('Failed to complete onboarding', {
+        description: err || 'Please try again'
+      });
+      setLocalError(err || 'Failed to complete onboarding. Please try again.');
     }
   };
 
@@ -97,78 +102,80 @@ const Step9Invite = () => {
         </p>
       </div>
 
-      {error && (
-        <Alert variant="destructive" className="mb-4">
+      {(localError || reduxError) && (
+        <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{localError || reduxError}</AlertDescription>
         </Alert>
       )}
 
-      <div className="space-y-6 mb-8">
-        <div className="space-y-2">
-          {emails.map((email, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => handleEmailChange(index, e.target.value)}
-                placeholder="teammate@example.com"
-                className="flex-1"
-                disabled={saving}
-              />
-              {emails.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveEmail(index)}
-                  disabled={saving}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
+      <form onSubmit={handleFinish}>
+        <div className="space-y-6 mb-8">
+          <div className="space-y-2">
+            {emails.map((email, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => handleEmailChange(index, e.target.value)}
+                  placeholder="teammate@example.com"
+                  className="flex-1"
+                  disabled={loading}
+                />
+                {emails.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveEmail(index)}
+                    disabled={loading}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <Button
+            type="button"
+            onClick={handleAddEmail}
+            variant="outline"
+            className="w-full"
+            disabled={loading}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Email
+          </Button>
         </div>
 
-        <Button
-          type="button"
-          onClick={handleAddEmail}
-          variant="outline"
-          className="w-full"
-          disabled={saving}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Email
-        </Button>
-      </div>
-
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate('/onboarding/step7')}
-          disabled={saving}
-        >
-          Back
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={handleSkip}
-          disabled={saving}
-        >
-          Skip
-        </Button>
-        <Button
-          type="button"
-          onClick={handleFinish}
-          className="flex-1"
-          disabled={saving}
-        >
-          {saving ? 'Finishing...' : 'Finish'}
-        </Button>
-      </div>
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/onboarding/step7')}
+            disabled={loading}
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleSkip}
+            disabled={loading}
+          >
+            {loading ? 'Skipping...' : 'Skip'}
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1"
+            disabled={loading}
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? 'Finishing...' : 'Finish'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

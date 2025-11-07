@@ -49,6 +49,45 @@ export const saveCompanyInfo = createAsyncThunk(
   }
 );
 
+export const saveProjectName = createAsyncThunk(
+  'onboarding/saveProjectName',
+  async (projectName, { dispatch, rejectWithValue }) => {
+    try {
+      await onboardingService.updateStep(5);
+      await dispatch(refreshOnboardingStatus());
+      return { projectName, nextStep: 5 };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to save project name');
+    }
+  }
+);
+
+export const saveSections = createAsyncThunk(
+  'onboarding/saveSections',
+  async (sections, { dispatch, rejectWithValue }) => {
+    try {
+      await onboardingService.updateStep(6);
+      await dispatch(refreshOnboardingStatus());
+      return { sections, nextStep: 6 };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to save sections');
+    }
+  }
+);
+
+export const saveTasks = createAsyncThunk(
+  'onboarding/saveTasks',
+  async (tasks, { dispatch, rejectWithValue }) => {
+    try {
+      await onboardingService.updateStep(7);
+      await dispatch(refreshOnboardingStatus());
+      return { tasks, nextStep: 7 };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to save tasks');
+    }
+  }
+);
+
 export const saveProjectSetup = createAsyncThunk(
   'onboarding/saveProjectSetup',
   async (data, { dispatch, rejectWithValue }) => {
@@ -158,6 +197,48 @@ const onboardingSlice = createSlice({
         state.currentStep = action.payload.nextStep;
       })
       .addCase(saveCompanyInfo.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Save Project Name
+      .addCase(saveProjectName.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(saveProjectName.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data.projectSetup.projectName = action.payload.projectName;
+        state.currentStep = action.payload.nextStep;
+      })
+      .addCase(saveProjectName.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Save Sections
+      .addCase(saveSections.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(saveSections.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data.projectSetup.sections = action.payload.sections;
+        state.currentStep = action.payload.nextStep;
+      })
+      .addCase(saveSections.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Save Tasks
+      .addCase(saveTasks.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(saveTasks.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data.projectSetup.tasks = action.payload.tasks;
+        state.currentStep = action.payload.nextStep;
+      })
+      .addCase(saveTasks.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })

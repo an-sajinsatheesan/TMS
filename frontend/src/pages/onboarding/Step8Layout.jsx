@@ -1,13 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { saveLayout, clearError } from '../../store/slices/onboardingSlice';
 import { Button } from '@/components/ui/button';
-import { LayoutList, LayoutGrid, Calendar, GanttChart } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LayoutList, LayoutGrid, Calendar, GanttChart, AlertCircle, Loader2 } from 'lucide-react';
+import { toast } from '../../hooks/useToast.jsx';
 
 const Step8Layout = () => {
   const [selectedLayout, setSelectedLayout] = useState('list');
+  const [localError, setLocalError] = useState('');
   const navigate = useNavigate();
-  const { setCurrentStep, updateOnboardingData } = useOnboarding();
+  const dispatch = useDispatch();
+  const { loading, error: reduxError } = useSelector((state) => state.onboarding);
+
+  useEffect(() => {
+    return () => dispatch(clearError());
+  }, [dispatch]);
 
   const layouts = [
     { id: 'list', name: 'List', icon: LayoutList, description: 'Simple list view' },
@@ -16,10 +25,20 @@ const Step8Layout = () => {
     { id: 'timeline', name: 'Timeline', icon: GanttChart, description: 'Gantt timeline' },
   ];
 
-  const handleContinue = () => {
-    updateOnboardingData('projectSetup', { defaultLayout: selectedLayout });
-    setCurrentStep(8);
-    navigate('/onboarding/step8');
+  const handleContinue = async (e) => {
+    e.preventDefault();
+    setLocalError('');
+
+    try {
+      await dispatch(saveLayout(selectedLayout)).unwrap();
+      toast.success('Layout saved successfully');
+      navigate('/onboarding/step8');
+    } catch (err) {
+      toast.error('Failed to save layout', {
+        description: err || 'Please try again'
+      });
+      setLocalError(err || 'Failed to save. Please try again.');
+    }
   };
 
   return (
@@ -31,45 +50,58 @@ const Step8Layout = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        {layouts.map((layout) => {
-          const Icon = layout.icon;
-          return (
-            <button
-              key={layout.id}
-              onClick={() => setSelectedLayout(layout.id)}
-              className={`p-6 border-2 rounded-lg text-left transition-all ${
-                selectedLayout === layout.id
-                  ? 'border-primary bg-primary/5'
-                  : 'border-gray-200 hover:border-gray-300'
-              }`}
-            >
-              <Icon className={`h-8 w-8 mb-3 ${
-                selectedLayout === layout.id ? 'text-primary' : 'text-gray-600'
-              }`} />
-              <div className="font-semibold mb-1">{layout.name}</div>
-              <div className="text-sm text-gray-600">{layout.description}</div>
-            </button>
-          );
-        })}
-      </div>
+      {(localError || reduxError) && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{localError || reduxError}</AlertDescription>
+        </Alert>
+      )}
 
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => navigate('/onboarding/step6')}
-        >
-          Back
-        </Button>
-        <Button
-          type="button"
-          onClick={handleContinue}
-          className="flex-1"
-        >
-          Continue
-        </Button>
-      </div>
+      <form onSubmit={handleContinue}>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          {layouts.map((layout) => {
+            const Icon = layout.icon;
+            return (
+              <button
+                key={layout.id}
+                type="button"
+                onClick={() => setSelectedLayout(layout.id)}
+                disabled={loading}
+                className={`p-6 border-2 rounded-lg text-left transition-all ${
+                  selectedLayout === layout.id
+                    ? 'border-primary bg-primary/5'
+                    : 'border-gray-200 hover:border-gray-300'
+                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Icon className={`h-8 w-8 mb-3 ${
+                  selectedLayout === layout.id ? 'text-primary' : 'text-gray-600'
+                }`} />
+                <div className="font-semibold mb-1">{layout.name}</div>
+                <div className="text-sm text-gray-600">{layout.description}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate('/onboarding/step6')}
+            disabled={loading}
+          >
+            Back
+          </Button>
+          <Button
+            type="submit"
+            className="flex-1"
+            disabled={loading}
+          >
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? 'Saving...' : 'Continue'}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };
