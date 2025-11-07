@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import AuthInit from './components/common/AuthInit';
 import { AuthProvider } from './contexts/AuthContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
 import { ProjectProvider } from './contexts/ProjectContext';
@@ -39,6 +40,7 @@ function App() {
             <OnboardingProvider>
                 <ProjectProvider>
                     <Router>
+                    <AuthInit>
                     <Toaster position="top-right" />
                     <Routes>
                         {/* Public Routes */}
@@ -132,6 +134,7 @@ function App() {
                         <Route path="/" element={<Navigate to="/login" replace />} />
                         <Route path="*" element={<Navigate to="/login" replace />} />
                     </Routes>
+                    </AuthInit>
                 </Router>
                 </ProjectProvider>
             </OnboardingProvider>

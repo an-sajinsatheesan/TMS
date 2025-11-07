@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useSelector } from 'react-redux';
 
 /**
  * OnboardingStepGuard - Prevents users from accessing onboarding steps out of order
  * Case 4: Ensures onboarding always starts from /onboarding and follows proper step order
  */
 const OnboardingStepGuard = ({ children, requiredStep }) => {
-  const { onboardingStatus, loading } = useAuth();
+  const { onboardingStatus, loading } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
 
