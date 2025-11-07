@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { completeProfile as completeProfileAction, clearError } from '../../store/slices/authSlice';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authService } from '../../api/auth.service';
-import { useAuth } from '../../contexts/AuthContext';
 import { toast } from '../../hooks/useToast.jsx';
 import AuthLayout from './AuthLayout';
 
@@ -32,12 +32,14 @@ const profileSchema = yup.object().shape({
 const CompleteProfile = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { completeProfile } = useAuth();
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.auth);
+
   const email = location.state?.email || '';
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm({
+  const { register, handleSubmit, formState: { errors }, setError } = useForm({
     resolver: yupResolver(profileSchema),
     defaultValues: {
       fullName: '',
@@ -46,49 +48,47 @@ const CompleteProfile = () => {
     }
   });
 
-  const onSubmit = async (data) => {
-    if (!email) {
-      setError('root', {
-        type: 'manual',
-        message: 'Invalid session. Please register again.'
-      });
-      navigate('/register');
-      return;
-    }
-
-    try {
-      await completeProfile(email, {
-        fullName: data.fullName,
-        password: data.password
-      });
-
-      toast.success('Account created successfully! Welcome aboard!', {
-        description: 'Redirecting to onboarding...'
-      });
-
-      setTimeout(() => {
-        navigate('/onboarding', { replace: true });
-      }, 1000);
-    } catch (err) {
-      console.error('❌ Profile creation error:', err);
-
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to complete profile. Please try again.';
-      toast.error('Profile creation failed', {
-        description: errorMessage
-      });
-
-      setError('root', {
-        type: 'manual',
-        message: errorMessage
-      });
-    }
-  };
-
+  // Redirect if no email
   useEffect(() => {
     if (!email) {
       navigate('/register', { replace: true });
     }
   }, [email, navigate]);
+
+  // Clear error on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  const onSubmit = async (data) => {
+    try {
+      await dispatch(completeProfileAction({
+        email,
+        fullName: data.fullName,
+        password: data.password
+      })).unwrap();
+
+      toast.success('Account created successfully!', {
+        description: 'Welcome aboard!'
+      });
+
+      // Navigate to onboarding
+      setTimeout(() => {
+        navigate('/onboarding', { replace: true });
+      }, 500);
+    } catch (err) {
+      toast.error('Profile completion failed', {
+        description: err || 'Please try again'
+      });
+
+      setError('root', {
+        type: 'manual',
+        message: err || 'Failed to complete profile'
+      });
+    }
+  };
 
   return (
     <AuthLayout>
@@ -97,15 +97,15 @@ const CompleteProfile = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold text-gray-900 mb-2">Complete your profile</h1>
           <p className="text-gray-600">
-            Set up your account to get started
+            Just a few more details to get started
           </p>
         </div>
 
         {/* Error Alert */}
-        {errors.root && (
+        {(errors.root || error) && (
           <Alert variant="destructive" className="mb-6">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{errors.root.message}</AlertDescription>
+            <AlertDescription>{errors.root?.message || error}</AlertDescription>
           </Alert>
         )}
 
@@ -117,12 +117,13 @@ const CompleteProfile = () => {
             <Input
               id="fullName"
               type="text"
-              placeholder="John Doe"
+              placeholder="Enter your full name"
               autoFocus
               {...register('fullName')}
               className={cn(
                 errors.fullName && "border-red-500 focus-visible:ring-red-500"
               )}
+              disabled={loading}
             />
             {errors.fullName && (
               <p className="text-sm text-red-500">{errors.fullName.message}</p>
@@ -136,17 +137,19 @@ const CompleteProfile = () => {
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter password"
+                placeholder="Create a password"
                 {...register('password')}
                 className={cn(
                   "pr-10",
                   errors.password && "border-red-500 focus-visible:ring-red-500"
                 )}
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                disabled={loading}
               >
                 {showPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -158,9 +161,6 @@ const CompleteProfile = () => {
             {errors.password && (
               <p className="text-sm text-red-500">{errors.password.message}</p>
             )}
-            <p className="text-xs text-gray-500">
-              Must be at least 8 characters with uppercase, lowercase, and number
-            </p>
           </div>
 
           {/* Confirm Password Field */}
@@ -170,17 +170,19 @@ const CompleteProfile = () => {
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm password"
+                placeholder="Confirm your password"
                 {...register('confirmPassword')}
                 className={cn(
                   "pr-10",
                   errors.confirmPassword && "border-red-500 focus-visible:ring-red-500"
                 )}
+                disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                disabled={loading}
               >
                 {showConfirmPassword ? (
                   <EyeOff className="h-4 w-4" />
@@ -198,10 +200,10 @@ const CompleteProfile = () => {
           <Button
             type="submit"
             className="w-full"
-            disabled={isSubmitting}
+            disabled={loading}
           >
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSubmitting ? 'Creating account...' : 'Complete registration'}
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading ? 'Creating account...' : 'Complete Registration'}
           </Button>
         </form>
       </div>
