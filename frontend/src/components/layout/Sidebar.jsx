@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Bell,
@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   User,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,11 +27,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { projectsService } from '../../services/api/projects.service';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [hoveredItem, setHoveredItem] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const mainNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -41,10 +46,54 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
     { icon: Star, label: 'Favorites', path: '/favorites' },
   ];
 
+  // Fetch projects on component mount
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await projectsService.getAll();
+        if (response.data) {
+          setProjects(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  // Filter favorite projects
+  const favoriteProjects = projects.filter((project) => project.isFavorite);
+  const recentProjects = projects.slice(0, 5); // Show only 5 most recent
+
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     logout();
+  };
+
+  const handleProjectClick = (projectId) => {
+    // Navigate to project board with correct URL format
+    // /project-board/:userId/:projectId/:viewMode
+    navigate(`/project-board/${user?.id}/${projectId}/list`);
+  };
+
+  // Get project color class
+  const getProjectColorClass = (color) => {
+    const colorMap = {
+      blue: 'bg-blue-500',
+      purple: 'bg-purple-500',
+      green: 'bg-green-500',
+      orange: 'bg-orange-500',
+      pink: 'bg-pink-500',
+      cyan: 'bg-cyan-500',
+      yellow: 'bg-yellow-500',
+      red: 'bg-red-500',
+    };
+    return colorMap[color] || 'bg-gray-500';
   };
 
   return (
@@ -113,6 +162,90 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
             </Link>
           ))}
         </nav>
+
+        {/* Favorites Section */}
+        {favoriteProjects.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 px-3 mb-2">
+              <Star className="h-4 w-4 text-gray-500" />
+              {!isCollapsed && (
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Favorites
+                </h3>
+              )}
+            </div>
+            <nav className="space-y-1">
+              {favoriteProjects.slice(0, 5).map((project) => (
+                <button
+                  key={project.id}
+                  onClick={() => handleProjectClick(project.id)}
+                  className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors relative group"
+                  onMouseEnter={() => setHoveredItem(project.name)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                >
+                  <div className={cn('h-2 w-2 rounded-full flex-shrink-0', getProjectColorClass(project.color))} />
+                  {!isCollapsed && <span className="truncate text-left">{project.name}</span>}
+                  {isCollapsed && hoveredItem === project.name && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                      {project.name}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+        )}
+
+        {/* Recent Projects Section */}
+        {recentProjects.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center gap-2 px-3 mb-2">
+              <FolderKanban className="h-4 w-4 text-gray-500" />
+              {!isCollapsed && (
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Recent Projects
+                </h3>
+              )}
+            </div>
+            {loading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
+            ) : (
+              <nav className="space-y-1">
+                {recentProjects.map((project) => (
+                  <button
+                    key={project.id}
+                    onClick={() => handleProjectClick(project.id)}
+                    className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors relative group"
+                    onMouseEnter={() => setHoveredItem(project.name)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                  >
+                    <div className={cn('h-2 w-2 rounded-full flex-shrink-0', getProjectColorClass(project.color))} />
+                    {!isCollapsed && <span className="truncate text-left">{project.name}</span>}
+                    {isCollapsed && hoveredItem === project.name && (
+                      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap z-50">
+                        {project.name}
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </nav>
+            )}
+          </div>
+        )}
+
+        {/* View All Projects Link */}
+        {!isCollapsed && projects.length > 5 && (
+          <div className="mt-2 px-3">
+            <Link
+              to="/projects"
+              className="text-xs text-primary hover:underline"
+            >
+              View all {projects.length} projects →
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Footer Section */}
