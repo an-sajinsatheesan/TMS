@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import AppLayout from '../components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,111 +15,40 @@ import {
   FolderKanban,
   MoreVertical,
   Star,
-  Users,
   Calendar,
-  CheckCircle2,
-  Circle,
   Grid3x3,
   List,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { projectsService } from '../services/api/projects.service';
+import { useAuth } from '../contexts/AuthContext';
 
 const Projects = () => {
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState('grid');
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Mock projects data - replace with actual data from API/context
-  const projects = [
-    {
-      id: 1,
-      name: 'Website Redesign',
-      description: 'Complete overhaul of company website with modern design',
-      status: 'active',
-      color: 'bg-blue-500',
-      members: [
-        { id: 1, name: 'John Doe', initials: 'JD' },
-        { id: 2, name: 'Jane Smith', initials: 'JS' },
-        { id: 3, name: 'Bob Wilson', initials: 'BW' },
-      ],
-      tasksCompleted: 12,
-      tasksTotal: 24,
-      dueDate: '2024-03-15',
-      isFavorite: true,
-    },
-    {
-      id: 2,
-      name: 'Mobile App Development',
-      description: 'Native mobile application for iOS and Android',
-      status: 'active',
-      color: 'bg-purple-500',
-      members: [
-        { id: 4, name: 'Alice Brown', initials: 'AB' },
-        { id: 5, name: 'Charlie Davis', initials: 'CD' },
-      ],
-      tasksCompleted: 8,
-      tasksTotal: 16,
-      dueDate: '2024-04-20',
-      isFavorite: false,
-    },
-    {
-      id: 3,
-      name: 'Marketing Campaign',
-      description: 'Q2 marketing campaign for product launch',
-      status: 'planning',
-      color: 'bg-green-500',
-      members: [
-        { id: 6, name: 'Eve Martinez', initials: 'EM' },
-      ],
-      tasksCompleted: 3,
-      tasksTotal: 10,
-      dueDate: '2024-05-01',
-      isFavorite: true,
-    },
-    {
-      id: 4,
-      name: 'API Development',
-      description: 'RESTful API for customer portal',
-      status: 'paused',
-      color: 'bg-orange-500',
-      members: [
-        { id: 7, name: 'Frank Thomas', initials: 'FT' },
-        { id: 8, name: 'Grace Lee', initials: 'GL' },
-      ],
-      tasksCompleted: 15,
-      tasksTotal: 20,
-      dueDate: '2024-03-30',
-      isFavorite: false,
-    },
-    {
-      id: 5,
-      name: 'Customer Portal',
-      description: 'Self-service portal for customer support',
-      status: 'completed',
-      color: 'bg-cyan-500',
-      members: [
-        { id: 9, name: 'Henry Kim', initials: 'HK' },
-      ],
-      tasksCompleted: 18,
-      tasksTotal: 18,
-      dueDate: '2024-02-28',
-      isFavorite: false,
-    },
-    {
-      id: 6,
-      name: 'Analytics Dashboard',
-      description: 'Internal analytics and reporting dashboard',
-      status: 'active',
-      color: 'bg-pink-500',
-      members: [
-        { id: 10, name: 'Isabel Chen', initials: 'IC' },
-        { id: 11, name: 'Jack Ryan', initials: 'JR' },
-        { id: 12, name: 'Kate Wilson', initials: 'KW' },
-      ],
-      tasksCompleted: 7,
-      tasksTotal: 14,
-      dueDate: '2024-04-10',
-      isFavorite: true,
-    },
-  ];
+  // Fetch projects from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await projectsService.getAll();
+        if (response.data) {
+          setProjects(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch projects:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -138,12 +67,30 @@ const Projects = () => {
     );
   };
 
+  const getProjectColorClass = (color) => {
+    const colorMap = {
+      blue: 'bg-blue-500',
+      purple: 'bg-purple-500',
+      green: 'bg-green-500',
+      orange: 'bg-orange-500',
+      pink: 'bg-pink-500',
+      cyan: 'bg-cyan-500',
+      yellow: 'bg-yellow-500',
+      red: 'bg-red-500',
+    };
+    return colorMap[color] || 'bg-gray-500';
+  };
+
+  const handleProjectClick = (projectId) => {
+    navigate(`/project-board/${user?.id}/${projectId}/list`);
+  };
+
   const ProjectCard = ({ project }) => (
-    <Card className="hover:shadow-lg transition-shadow duration-200">
+    <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer" onClick={() => handleProjectClick(project.id)}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3 flex-1">
-            <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center text-white', project.color)}>
+            <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center text-white', getProjectColorClass(project.color))}>
               <FolderKanban className="h-5 w-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -157,7 +104,7 @@ const Projects = () => {
             </div>
           </div>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <MoreVertical className="h-4 w-4" />
               </Button>
@@ -172,67 +119,67 @@ const Projects = () => {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Status */}
         <div className="flex items-center justify-between">
           {getStatusBadge(project.status)}
           <span className="text-xs text-gray-500 flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {project.dueDate}
+            {project.dueDate || 'No due date'}
           </span>
         </div>
 
-        {/* Progress */}
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">Progress</span>
-            <span className="font-medium">
-              {project.tasksCompleted}/{project.tasksTotal} tasks
-            </span>
+        {project.tasksTotal > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-gray-500">Progress</span>
+              <span className="font-medium">
+                {project.tasksCompleted || 0}/{project.tasksTotal} tasks
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div
+                className="bg-primary h-1.5 rounded-full transition-all"
+                style={{ width: `${((project.tasksCompleted || 0) / project.tasksTotal) * 100}%` }}
+              />
+            </div>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div
-              className="bg-primary h-1.5 rounded-full transition-all"
-              style={{ width: `${(project.tasksCompleted / project.tasksTotal) * 100}%` }}
-            />
-          </div>
-        </div>
+        )}
 
-        {/* Members */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center -space-x-2">
-            {project.members.slice(0, 3).map((member) => (
-              <Avatar key={member.id} className="h-7 w-7 border-2 border-white">
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                  {member.initials}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-            {project.members.length > 3 && (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-xs">
-                +{project.members.length - 3}
-              </div>
-            )}
-          </div>
-          <Link to={`/project-board/${project.id}/list`}>
-            <Button size="sm" variant="outline">
-              Open
-            </Button>
-          </Link>
+          {project.members && project.members.length > 0 && (
+            <div className="flex items-center -space-x-2">
+              {project.members.slice(0, 3).map((member, index) => (
+                <Avatar key={index} className="h-7 w-7 border-2 border-white">
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    {member.initials || member.name?.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {project.members.length > 3 && (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-xs">
+                  +{project.members.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+          <Button size="sm" variant="outline" onClick={(e) => {
+            e.stopPropagation();
+            handleProjectClick(project.id);
+          }}>
+            Open
+          </Button>
         </div>
       </CardContent>
     </Card>
   );
 
   const ProjectListItem = ({ project }) => (
-    <Card className="hover:shadow-md transition-shadow duration-200">
+    <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer" onClick={() => handleProjectClick(project.id)}>
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
-          {/* Icon */}
-          <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center text-white flex-shrink-0', project.color)}>
+          <div className={cn('h-10 w-10 rounded-lg flex items-center justify-center text-white flex-shrink-0', getProjectColorClass(project.color))}>
             <FolderKanban className="h-5 w-5" />
           </div>
 
-          {/* Name & Description */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold truncate">{project.name}</h3>
@@ -241,49 +188,50 @@ const Projects = () => {
             <p className="text-sm text-gray-500 truncate">{project.description}</p>
           </div>
 
-          {/* Status */}
           <div className="hidden md:block">
             {getStatusBadge(project.status)}
           </div>
 
-          {/* Progress */}
-          <div className="hidden lg:block w-32">
-            <div className="text-xs text-gray-500 mb-1">
-              {project.tasksCompleted}/{project.tasksTotal} tasks
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5">
-              <div
-                className="bg-primary h-1.5 rounded-full"
-                style={{ width: `${(project.tasksCompleted / project.tasksTotal) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Members */}
-          <div className="hidden xl:flex items-center -space-x-2">
-            {project.members.slice(0, 3).map((member) => (
-              <Avatar key={member.id} className="h-7 w-7 border-2 border-white">
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                  {member.initials}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-            {project.members.length > 3 && (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-xs">
-                +{project.members.length - 3}
+          {project.tasksTotal > 0 && (
+            <div className="hidden lg:block w-32">
+              <div className="text-xs text-gray-500 mb-1">
+                {project.tasksCompleted || 0}/{project.tasksTotal} tasks
               </div>
-            )}
-          </div>
+              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full"
+                  style={{ width: `${((project.tasksCompleted || 0) / project.tasksTotal) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
 
-          {/* Actions */}
+          {project.members && project.members.length > 0 && (
+            <div className="hidden xl:flex items-center -space-x-2">
+              {project.members.slice(0, 3).map((member, index) => (
+                <Avatar key={index} className="h-7 w-7 border-2 border-white">
+                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                    {member.initials || member.name?.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {project.members.length > 3 && (
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-xs">
+                  +{project.members.length - 3}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
-            <Link to={`/project-board/${project.id}/list`}>
-              <Button size="sm" variant="outline">
-                Open
-              </Button>
-            </Link>
+            <Button size="sm" variant="outline" onClick={(e) => {
+              e.stopPropagation();
+              handleProjectClick(project.id);
+            }}>
+              Open
+            </Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -313,7 +261,6 @@ const Projects = () => {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {/* View Toggle */}
             <div className="flex items-center rounded-lg border bg-white p-1">
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -369,19 +316,53 @@ const Projects = () => {
           </Card>
         </div>
 
-        {/* Projects Grid/List */}
-        {viewMode === 'grid' ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+              <p className="text-sm text-gray-500">Loading projects...</p>
+            </div>
           </div>
+        ) : projects.length === 0 ? (
+          <Card>
+            <CardContent className="p-12">
+              <div className="text-center space-y-4">
+                <div className="flex justify-center">
+                  <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
+                    <FolderKanban className="h-8 w-8 text-gray-400" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">No projects yet</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Get started by creating your first project
+                  </p>
+                </div>
+                <Button onClick={() => console.log('Create project')}>
+                  <FolderKanban className="h-4 w-4 mr-2" />
+                  Create Project
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="space-y-3">
-            {projects.map((project) => (
-              <ProjectListItem key={project.id} project={project} />
-            ))}
-          </div>
+          <>
+            {/* Projects Grid/List */}
+            {viewMode === 'grid' ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {projects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {projects.map((project) => (
+                  <ProjectListItem key={project.id} project={project} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>
