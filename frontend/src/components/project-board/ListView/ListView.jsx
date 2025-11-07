@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   DndContext,
@@ -14,7 +14,6 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useState } from 'react';
 import GroupHeader from './GroupHeader';
 import TaskRow from './TaskRow';
 import AddTaskRow from './AddTaskRow';
@@ -29,6 +28,20 @@ import {
   setSortConfig,
 } from '@/store/slices/listViewSlice';
 import { cn } from '@/lib/utils';
+
+// Column width constants for consistent alignment
+const COLUMN_WIDTHS = {
+  drag: 'w-10',
+  taskNumber: 'w-16',
+  taskName: 'w-80',
+  assignee: 'w-48',
+  status: 'w-32',
+  dueDate: 'w-36',
+  priority: 'w-28',
+  startDate: 'w-36',
+  tags: 'w-40',
+  addColumn: 'w-12',
+};
 
 const ListView = () => {
   const dispatch = useDispatch();
@@ -171,6 +184,7 @@ const ListView = () => {
           columns={visibleColumns}
           onToggleComplete={handleToggleComplete}
           isSubtask={level > 0}
+          columnWidths={COLUMN_WIDTHS}
         />
         {task.isExpanded &&
           subtasks.map((subtask) => renderTaskWithSubtasks(subtask, level + 1))}
@@ -191,48 +205,58 @@ const ListView = () => {
       onDragEnd={handleDragEnd}
     >
       <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200">
-        {/* Table Header - Sticky */}
-        <div className="sticky top-0 z-30 flex bg-gray-50 border-b-2 border-gray-300">
-          {/* Fixed Columns Header */}
-          <div className="flex sticky left-0 z-20 bg-gray-50">
-            {/* Drag Icon Column */}
-            <div className="w-10 flex-shrink-0 border-r border-gray-200" />
+        {/* Fixed Header - No Scroll */}
+        <div className="sticky top-0 z-40 bg-gray-50 border-b-2 border-gray-300">
+          <div className="flex w-max min-w-full">
+            {/* Drag Icon Column - Sticky Left */}
+            <div className={cn(COLUMN_WIDTHS.drag, 'sticky left-0 z-20 bg-gray-50 border-r border-gray-200')} />
 
-            {/* Fixed Columns */}
-            {fixedColumns.map((column) => (
+            {/* Task Number Column - Sticky Left */}
+            <div className={cn(COLUMN_WIDTHS.taskNumber, 'sticky left-10 z-20 bg-gray-50')}>
               <ColumnHeader
-                key={column.id}
-                column={column}
+                column={{ id: 'taskNumber', label: '#' }}
                 onSort={handleSort}
                 onHide={handleHideColumn}
                 onSwap={handleSwapColumn}
+                widthClass={COLUMN_WIDTHS.taskNumber}
               />
-            ))}
-          </div>
+            </div>
 
-          {/* Scrollable Columns Header */}
-          <div className="flex overflow-x-auto">
+            {/* Task Name Column - Sticky Left */}
+            <div className={cn(COLUMN_WIDTHS.taskName, 'sticky left-26 z-20 bg-gray-50 shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]')}>
+              <ColumnHeader
+                column={{ id: 'taskName', label: 'Task Name' }}
+                onSort={handleSort}
+                onHide={handleHideColumn}
+                onSwap={handleSwapColumn}
+                widthClass={COLUMN_WIDTHS.taskName}
+              />
+            </div>
+
+            {/* Scrollable Columns */}
             {scrollableColumns.map((column) => (
-              <ColumnHeader
-                key={column.id}
-                column={column}
-                onSort={handleSort}
-                onHide={handleHideColumn}
-                onSwap={handleSwapColumn}
-              />
+              <div key={column.id} className={COLUMN_WIDTHS[column.id] || 'w-40'}>
+                <ColumnHeader
+                  column={column}
+                  onSort={handleSort}
+                  onHide={handleHideColumn}
+                  onSwap={handleSwapColumn}
+                  widthClass={COLUMN_WIDTHS[column.id] || 'w-40'}
+                />
+              </div>
             ))}
-          </div>
 
-          {/* Add Column Button */}
-          <div className="w-12 flex-shrink-0 flex items-center justify-center border-l border-gray-200 bg-gray-50">
-            <button className="text-gray-500 hover:text-gray-700 transition-colors">
-              <span className="text-lg">+</span>
-            </button>
+            {/* Add Column Button - Sticky Right */}
+            <div className={cn(COLUMN_WIDTHS.addColumn, 'sticky right-0 z-20 bg-gray-50 border-l border-gray-200 flex items-center justify-center')}>
+              <button className="text-gray-500 hover:text-gray-700 transition-colors text-lg font-semibold">
+                +
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-auto">
+        {/* Scrollable Body - Single Scroll */}
+        <div className="overflow-auto h-[calc(100vh-280px)]">
           <SortableContext items={allDraggableIds} strategy={verticalListSortingStrategy}>
             {sections.map((section) => {
               const sectionTasks = tasksBySection[section.id] || [];
@@ -247,6 +271,7 @@ const ListView = () => {
                     taskCount={topLevelTasks.length}
                     isCollapsed={isCollapsed}
                     onToggleCollapse={handleToggleCollapse}
+                    columnWidths={COLUMN_WIDTHS}
                   />
 
                   {/* Tasks */}
@@ -258,7 +283,7 @@ const ListView = () => {
                       <AddTaskRow
                         sectionId={section.id}
                         onAddTask={handleAddTask}
-                        columns={visibleColumns}
+                        columnWidths={COLUMN_WIDTHS}
                       />
                     </div>
                   )}
@@ -272,7 +297,7 @@ const ListView = () => {
       {/* Drag Overlay */}
       <DragOverlay>
         {activeId ? (
-          <div className="bg-white p-3 rounded shadow-lg border border-gray-300">
+          <div className="bg-white px-3 py-1.5 rounded shadow-lg border border-gray-300 text-sm">
             {activeId.toString().startsWith('section-')
               ? sections.find((s) => `section-${s.id}` === activeId)?.name
               : tasks.find((t) => t.id === activeId)?.name}
