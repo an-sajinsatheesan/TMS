@@ -13,7 +13,7 @@ export const useOnboarding = () => {
 };
 
 export const OnboardingProvider = ({ children }) => {
-  const { onboardingStatus } = useAuth();
+  const { onboardingStatus, refreshOnboardingStatus } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Sync with backend onboarding status
@@ -114,6 +114,8 @@ export const OnboardingProvider = ({ children }) => {
     // Save workspace name locally and update step to 3
     updateOnboardingData('workspace', data);
     await onboardingService.updateStep(3);
+    // Refresh onboarding status from backend
+    await refreshOnboardingStatus();
     return true;
   };
 
