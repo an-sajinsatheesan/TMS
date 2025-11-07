@@ -1,29 +1,36 @@
-import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { useOnboarding } from '../../contexts/OnboardingContext';
-import { useAuth } from '../../contexts/AuthContext';
-import { onboardingService } from '../../api/onboarding.service';
+import { useEffect } from 'react';
+import { updateStep } from '../../store/slices/onboardingSlice';
 import { Button } from '@/components/ui/button';
+import { toast } from '../../hooks/useToast.jsx';
 
 const Step1Welcome = () => {
   const navigate = useNavigate();
-  const { setCurrentStep } = useOnboarding();
-  const { refreshOnboardingStatus } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const { loading, error } = useSelector((state) => state.onboarding);
 
-  const handleGetStarted = async () => {
-    setLoading(true);
+  const handleGetStarted = async (e) => {
+    e.preventDefault();
+
     try {
-      await onboardingService.updateStep(2);
-      await refreshOnboardingStatus();
-      setCurrentStep(2);
+      await dispatch(updateStep(2)).unwrap();
       navigate('/onboarding/step2');
-    } catch (error) {
-      console.error('Failed to update step:', error);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      toast.error('Failed to start onboarding', {
+        description: err || 'Please try again'
+      });
     }
   };
+
+  // Show error toast if there's an error
+  useEffect(() => {
+    if (error) {
+      toast.error('Error', {
+        description: error
+      });
+    }
+  }, [error]);
 
   return (
     <div className="text-center">
