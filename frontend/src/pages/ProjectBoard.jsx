@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import ProjectBoardLayout from '../components/project-board/ProjectBoardLayout';
+import AppLayout from '../components/layout/AppLayout';
+import ProjectBoardWrapper from '../components/layout/ProjectBoardWrapper';
 import ProjectBoardContent from '../components/project-board/ProjectBoardContent';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,9 +11,11 @@ const ProjectBoard = () => {
   const [currentView, setCurrentView] = useState(viewMode || 'list');
 
   return (
-    <ProjectBoardLayout>
-      <ProjectBoardContent viewMode={currentView} />
-    </ProjectBoardLayout>
+    <AppLayout>
+      <ProjectBoardWrapper>
+        <ProjectBoardContent viewMode={currentView} />
+      </ProjectBoardWrapper>
+    </AppLayout>
   );
 };
 
