@@ -140,7 +140,7 @@ const Step4CompanyInfo = () => {
                     htmlFor={`app-usage-${option.id}`}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    {option.name}
+                    {option.label}
                   </label>
                 </div>
               ))}
@@ -170,7 +170,7 @@ const Step4CompanyInfo = () => {
                     htmlFor={`industry-${option.id}`}
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    {option.name}
+                    {option.label}
                   </label>
                 </div>
               ))}
@@ -200,7 +200,7 @@ const Step4CompanyInfo = () => {
                       htmlFor={`team-size-${option.id}`}
                       className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                     >
-                      {option.range}
+                      {option.label}
                     </label>
                   </div>
                 ))}
