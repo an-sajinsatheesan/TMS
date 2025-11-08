@@ -42,47 +42,47 @@ const AddTaskRow = ({ sectionId, onAddTask, columnWidths, scrollableColumns = []
   if (!isAdding) {
     return (
       <div
-        className="group hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-200 min-h-[36px]"
+        className="group hover:bg-gray-50 cursor-pointer transition-colors border-b min-h-[36px]"
         onClick={() => setIsAdding(true)}
       >
-        <div className="flex w-max min-w-full">
-          {/* Drag Icon Placeholder - Sticky Left */}
-          <div className={cn(columnWidths.drag, 'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-r border-gray-200')} style={{ left: 0 }} />
+        <div className="flex w-max min-w-full border-b">
+          {/* Checkbox Column - Sticky Left */}
+          <div className={cn(columnWidths.checkbox, 'sticky left-0 flex-shrink-0 border-r bg-white group-hover:bg-gray-50')} />
 
           {/* Add Task Button - Sticky Left */}
-          <div className={cn(columnWidths.taskName, 'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 px-2 py-2 flex items-center gap-2 text-sm text-gray-500 group-hover:text-gray-700')} style={{ left: '40px' }}>
+          <div className={cn(columnWidths.taskName, 'sticky left-12 flex-shrink-0 bg-white group-hover:bg-gray-50 border-r p-2 flex items-center gap-2 text-sm text-gray-500 group-hover:text-gray-700')}>
             <Plus className="h-4 w-4" />
             <span>Add task...</span>
           </div>
 
-          {/* Scrollable Columns - Individual cells for alignment */}
+          {/* Scrollable alignment columns */}
           <div className="flex-1 flex">
             {scrollableColumns.map((column) => {
               const widthClass = getColumnWidthClass(column.width);
               return (
                 <div
                   key={column.id}
-                  className={cn(widthClass, 'bg-white group-hover:bg-gray-50 border-r border-gray-200')}
+                  className={cn(widthClass, 'bg-white group-hover:bg-gray-50')}
                 />
               );
             })}
           </div>
 
           {/* Actions Column - Sticky Right */}
-          <div className={cn(columnWidths.addColumn, 'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-l border-gray-200')} style={{ right: 0 }} />
+          <div className={cn(columnWidths.addColumn, 'sticky right-0 flex-shrink-0 border-l bg-white group-hover:bg-gray-50')} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="border-b border-gray-200 bg-white min-h-[36px]">
-      <div className="flex w-max min-w-full">
-        {/* Drag Icon Placeholder - Sticky Left */}
-        <div className={cn(columnWidths.drag, 'sticky z-20 flex-shrink-0 bg-white border-r border-gray-200')} style={{ left: 0 }} />
+    <div className="border-b bg-white min-h-[36px]">
+      <div className="flex w-max min-w-full border-b">
+        {/* Checkbox Column - Sticky Left */}
+        <div className={cn(columnWidths.checkbox, 'sticky left-0 flex-shrink-0 border-r bg-white')} />
 
         {/* Task Name Input - Sticky Left */}
-        <div className={cn(columnWidths.taskName, 'sticky z-20 flex-shrink-0 bg-white border-r border-gray-200 px-2 py-1 flex items-center gap-2')} style={{ left: '40px' }}>
+        <div className={cn(columnWidths.taskName, 'sticky left-12 flex-shrink-0 bg-white border-r p-2 flex items-center gap-2')}>
           <Input
             type="text"
             value={taskName}
@@ -113,21 +113,21 @@ const AddTaskRow = ({ sectionId, onAddTask, columnWidths, scrollableColumns = []
           </div>
         </div>
 
-        {/* Scrollable Columns - Individual cells for alignment */}
+        {/* Scrollable alignment columns */}
         <div className="flex-1 flex">
           {scrollableColumns.map((column) => {
             const widthClass = getColumnWidthClass(column.width);
             return (
               <div
                 key={column.id}
-                className={cn(widthClass, 'bg-white border-r border-gray-200')}
+                className={cn(widthClass, 'bg-white')}
               />
             );
           })}
         </div>
 
         {/* Actions Column - Sticky Right */}
-        <div className={cn(columnWidths.addColumn, 'sticky z-20 flex-shrink-0 bg-white border-l border-gray-200')} style={{ right: 0 }} />
+        <div className={cn(columnWidths.addColumn, 'sticky right-0 flex-shrink-0 border-l bg-white')} />
       </div>
     </div>
   );

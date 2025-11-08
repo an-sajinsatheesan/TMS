@@ -39,10 +39,9 @@ const getColumnWidthClass = (width) => {
 };
 
 const COLUMN_WIDTHS = {
-  drag: 'w-10',
-  taskNumber: 'w-16',
-  taskName: 'w-80',
-  addColumn: 'w-12',
+  checkbox: 'w-12',
+  taskName: 'w-60',
+  addColumn: 'w-20',
 };
 
 const ListView = ({ projectId }) => {
@@ -500,76 +499,50 @@ const ListView = ({ projectId }) => {
         onDragEnd={handleDragEnd}
       >
         {/* Main Scrollable Container */}
-        <div className="relative h-[calc(100vh-170px)] overflow-auto bg-white">
-          {/* Sticky Header Row */}
-          <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-            <div className="flex w-max min-w-full">
-              {/* Drag Handle Column Header - Sticky Left */}
-              <div
-                className={cn(
-                  COLUMN_WIDTHS.drag,
-                  'sticky z-50 flex-shrink-0 bg-white border-r border-gray-200 flex items-center justify-center'
-                )}
-                style={{ left: 0 }}
-              >
-                <span className="text-gray-400 text-xs">≡</span>
-              </div>
+        <div className="relative h-[500px] border rounded overflow-auto" id="scroll-container">
+          {/* Header Row */}
+          <div className="flex w-max min-w-full sticky top-0 z-40 bg-gray-100">
+            {/* Checkbox Column Header - Sticky Left */}
+            <div
+              className={cn(
+                COLUMN_WIDTHS.checkbox,
+                'sticky left-0 z-50 flex-shrink-0 border-r border-b p-2 bg-gray-100'
+              )}
+            >
+              #
+            </div>
 
-              {/* Task Name Column Header - Sticky Left */}
-              {fixedColumns
-                .filter((col) => col.id !== 'taskNumber')
-                .map((column) => (
+            {/* Task Name Column Header - Sticky Left */}
+            <div
+              className={cn(
+                COLUMN_WIDTHS.taskName,
+                'sticky left-12 z-50 flex-shrink-0 border-r border-b p-2 bg-gray-100'
+              )}
+            >
+              Task Name
+            </div>
+
+            {/* Scrollable header cells */}
+            <div className="flex-1 flex border-b">
+              {scrollableColumns.map((column) => {
+                const widthClass = getColumnWidthClass(column.width);
+                return (
                   <div
                     key={column.id}
-                    className={cn(
-                      COLUMN_WIDTHS.taskName,
-                      'sticky z-50 flex-shrink-0 bg-white border-r border-gray-200'
-                    )}
-                    style={{ left: '40px' }}
+                    className={cn(widthClass, 'p-2 border-r')}
                   >
-                    <ColumnHeader
-                      column={column}
-                      onSort={handleSort}
-                      onHide={handleHideColumn}
-                      onSwap={handleSwapColumn}
-                      widthClass={COLUMN_WIDTHS.taskName}
-                      sortConfig={sortConfig}
-                    />
+                    {column.name}
                   </div>
-                ))}
+                );
+              })}
+            </div>
 
-              {/* Dynamic/Scrollable Columns Wrapper */}
-              <div className="flex-1 flex border-b">
-                {scrollableColumns.map((column) => {
-                  const widthClass = getColumnWidthClass(column.width);
-                  return (
-                    <div
-                      key={column.id}
-                      className={cn(widthClass, 'border-r border-gray-200')}
-                    >
-                      <ColumnHeader
-                        column={column}
-                        onSort={handleSort}
-                        onHide={handleHideColumn}
-                        onSwap={handleSwapColumn}
-                        widthClass={widthClass}
-                        sortConfig={sortConfig}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Add Column Button - Sticky Right */}
-              <div
-                className={cn(
-                  COLUMN_WIDTHS.addColumn,
-                  'sticky z-50 flex-shrink-0 bg-white border-l border-gray-200 flex items-center justify-center'
-                )}
-                style={{ right: 0 }}
-              >
-                <AddColumnPopover projectId={projectId} />
-              </div>
+            {/* Fixed Right Column (Sticky) */}
+            <div className={cn(
+              COLUMN_WIDTHS.addColumn,
+              'sticky right-0 z-50 flex-shrink-0 border-l border-b bg-gray-100 flex items-center justify-center'
+            )}>
+              <AddColumnPopover projectId={projectId} />
             </div>
           </div>
 
