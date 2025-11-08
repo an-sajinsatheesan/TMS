@@ -25,7 +25,7 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group sticky top-0 z-30 flex w-max min-w-full items-center gap-2 border-b-2',
+        'group sticky top-[41px] z-30 flex w-max min-w-full items-center border-b-2',
         'transition-all duration-200',
         isDragging
           ? 'bg-white border-2 border-dashed border-blue-500 shadow-2xl opacity-90 scale-[1.02]'
@@ -36,7 +36,7 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
       <div
         className={cn(
           columnWidths.drag,
-          'sticky left-0 z-20 flex items-center justify-center border-r transition-colors',
+          'sticky left-0 z-50 flex items-center justify-center border-r transition-colors',
           'cursor-grab active:cursor-grabbing',
           isDragging
             ? 'bg-white border-blue-500'
@@ -48,9 +48,9 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
         </div>
       </div>
 
-      {/* Collapse/Expand + Group Info - Spans across sticky columns */}
+      {/* Collapse/Expand + Group Info - Sticky Left Column */}
       <div className={cn(
-        'sticky left-10 z-20 flex items-center gap-2 px-2 py-1.5 transition-colors',
+        'sticky left-10 z-50 flex items-center gap-2 px-2 py-1.5 transition-colors',
         isDragging ? 'bg-white' : 'bg-gray-100 group-hover:bg-gray-150'
       )}>
         {/* Collapse/Expand Icon */}
@@ -88,6 +88,17 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
           </span>
         )}
       </div>
+
+      {/* Scrollable alignment columns - fills remaining space */}
+      <div className="flex-1 flex">
+        {/* Empty space for alignment with scrollable columns */}
+      </div>
+
+      {/* Fixed Right Column (Sticky) - Alignment with header */}
+      <div className={cn(
+        'sticky right-0 z-50 w-12 flex-shrink-0 border-l transition-colors',
+        isDragging ? 'bg-white' : 'bg-gray-100 group-hover:bg-gray-150'
+      )} />
     </div>
   );
 };

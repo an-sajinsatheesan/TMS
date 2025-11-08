@@ -40,25 +40,31 @@ const AddTaskRow = ({ sectionId, onAddTask }) => {
         className="group flex w-max min-w-full items-center border-b border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
         onClick={() => setIsAdding(true)}
       >
-        {/* Drag Icon Placeholder */}
-        <div className="border-r border-gray-200" style={{ width: FIXED_COLUMNS.drag }} />
+        {/* Drag Icon Placeholder - Sticky Left */}
+        <div className="sticky left-0 z-50 bg-gray-50 group-hover:bg-gray-100 border-r border-gray-200" style={{ width: FIXED_COLUMNS.drag }} />
 
-        {/* Add Task Button - Spans Task Name Column */}
-        <div className="px-2 py-1 flex items-center gap-2 text-sm text-gray-500 group-hover:text-gray-700" style={{ width: FIXED_COLUMNS.taskName }}>
+        {/* Add Task Button - Sticky Left */}
+        <div className="sticky left-10 z-50 bg-gray-50 group-hover:bg-gray-100 px-2 py-1 flex items-center gap-2 text-sm text-gray-500 group-hover:text-gray-700" style={{ width: FIXED_COLUMNS.taskName }}>
           <Plus className="h-4 w-4" />
           <span>Add Task</span>
         </div>
+
+        {/* Scrollable space filler */}
+        <div className="flex-1" />
+
+        {/* Fixed Right Column (Sticky) - Alignment */}
+        <div className="sticky right-0 z-50 w-12 flex-shrink-0 border-l bg-gray-50 group-hover:bg-gray-100" />
       </div>
     );
   }
 
   return (
     <div className="flex w-max min-w-full items-center border-b border-gray-200 bg-white">
-      {/* Drag Icon Placeholder */}
-      <div className="border-r border-gray-200" style={{ width: FIXED_COLUMNS.drag }} />
+      {/* Drag Icon Placeholder - Sticky Left */}
+      <div className="sticky left-0 z-50 bg-white border-r border-gray-200" style={{ width: FIXED_COLUMNS.drag }} />
 
-      {/* Task Name Input */}
-      <div className="px-2 py-1 flex items-center gap-2" style={{ width: FIXED_COLUMNS.taskName }}>
+      {/* Task Name Input - Sticky Left */}
+      <div className="sticky left-10 z-50 bg-white px-2 py-1 flex items-center gap-2" style={{ width: FIXED_COLUMNS.taskName }}>
         <Input
           type="text"
           value={taskName}
@@ -88,6 +94,12 @@ const AddTaskRow = ({ sectionId, onAddTask }) => {
           </Button>
         </div>
       </div>
+
+      {/* Scrollable space filler */}
+      <div className="flex-1" />
+
+      {/* Fixed Right Column (Sticky) - Alignment */}
+      <div className="sticky right-0 z-50 w-12 flex-shrink-0 border-l bg-white" />
     </div>
   );
 };

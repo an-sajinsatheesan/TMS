@@ -499,12 +499,13 @@ const ListView = ({ projectId }) => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200">
-          {/* Fixed Header - No Scroll */}
+        {/* Main Container with Fixed Height and Overflow */}
+        <div className="relative h-[calc(100vh-240px)] bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto">
+          {/* Fixed Header - Sticky Top */}
           <div className="sticky top-0 z-40 bg-gray-50 border-b-2 border-gray-300">
             <div className="flex w-max min-w-full">
               {/* Drag Icon Column - Sticky Left */}
-              <div className={cn(COLUMN_WIDTHS.drag, 'sticky left-0 z-20 bg-gray-50 border-r border-gray-200')} />
+              <div className={cn(COLUMN_WIDTHS.drag, 'sticky left-0 z-50 bg-gray-50 border-r border-gray-200')} />
 
               {/* Fixed Columns (System columns) - excluding taskNumber */}
               {fixedColumns
@@ -519,7 +520,7 @@ const ListView = ({ projectId }) => {
                       key={column.id}
                       className={cn(
                         widthClass,
-                        'sticky z-20 bg-gray-50',
+                        'sticky z-50 bg-gray-50',
                         leftOffset,
                         shadowClass
                       )}
@@ -537,72 +538,72 @@ const ListView = ({ projectId }) => {
                 })}
 
               {/* Scrollable Columns (Custom columns) */}
-              {scrollableColumns.map((column) => {
-                const widthClass = getColumnWidthClass(column.width);
-                return (
-                  <div key={column.id} className={widthClass}>
-                    <ColumnHeader
-                      column={column}
-                      onSort={handleSort}
-                      onHide={handleHideColumn}
-                      onSwap={handleSwapColumn}
-                      widthClass={widthClass}
-                      sortConfig={sortConfig}
-                    />
-                  </div>
-                );
-              })}
+              <div className="flex-1 flex border-b">
+                {scrollableColumns.map((column) => {
+                  const widthClass = getColumnWidthClass(column.width);
+                  return (
+                    <div key={column.id} className={widthClass}>
+                      <ColumnHeader
+                        column={column}
+                        onSort={handleSort}
+                        onHide={handleHideColumn}
+                        onSwap={handleSwapColumn}
+                        widthClass={widthClass}
+                        sortConfig={sortConfig}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* Add Column Button - Sticky Right */}
-              <div className={cn(COLUMN_WIDTHS.addColumn, 'sticky right-0 z-20 bg-gray-50 border-l border-gray-200 flex items-center justify-center')}>
+              <div className={cn(COLUMN_WIDTHS.addColumn, 'sticky right-0 z-50 bg-gray-50 border-l border-gray-200 flex items-center justify-center')}>
                 <AddColumnPopover projectId={projectId} />
               </div>
             </div>
           </div>
 
-          {/* Scrollable Body - Single Scroll */}
-          <div className="overflow-auto h-[calc(100vh-280px)]">
-            <SortableContext items={allDraggableIds} strategy={verticalListSortingStrategy}>
-              {sections.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-gray-500">
-                  No sections found. Create a section to get started.
-                </div>
-              ) : (
-                sections.map((section) => {
-                  const sectionTasks = tasksBySection[section.id] || [];
-                  const topLevelTasks = sectionTasks.filter((t) => !t.parentId);
-                  const isCollapsed = collapsedGroups[section.id];
+          {/* Scrollable Body */}
+          <SortableContext items={allDraggableIds} strategy={verticalListSortingStrategy}>
+            {sections.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                No sections found. Create a section to get started.
+              </div>
+            ) : (
+              sections.map((section) => {
+                const sectionTasks = tasksBySection[section.id] || [];
+                const topLevelTasks = sectionTasks.filter((t) => !t.parentId);
+                const isCollapsed = collapsedGroups[section.id];
 
-                  return (
-                    <div key={section.id} className="border-b border-gray-200 last:border-b-0">
-                      {/* Group Header */}
-                      <GroupHeader
-                        section={section}
-                        taskCount={topLevelTasks.length}
-                        isCollapsed={isCollapsed}
-                        onToggleCollapse={handleToggleCollapse}
-                        columnWidths={COLUMN_WIDTHS}
-                      />
+                return (
+                  <div key={section.id} className="border-b border-gray-200 last:border-b-0">
+                    {/* Group Header */}
+                    <GroupHeader
+                      section={section}
+                      taskCount={topLevelTasks.length}
+                      isCollapsed={isCollapsed}
+                      onToggleCollapse={handleToggleCollapse}
+                      columnWidths={COLUMN_WIDTHS}
+                    />
 
-                      {/* Tasks */}
-                      {!isCollapsed && (
-                        <div>
-                          {topLevelTasks.map((task) => renderTaskWithSubtasks(task))}
+                    {/* Tasks */}
+                    {!isCollapsed && (
+                      <div>
+                        {topLevelTasks.map((task) => renderTaskWithSubtasks(task))}
 
-                          {/* Add Task Row */}
-                          <AddTaskRow
-                            sectionId={section.id}
-                            onAddTask={handleAddTask}
-                            columnWidths={COLUMN_WIDTHS}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </SortableContext>
-          </div>
+                        {/* Add Task Row */}
+                        <AddTaskRow
+                          sectionId={section.id}
+                          onAddTask={handleAddTask}
+                          columnWidths={COLUMN_WIDTHS}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </SortableContext>
         </div>
 
         {/* Drag Overlay */}

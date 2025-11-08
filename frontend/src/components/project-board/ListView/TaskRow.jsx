@@ -115,7 +115,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
           <div
             className={cn(
               columnWidths.drag,
-              'sticky left-0 z-10 bg-white group-hover:bg-gray-50 flex items-center justify-center border-r border-gray-200',
+              'sticky left-0 z-50 bg-white group-hover:bg-gray-50 flex items-center justify-center border-r border-gray-200',
               !isSubtask && 'cursor-grab active:cursor-grabbing'
             )}
           >
@@ -130,7 +130,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
           <div
             className={cn(
               columnWidths.taskName,
-              'sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-2 py-1 flex items-center gap-2 relative',
+              'sticky left-10 z-50 bg-white group-hover:bg-gray-50 px-2 py-1 flex items-center gap-2 relative',
               'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]'
             )}
           >
@@ -174,97 +174,104 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
       </div>
 
       {/* Scrollable Columns */}
-      {columns
-        .filter((col) => col.visible && !col.isSystem)
-        .map((column) => {
-          // Get value from task or custom fields
-          let value = task[column.id] || task.customFields?.[column.id];
+      <div className="flex-1 flex">
+        {columns
+          .filter((col) => col.visible && !col.isSystem)
+          .map((column) => {
+            // Get value from task or custom fields
+            let value = task[column.id] || task.customFields?.[column.id];
 
-          // For system fields, use specific task properties
-          if (column.name === 'Assignee') value = task.assigneeId || task.assigneeName;
-          if (column.name === 'Status') value = task.status;
-          if (column.name === 'Priority') value = task.priority;
-          if (column.name === 'Due Date') value = task.dueDate;
+            // For system fields, use specific task properties
+            if (column.name === 'Assignee') value = task.assigneeId || task.assigneeName;
+            if (column.name === 'Status') value = task.status;
+            if (column.name === 'Priority') value = task.priority;
+            if (column.name === 'Due Date') value = task.dueDate;
 
-          return (
-            <div
-              key={column.id}
-              className={cn(
-                columnWidths[column.id] || 'w-40',
-                'px-2 py-1 border-l border-gray-100 text-sm text-gray-700 truncate'
-              )}
-            >
-              {/* Render based on column type */}
-              {column.type === 'user' && (
-                <AssigneeSelect
-                  taskId={task.id}
-                  currentAssigneeId={task.assigneeId}
-                  currentAssigneeName={task.assigneeName}
-                  currentAssigneeAvatar={task.assigneeAvatar}
-                  onAssigneeChange={onAssigneeChange}
-                />
-              )}
+            return (
+              <div
+                key={column.id}
+                className={cn(
+                  columnWidths[column.id] || 'w-40',
+                  'px-2 py-1 border-l border-gray-100 text-sm text-gray-700 truncate'
+                )}
+              >
+                {/* Render based on column type */}
+                {column.type === 'user' && (
+                  <AssigneeSelect
+                    taskId={task.id}
+                    currentAssigneeId={task.assigneeId}
+                    currentAssigneeName={task.assigneeName}
+                    currentAssigneeAvatar={task.assigneeAvatar}
+                    onAssigneeChange={onAssigneeChange}
+                  />
+                )}
 
-              {column.type === 'select' && (
-                <SelectField
-                  taskId={task.id}
-                  column={column}
-                  currentValue={value}
-                  onValueChange={onSelectChange}
-                />
-              )}
+                {column.type === 'select' && (
+                  <SelectField
+                    taskId={task.id}
+                    column={column}
+                    currentValue={value}
+                    onValueChange={onSelectChange}
+                  />
+                )}
 
-              {column.type === 'multiselect' && Array.isArray(value) && value.length > 0 && (
-                <div className="flex gap-1 flex-wrap">
-                  {value.map((val, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="text-xs px-1.5 py-0"
-                      style={{
-                        backgroundColor: column.options?.find(opt => opt.value === val)?.color + '20' || 'transparent',
-                        borderColor: column.options?.find(opt => opt.value === val)?.color || 'gray',
-                        color: column.options?.find(opt => opt.value === val)?.color || 'inherit',
-                      }}
-                    >
-                      {column.options?.find(opt => opt.value === val)?.label || val}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+                {column.type === 'multiselect' && Array.isArray(value) && value.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {value.map((val, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="text-xs px-1.5 py-0"
+                        style={{
+                          backgroundColor: column.options?.find(opt => opt.value === val)?.color + '20' || 'transparent',
+                          borderColor: column.options?.find(opt => opt.value === val)?.color || 'gray',
+                          color: column.options?.find(opt => opt.value === val)?.color || 'inherit',
+                        }}
+                      >
+                        {column.options?.find(opt => opt.value === val)?.label || val}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
 
-              {column.type === 'date' && (
-                <DatePicker
-                  taskId={task.id}
-                  currentDate={value}
-                  onDateChange={onDateChange}
-                />
-              )}
+                {column.type === 'date' && (
+                  <DatePicker
+                    taskId={task.id}
+                    currentDate={value}
+                    onDateChange={onDateChange}
+                  />
+                )}
 
-              {column.type === 'text' && value && (
-                <span className="text-xs">{value}</span>
-              )}
+                {column.type === 'text' && value && (
+                  <span className="text-xs">{value}</span>
+                )}
 
-              {column.type === 'number' && value !== null && value !== undefined && (
-                <span className="text-xs">{value}</span>
-              )}
+                {column.type === 'number' && value !== null && value !== undefined && (
+                  <span className="text-xs">{value}</span>
+                )}
 
-              {column.type === 'checkbox' && (
-                <input
-                  type="checkbox"
-                  checked={!!value}
-                  readOnly
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-              )}
+                {column.type === 'checkbox' && (
+                  <input
+                    type="checkbox"
+                    checked={!!value}
+                    readOnly
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                )}
 
-              {/* Show empty state if no value */}
-              {!value && column.type !== 'checkbox' && (
-                <span className="text-xs text-gray-400">-</span>
-              )}
-            </div>
-          );
-        })}
+                {/* Show empty state if no value */}
+                {!value && column.type !== 'checkbox' && (
+                  <span className="text-xs text-gray-400">-</span>
+                )}
+              </div>
+            );
+          })}
+      </div>
+
+      {/* Fixed Right Column (Sticky) - Alignment with header */}
+      <div className="sticky right-0 z-50 w-12 flex-shrink-0 border-l bg-white group-hover:bg-gray-50 flex items-center justify-center">
+        <span className="text-gray-400 text-sm">⋯</span>
+      </div>
         </div>
       </TaskContextMenu>
     </div>
