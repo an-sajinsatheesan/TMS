@@ -143,6 +143,7 @@ const columnsSlice = createSlice({
           ...action.payload,
           position: state.columns.length,
           isSystem: false,
+          visible: action.payload.visible !== false, // Default to true if not specified
         };
         state.columns.push(newColumn);
       })

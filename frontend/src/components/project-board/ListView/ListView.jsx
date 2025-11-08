@@ -26,7 +26,6 @@ import { fetchColumns, updateColumn, clearColumns } from '@/store/slices/columns
 import { useMembers } from '@/contexts/MembersContext';
 import { ListViewProvider } from '@/contexts/ListViewContext';
 import { sectionsService } from '@/services/api/sections.service';
-import { tasksService } from '@/services/api/tasks.service';
 import { toast } from 'sonner';
 
 // Column width mapping
@@ -58,6 +57,8 @@ const ListView = ({ projectId }) => {
     createTask,
     deleteTask,
     moveTask,
+    createSubtask,
+    duplicateTask,
   } = useProjectData(projectId);
 
   // Redux columns state
@@ -192,9 +193,11 @@ const ListView = ({ projectId }) => {
           // Call API to persist the reordering
           await sectionsService.reorder(projectId, sectionIds);
 
+          toast.success('Section reordered successfully');
           // The data will be refreshed by useProjectData hook
         } catch (err) {
           console.error('Failed to reorder sections:', err);
+          toast.error('Failed to reorder section');
         }
       }
     } else {
@@ -226,8 +229,10 @@ const ListView = ({ projectId }) => {
       if (isSectionChanged || isPositionChanged) {
         try {
           await moveTask(active.id, destinationSectionId, destinationIndex);
+          toast.success('Task moved successfully');
         } catch (err) {
           console.error('Failed to move task:', err);
+          toast.error('Failed to move task');
         }
       }
     }
@@ -281,19 +286,32 @@ const ListView = ({ projectId }) => {
       const column = reduxColumns.find(col => col.id === columnId);
       if (!column) return;
 
-      // Map column name to task field
+      // Map column name to task field for default fields
       const fieldMapping = {
         'Priority': 'priority',
         'Status': 'status',
       };
 
-      const fieldName = fieldMapping[column.name] || columnId;
+      let updatePayload;
 
-      await updateTask(taskId, {
-        [fieldName]: value,
-      });
+      if (fieldMapping[column.name]) {
+        // Standard field (Priority, Status)
+        updatePayload = {
+          [fieldMapping[column.name]]: value,
+        };
+      } else {
+        // Custom field - wrap in customFields object
+        updatePayload = {
+          customFields: {
+            [columnId]: value,
+          },
+        };
+      }
+
+      await updateTask(taskId, updatePayload);
     } catch (err) {
       console.error('Failed to update select field:', err);
+      toast.error('Failed to update field');
     }
   };
 
@@ -321,10 +339,8 @@ const ListView = ({ projectId }) => {
   // Context menu handlers
   const handleDuplicateTask = async (taskId) => {
     try {
-      const response = await tasksService.duplicate(taskId);
+      await duplicateTask(taskId);
       toast.success('Task duplicated successfully');
-      // The data will be refreshed by useProjectData hook
-      console.log('Duplicated task:', response.data);
     } catch (err) {
       console.error('Failed to duplicate task:', err);
       toast.error('Failed to duplicate task');
@@ -343,12 +359,10 @@ const ListView = ({ projectId }) => {
 
   const handleCreateSubtask = async (taskId) => {
     try {
-      const response = await tasksService.createSubtask(taskId, {
+      await createSubtask(taskId, {
         title: 'New Subtask',
       });
       toast.success('Subtask created successfully');
-      // The data will be refreshed by useProjectData hook
-      console.log('Created subtask:', response.data);
     } catch (err) {
       console.error('Failed to create subtask:', err);
       toast.error('Failed to create subtask');
