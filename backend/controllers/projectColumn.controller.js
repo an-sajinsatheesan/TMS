@@ -87,6 +87,19 @@ class ProjectColumnController {
   static deleteColumn = asyncHandler(async (req, res) => {
     const { columnId } = req.params;
 
+    // Check if column is a default column
+    const column = await prisma.projectColumn.findUnique({
+      where: { id: columnId },
+    });
+
+    if (!column) {
+      throw ApiError.notFound('Column not found');
+    }
+
+    if (column.isDefault) {
+      throw ApiError.badRequest('Cannot delete default columns. You can only hide them.');
+    }
+
     await prisma.projectColumn.delete({
       where: { id: columnId },
     });

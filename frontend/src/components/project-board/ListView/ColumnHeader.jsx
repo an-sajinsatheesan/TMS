@@ -6,7 +6,13 @@ import { cn } from '@/lib/utils';
 const ColumnHeader = ({ column, onSort, onHide, onSwap, widthClass, className, sortConfig }) => {
   const [sortDirection, setSortDirection] = useState(null);
 
+  // Columns that should NOT have sorting (Task Name and # columns)
+  const NON_SORTABLE_COLUMNS = ['taskName', 'taskNumber'];
+  const isSortable = !NON_SORTABLE_COLUMNS.includes(column.id);
+
   const handleSort = () => {
+    if (!isSortable) return;
+
     let newDirection = 'asc';
     if (sortDirection === 'asc') {
       newDirection = 'desc';
@@ -20,6 +26,8 @@ const ColumnHeader = ({ column, onSort, onHide, onSwap, widthClass, className, s
 
   // Get sort icon based on current sort state
   const getSortIcon = () => {
+    if (!isSortable) return null;
+
     if (sortDirection === 'asc') {
       return <ArrowUp className="w-3 h-3" />;
     } else if (sortDirection === 'desc') {
@@ -40,13 +48,19 @@ const ColumnHeader = ({ column, onSort, onHide, onSwap, widthClass, className, s
       )}
     >
       <div className="flex items-center gap-1 min-w-0 flex-1">
-        <button
-          onClick={handleSort}
-          className="flex items-center gap-1 hover:text-gray-900 transition-colors min-w-0 flex-1"
-        >
-          <span className="truncate">{columnLabel}</span>
-          {getSortIcon()}
-        </button>
+        {isSortable ? (
+          <button
+            onClick={handleSort}
+            className="flex items-center gap-1 hover:text-gray-900 transition-colors min-w-0 flex-1"
+          >
+            <span className="truncate">{columnLabel}</span>
+            {getSortIcon()}
+          </button>
+        ) : (
+          <div className="flex items-center gap-1 min-w-0 flex-1">
+            <span className="truncate">{columnLabel}</span>
+          </div>
+        )}
       </div>
 
       <ColumnMenu

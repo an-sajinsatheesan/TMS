@@ -322,6 +322,7 @@ class OnboardingController {
       data: {
         tenantId: tenant.id,
         name: onboardingData.projectName || 'My First Project',
+        color: '#3b82f6',
         layout: onboardingData.layoutPreference || 'LIST',
         createdBy: userId,
         members: {
@@ -331,6 +332,65 @@ class OnboardingController {
           },
         },
       },
+    });
+
+    // Create default columns for the project
+    const [priorityOptions, statusOptions] = await Promise.all([
+      prisma.taskStatusOption.findMany({
+        where: { isActive: true },
+        orderBy: { position: 'asc' },
+        select: { label: true, value: true, color: true, icon: true },
+      }),
+      prisma.taskPriorityOption.findMany({
+        where: { isActive: true },
+        orderBy: { position: 'asc' },
+        select: { label: true, value: true, color: true, icon: true },
+      }),
+    ]);
+
+    const defaultColumns = [
+      {
+        projectId: project.id,
+        name: 'Assignee',
+        type: 'user',
+        width: 200,
+        visible: true,
+        isDefault: true,
+        position: 0,
+      },
+      {
+        projectId: project.id,
+        name: 'Due Date',
+        type: 'date',
+        width: 150,
+        visible: true,
+        isDefault: true,
+        position: 1,
+      },
+      {
+        projectId: project.id,
+        name: 'Priority',
+        type: 'select',
+        width: 120,
+        visible: true,
+        isDefault: true,
+        position: 2,
+        options: priorityOptions,
+      },
+      {
+        projectId: project.id,
+        name: 'Status',
+        type: 'select',
+        width: 150,
+        visible: true,
+        isDefault: true,
+        position: 3,
+        options: statusOptions,
+      },
+    ];
+
+    await prisma.projectColumn.createMany({
+      data: defaultColumns,
     });
 
     // Create sections if provided

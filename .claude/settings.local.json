@@ -14,7 +14,14 @@
       "Bash(npm start)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(npx shadcn@latest add:*)"
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(\"d:\\Projects\\Learn\\task-management\\TMS\\AUTHENTICATION_ANALYSIS.md\")",
+      "Bash(timeout 15 bash:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma migrate reset:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset:*)",
+      "Bash(npx prisma db seed)",
+      "Bash(npm run db:seed:*)"
     ],
     "deny": [],
     "ask": []

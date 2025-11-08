@@ -42,6 +42,7 @@ const COLUMN_WIDTHS = {
 
 const ListView = ({ projectId }) => {
   const dispatch = useDispatch();
+
   const {
     sections,
     tasks,
@@ -86,8 +87,17 @@ const ListView = ({ projectId }) => {
   // Group tasks by section with sorting
   const tasksBySection = useMemo(() => {
     const grouped = {};
-    sections.forEach((section) => {
+
+    // Find tasks with null sectionId (these were created during onboarding before sections existed)
+    const unassignedTasks = tasks.filter((task) => task.sectionId === null);
+
+    sections.forEach((section, index) => {
       let sectionTasks = tasks.filter((task) => task.sectionId === section.id);
+
+      // If this is the first section, add unassigned tasks to it
+      if (index === 0 && unassignedTasks.length > 0) {
+        sectionTasks = [...sectionTasks, ...unassignedTasks];
+      }
 
       // Apply sorting if configured
       if (sortConfig.column && sortConfig.direction) {

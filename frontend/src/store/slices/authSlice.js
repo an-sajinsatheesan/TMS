@@ -114,7 +114,7 @@ const authSlice = createSlice({
     user: null,
     onboardingStatus: null,
     isAuthenticated: false,
-    loading: false,
+    loading: true, // Start with loading=true to prevent premature redirects
     error: null,
   },
   reducers: {

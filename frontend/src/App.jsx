@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthInit from './components/common/AuthInit';
 import { AuthProvider } from './contexts/AuthContext';
@@ -5,6 +6,7 @@ import { OnboardingProvider } from './contexts/OnboardingContext';
 import { ProjectProvider } from './contexts/ProjectContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
+import { toast } from './hooks/useToast';
 
 // Auth Pages
 import Register from './pages/auth/Register';
@@ -41,6 +43,20 @@ import OnboardingStepGuard from './components/common/OnboardingStepGuard';
 import InvitationAccept from './pages/InvitationAccept';
 
 function App() {
+    useEffect(() => {
+        // Listen for session expiration events
+        const handleSessionExpired = (event) => {
+            const message = event.detail?.message || 'Your session has expired. Please log in again.';
+            toast.warning(message, { duration: 5000 });
+        };
+
+        window.addEventListener('session-expired', handleSessionExpired);
+
+        return () => {
+            window.removeEventListener('session-expired', handleSessionExpired);
+        };
+    }, []);
+
     return (
         <AuthProvider>
             <OnboardingProvider>

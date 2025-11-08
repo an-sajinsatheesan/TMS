@@ -17,7 +17,7 @@ class ProjectController {
    * @access  Private
    */
   static createProject = asyncHandler(async (req, res) => {
-    const { name, layout, sections, tasks, inviteEmails } = req.body;
+    const { name, color, layout, sections, tasks, inviteEmails } = req.body;
     const userId = req.user.id;
 
     // Get user's tenant
@@ -47,6 +47,7 @@ class ProjectController {
         data: {
           tenantId,
           name,
+          color: color || '#3b82f6',
           layout: layout || 'BOARD',
           createdBy: userId,
         },
@@ -82,6 +83,7 @@ class ProjectController {
           type: 'user',
           width: 200,
           visible: true,
+          isDefault: true,
           position: 0,
         },
         {
@@ -89,6 +91,7 @@ class ProjectController {
           type: 'date',
           width: 150,
           visible: true,
+          isDefault: true,
           position: 1,
         },
         {
@@ -96,6 +99,7 @@ class ProjectController {
           type: 'select',
           width: 120,
           visible: true,
+          isDefault: true,
           position: 2,
           options: priorityOptions,
         },
@@ -104,6 +108,7 @@ class ProjectController {
           type: 'select',
           width: 150,
           visible: true,
+          isDefault: true,
           position: 3,
           options: statusOptions,
         },

@@ -70,61 +70,61 @@ const ProjectActionBar = ({
         {/* Right Side - View Controls */}
         <TooltipProvider>
           <div className="flex items-center gap-1">
-            {/* Sort Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2"
-                  onClick={onSort}
-                >
-                  <ArrowUpDown className="h-4 w-4" />
-                  <span className="hidden md:inline">Sort</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Sort tasks</p>
-              </TooltipContent>
-            </Tooltip>
+              {/* Sort Button */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    onClick={onSort}
+                  >
+                    <ArrowUpDown className="h-4 w-4" />
+                    <span className="hidden md:inline">Sort</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sort tasks</p>
+                </TooltipContent>
+              </Tooltip>
 
-            {/* Column Customization Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2"
-                  onClick={onColumnCustomize}
-                >
-                  <Columns className="h-4 w-4" />
-                  <span className="hidden md:inline">Columns</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Customize columns</p>
-              </TooltipContent>
-            </Tooltip>
+              {/* Column Customization Button */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    onClick={onColumnCustomize}
+                  >
+                    <Columns className="h-4 w-4" />
+                    <span className="hidden md:inline">Columns</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Customize columns</p>
+                </TooltipContent>
+              </Tooltip>
 
-            {/* Filter Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2"
-                  onClick={onFilter}
-                >
-                  <Filter className="h-4 w-4" />
-                  <span className="hidden md:inline">Filter</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Filter tasks</p>
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
+              {/* Filter Button */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2"
+                    onClick={onFilter}
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span className="hidden md:inline">Filter</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Filter tasks</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
       </div>
     </div>
   );

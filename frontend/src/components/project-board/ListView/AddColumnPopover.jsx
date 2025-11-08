@@ -108,7 +108,7 @@ const AddColumnPopover = ({ projectId }) => {
           isOpen={isDialogOpen}
           onClose={handleDialogClose}
           projectId={projectId}
-          columnType={selectedType}
+          initialType={selectedType}
         />
       )}
     </>

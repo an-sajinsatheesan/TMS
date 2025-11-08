@@ -69,7 +69,13 @@ axiosInstance.interceptors.response.use(
       localStorage.removeItem('refreshToken');
       if (!window.location.pathname.startsWith('/login') &&
           !window.location.pathname.startsWith('/register')) {
-        window.location.href = '/login';
+        // Dispatch custom event for authentication failure
+        window.dispatchEvent(new CustomEvent('session-expired', {
+          detail: { message: 'Authentication failed. Please log in again.' }
+        }));
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 500);
       }
       return Promise.reject(error);
     }
@@ -103,7 +109,15 @@ axiosInstance.interceptors.response.use(
       isRefreshing = false;
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      window.location.href = '/login';
+
+      // Dispatch custom event for session expiration
+      window.dispatchEvent(new CustomEvent('session-expired', {
+        detail: { message: 'Your session has expired. Please log in again.' }
+      }));
+
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 500);
       return Promise.reject(error);
     }
 
@@ -137,11 +151,19 @@ axiosInstance.interceptors.response.use(
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
 
+      // Dispatch custom event for session expiration notification
+      window.dispatchEvent(new CustomEvent('session-expired', {
+        detail: { message: 'Your session has expired. Please log in again.' }
+      }));
+
       // Only redirect if not already on login/register page
       if (!window.location.pathname.startsWith('/login') &&
           !window.location.pathname.startsWith('/register')) {
         console.log('[Auth] Redirecting to login...');
-        window.location.href = '/login';
+        // Delay redirect slightly to allow toast to show
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 500);
       }
 
       return Promise.reject(refreshError);

@@ -18,7 +18,6 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   return (
@@ -26,17 +25,22 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group sticky top-0 z-30 flex w-max min-w-full items-center gap-2 bg-gray-100 border-b-2 border-gray-300',
-        'hover:bg-gray-150 transition-colors',
-        isDragging && 'shadow-lg ring-2 ring-blue-400'
+        'group sticky top-0 z-30 flex w-max min-w-full items-center gap-2 border-b-2',
+        'transition-all duration-200',
+        isDragging
+          ? 'bg-white border-2 border-dashed border-blue-500 shadow-2xl opacity-90 scale-[1.02]'
+          : 'bg-gray-100 border-gray-300 hover:bg-gray-150'
       )}
     >
       {/* Drag Handle - Sticky Left */}
       <div
         className={cn(
           columnWidths.drag,
-          'sticky left-0 z-20 bg-gray-100 group-hover:bg-gray-150 flex items-center justify-center border-r border-gray-300',
-          'cursor-grab active:cursor-grabbing'
+          'sticky left-0 z-20 flex items-center justify-center border-r transition-colors',
+          'cursor-grab active:cursor-grabbing',
+          isDragging
+            ? 'bg-white border-blue-500'
+            : 'bg-gray-100 group-hover:bg-gray-150 border-gray-300'
         )}
       >
         <div className="opacity-0 group-hover:opacity-100 transition-opacity" {...attributes} {...listeners}>
@@ -45,7 +49,10 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
       </div>
 
       {/* Collapse/Expand + Group Info - Spans across sticky columns */}
-      <div className="sticky left-10 z-20 bg-gray-100 group-hover:bg-gray-150 flex items-center gap-2 px-2 py-1.5">
+      <div className={cn(
+        'sticky left-10 z-20 flex items-center gap-2 px-2 py-1.5 transition-colors',
+        isDragging ? 'bg-white' : 'bg-gray-100 group-hover:bg-gray-150'
+      )}>
         {/* Collapse/Expand Icon */}
         <button
           onClick={() => onToggleCollapse(section.id)}
