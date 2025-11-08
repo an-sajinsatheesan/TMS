@@ -3,72 +3,41 @@ import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import ColumnMenu from './ColumnMenu';
 import { cn } from '@/lib/utils';
 
-const ColumnHeader = ({ column, onSort, onHide, onSwap, widthClass, className, sortConfig }) => {
-  const [sortDirection, setSortDirection] = useState(null);
-
-  // Columns that should NOT have sorting (Task Name and # columns)
+const ColumnHeader = ({ column, onSort, onHide, sortConfig }) => {
   const NON_SORTABLE_COLUMNS = ['taskName', 'taskNumber'];
   const isSortable = !NON_SORTABLE_COLUMNS.includes(column.id);
 
+  const isActive = sortConfig?.column === column.id;
+  const currentDirection = isActive ? sortConfig.direction : null;
+
   const handleSort = () => {
     if (!isSortable) return;
-
-    let newDirection = 'asc';
-    if (sortDirection === 'asc') {
-      newDirection = 'desc';
-    } else if (sortDirection === 'desc') {
-      newDirection = null;
-    }
-
-    setSortDirection(newDirection);
+    const newDirection = currentDirection === 'asc' ? 'desc' : currentDirection === 'desc' ? null : 'asc';
     onSort(column.id, newDirection);
   };
 
-  // Get sort icon based on current sort state
   const getSortIcon = () => {
     if (!isSortable) return null;
-
-    if (sortDirection === 'asc') {
-      return <ArrowUp className="w-3 h-3" />;
-    } else if (sortDirection === 'desc') {
-      return <ArrowDown className="w-3 h-3" />;
-    }
+    if (currentDirection === 'asc') return <ArrowUp className="w-3 h-3" />;
+    if (currentDirection === 'desc') return <ArrowDown className="w-3 h-3" />;
     return <ArrowUpDown className="w-3 h-3 opacity-0 group-hover:opacity-50" />;
   };
 
-  const columnLabel = column.label || column.name || '';
-
   return (
-    <div
-      className={cn(
-        'flex items-center justify-between px-2 py-1 bg-gray-50 border-b border-r border-gray-200',
-        'text-xs font-semibold text-gray-700 uppercase tracking-wider group',
-        widthClass,
-        className
-      )}
-    >
+    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-700 uppercase tracking-wider group h-full">
       <div className="flex items-center gap-1 min-w-0 flex-1">
         {isSortable ? (
-          <button
-            onClick={handleSort}
-            className="flex items-center gap-1 hover:text-gray-900 transition-colors min-w-0 flex-1"
-          >
-            <span className="truncate">{columnLabel}</span>
+          <button onClick={handleSort} className="flex items-center gap-1 hover:text-gray-900 transition-colors min-w-0 flex-1">
+            <span className="truncate">{column.label || column.name}</span>
             {getSortIcon()}
           </button>
         ) : (
-          <div className="flex items-center gap-1 min-w-0 flex-1">
-            <span className="truncate">{columnLabel}</span>
-          </div>
+          <span className="truncate">{column.label || column.name}</span>
         )}
       </div>
-
-      <ColumnMenu
-        column={column}
-        onSort={onSort}
-        onHide={onHide}
-        onSwap={onSwap}
-      />
+      {onHide && !column.isSystem && (
+        <ColumnMenu column={column} onSort={onSort} onHide={onHide} />
+      )}
     </div>
   );
 };
