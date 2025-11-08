@@ -4,7 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-const AddTaskRow = ({ sectionId, onAddTask, columnWidths }) => {
+const FIXED_COLUMNS = {
+  drag: 40,
+  taskName: 320,
+};
+
+const AddTaskRow = ({ sectionId, onAddTask }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [taskName, setTaskName] = useState('');
 
@@ -36,13 +41,10 @@ const AddTaskRow = ({ sectionId, onAddTask, columnWidths }) => {
         onClick={() => setIsAdding(true)}
       >
         {/* Drag Icon Placeholder */}
-        <div className={cn(columnWidths.drag, 'border-r border-gray-200')} />
-
-        {/* Task Number Placeholder */}
-        <div className={cn(columnWidths.taskNumber)} />
+        <div className="border-r border-gray-200" style={{ width: FIXED_COLUMNS.drag }} />
 
         {/* Add Task Button - Spans Task Name Column */}
-        <div className={cn(columnWidths.taskName, 'px-2 py-1 flex items-center gap-2 text-sm text-gray-500 group-hover:text-gray-700')}>
+        <div className="px-2 py-1 flex items-center gap-2 text-sm text-gray-500 group-hover:text-gray-700" style={{ width: FIXED_COLUMNS.taskName }}>
           <Plus className="h-4 w-4" />
           <span>Add Task</span>
         </div>
@@ -53,13 +55,10 @@ const AddTaskRow = ({ sectionId, onAddTask, columnWidths }) => {
   return (
     <div className="flex w-max min-w-full items-center border-b border-gray-200 bg-white">
       {/* Drag Icon Placeholder */}
-      <div className={cn(columnWidths.drag, 'border-r border-gray-200')} />
-
-      {/* Task Number Placeholder */}
-      <div className={cn(columnWidths.taskNumber)} />
+      <div className="border-r border-gray-200" style={{ width: FIXED_COLUMNS.drag }} />
 
       {/* Task Name Input */}
-      <div className={cn(columnWidths.taskName, 'px-2 py-1 flex items-center gap-2')}>
+      <div className="px-2 py-1 flex items-center gap-2" style={{ width: FIXED_COLUMNS.taskName }}>
         <Input
           type="text"
           value={taskName}
