@@ -390,6 +390,24 @@ export function useProjectData(projectId) {
     }
   }, [projectId]); // Only projectId
 
+  /**
+   * Duplicate a task
+   */
+  const duplicateTask = useCallback(async (taskId) => {
+    try {
+      const response = await tasksService.duplicate(taskId);
+
+      // Add the duplicated task to the state
+      setTasks((prev) => [...prev, response.data]);
+
+      return response.data;
+    } catch (err) {
+      console.error('Failed to duplicate task:', err);
+      setError('Failed to duplicate task');
+      throw err;
+    }
+  }, []);
+
   return {
     sections,
     tasks,
@@ -403,5 +421,6 @@ export function useProjectData(projectId) {
     createSection,
     deleteSection,
     createSubtask,
+    duplicateTask,
   };
 }

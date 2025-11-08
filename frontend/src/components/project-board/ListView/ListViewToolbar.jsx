@@ -197,7 +197,7 @@ const ListViewToolbar = ({
   const totalColumnsCount = columns.length;
 
   return (
-    <div className="flex items-center gap-2 px-4 py-3 bg-white border-b border-gray-200">
+    <div className="flex items-center gap-2">
       {/* Filter Button */}
       <DropdownMenu open={filterMenuOpen} onOpenChange={setFilterMenuOpen}>
         <DropdownMenuTrigger asChild>
