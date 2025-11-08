@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ListView } from './ListView';
+import { MembersProvider } from '@/contexts/MembersContext';
 
 const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
   // Mock tasks data
@@ -90,7 +91,11 @@ const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
   };
 
   if (viewMode === 'list') {
-    return <ListView projectId={projectId} />;
+    return (
+      <MembersProvider projectId={projectId}>
+        <ListView projectId={projectId} />
+      </MembersProvider>
+    );
   }
 
   if (viewMode === 'kanban') {
