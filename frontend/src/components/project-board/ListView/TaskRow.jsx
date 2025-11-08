@@ -94,45 +94,46 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
   };
 
   return (
-    <TaskContextMenu
-      task={task}
-      onDuplicate={onDuplicate}
-      onMarkComplete={onToggleComplete}
-      onOpenDetails={onOpenDetails}
-      onCreateSubtask={onCreateSubtask}
-      onDelete={onDelete}
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'group flex w-max min-w-full items-center border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors',
+        isDragging && 'shadow-lg ring-2 ring-blue-400'
+      )}
     >
-      <div
-        ref={setNodeRef}
-        style={style}
-        className={cn(
-          'group flex w-max min-w-full items-center border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors',
-          isDragging && 'shadow-lg ring-2 ring-blue-400'
-        )}
+      <TaskContextMenu
+        task={task}
+        onDuplicate={onDuplicate}
+        onMarkComplete={onToggleComplete}
+        onOpenDetails={onOpenDetails}
+        onCreateSubtask={onCreateSubtask}
+        onDelete={onDelete}
       >
-      {/* Drag Icon - Sticky Left */}
-      <div
-        className={cn(
-          columnWidths.drag,
-          'sticky left-0 z-10 bg-white group-hover:bg-gray-50 flex items-center justify-center border-r border-gray-200',
-          !isSubtask && 'cursor-grab active:cursor-grabbing'
-        )}
-      >
-        {!isSubtask && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity" {...attributes} {...listeners}>
-            <GripVertical className="h-4 w-4 text-gray-400" />
+        <div className="flex w-full items-center">
+          {/* Drag Icon - Sticky Left */}
+          <div
+            className={cn(
+              columnWidths.drag,
+              'sticky left-0 z-10 bg-white group-hover:bg-gray-50 flex items-center justify-center border-r border-gray-200',
+              !isSubtask && 'cursor-grab active:cursor-grabbing'
+            )}
+          >
+            {!isSubtask && (
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity" {...attributes} {...listeners}>
+                <GripVertical className="h-4 w-4 text-gray-400" />
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Task Name - Sticky Left with Shadow */}
-      <div
-        className={cn(
-          columnWidths.taskName,
-          'sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-2 py-1 flex items-center gap-2 relative',
-          'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]'
-        )}
-      >
+          {/* Task Name - Sticky Left with Shadow */}
+          <div
+            className={cn(
+              columnWidths.taskName,
+              'sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-2 py-1 flex items-center gap-2 relative',
+              'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]'
+            )}
+          >
         {/* Subtask Connector */}
         {isSubtask && (
           <>
@@ -264,8 +265,9 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
             </div>
           );
         })}
-      </div>
-    </TaskContextMenu>
+        </div>
+      </TaskContextMenu>
+    </div>
   );
 };
 

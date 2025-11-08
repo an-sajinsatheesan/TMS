@@ -193,9 +193,11 @@ const ListView = ({ projectId }) => {
           // Call API to persist the reordering
           await sectionsService.reorder(projectId, sectionIds);
 
+          toast.success('Section reordered successfully');
           // The data will be refreshed by useProjectData hook
         } catch (err) {
           console.error('Failed to reorder sections:', err);
+          toast.error('Failed to reorder section');
         }
       }
     } else {
@@ -227,8 +229,10 @@ const ListView = ({ projectId }) => {
       if (isSectionChanged || isPositionChanged) {
         try {
           await moveTask(active.id, destinationSectionId, destinationIndex);
+          toast.success('Task moved successfully');
         } catch (err) {
           console.error('Failed to move task:', err);
+          toast.error('Failed to move task');
         }
       }
     }
