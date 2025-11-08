@@ -1,4 +1,4 @@
-import { useState } from 'prop-types';
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Check, ChevronDown } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
