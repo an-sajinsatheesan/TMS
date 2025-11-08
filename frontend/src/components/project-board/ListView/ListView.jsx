@@ -28,13 +28,7 @@ import { ListViewProvider } from '@/contexts/ListViewContext';
 import { sectionsService } from '@/services/api/sections.service';
 import { toast } from 'sonner';
 
-// Fixed column widths (sticky columns)
-const FIXED_COLUMNS = {
-  drag: 40, // px
-  taskName: 320, // px
-};
-
-// Helper to get dynamic column width class
+// Column width mapping
 const getColumnWidthClass = (width) => {
   if (width <= 64) return 'w-16';
   if (width <= 100) return 'w-24';
@@ -42,6 +36,13 @@ const getColumnWidthClass = (width) => {
   if (width <= 200) return 'w-48';
   if (width <= 300) return 'w-64';
   return 'w-80';
+};
+
+const COLUMN_WIDTHS = {
+  drag: 'w-10',
+  taskNumber: 'w-16',
+  taskName: 'w-80',
+  addColumn: 'w-12',
 };
 
 const ListView = ({ projectId }) => {
@@ -60,97 +61,166 @@ const ListView = ({ projectId }) => {
     duplicateTask,
   } = useProjectData(projectId);
 
-  const { columns: reduxColumns } = useSelector((state) => state.columns);
-  const { users: projectMembers } = useMembers();
+  // Redux columns state
+  const { columns: reduxColumns, loading: columnsLoading } = useSelector((state) => state.columns);
 
   const [activeId, setActiveId] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
   const [activeFilters, setActiveFilters] = useState({});
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
 
-  // DnD sensors
+  const { users: projectMembers } = useMembers();
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 8 },
+      activationConstraint: {
+        distance: 8,
+      },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
 
-  // Fetch columns
+  // Fetch columns when projectId changes
   useEffect(() => {
     if (projectId) {
       dispatch(fetchColumns(projectId));
     }
-    return () => dispatch(clearColumns());
+
+    return () => {
+      // Clear columns when unmounting or project changes
+      dispatch(clearColumns());
+    };
   }, [projectId, dispatch]);
 
-  // Get visible non-system columns
-  const visibleColumns = useMemo(() => {
-    return reduxColumns.filter((col) => col.visible !== false && !col.isSystem);
-  }, [reduxColumns]);
-
-  // Group tasks by section
+  // Group tasks by section with sorting
   const tasksBySection = useMemo(() => {
     const grouped = {};
-    sections.forEach((section) => {
-      grouped[section.id] = tasks.filter((task) => task.sectionId === section.id);
+
+    // Find tasks with null sectionId (these were created during onboarding before sections existed)
+    const unassignedTasks = tasks.filter((task) => task.sectionId === null);
+
+    sections.forEach((section, index) => {
+      let sectionTasks = tasks.filter((task) => task.sectionId === section.id);
+
+      // If this is the first section, add unassigned tasks to it
+      if (index === 0 && unassignedTasks.length > 0) {
+        sectionTasks = [...sectionTasks, ...unassignedTasks];
+      }
+
+      // Apply sorting if configured
+      if (sortConfig.column && sortConfig.direction) {
+        sectionTasks = sectionTasks.sort((a, b) => {
+          let aValue = a[sortConfig.column];
+          let bValue = b[sortConfig.column];
+
+          // Handle custom fields
+          if (a.customFields && a.customFields[sortConfig.column]) {
+            aValue = a.customFields[sortConfig.column];
+          }
+          if (b.customFields && b.customFields[sortConfig.column]) {
+            bValue = b.customFields[sortConfig.column];
+          }
+
+          // Handle null values
+          if (aValue === null || aValue === undefined) return 1;
+          if (bValue === null || bValue === undefined) return -1;
+
+          // Compare values
+          if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+          return 0;
+        });
+      } else {
+        // Default sorting by orderIndex
+        sectionTasks.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      }
+
+      grouped[section.id] = sectionTasks;
     });
     return grouped;
-  }, [tasks, sections]);
+  }, [sections, tasks, sortConfig]);
 
-  // All draggable IDs
-  const allDraggableIds = useMemo(() => {
-    const sectionIds = sections.map((s) => `section-${s.id}`);
-    const taskIds = tasks.filter((t) => !t.parentId).map((t) => t.id);
-    return [...sectionIds, ...taskIds];
-  }, [sections, tasks]);
+  // Get visible columns
+  const visibleColumns = useMemo(
+    () => reduxColumns.filter((col) => col.visible),
+    [reduxColumns]
+  );
 
-  // Drag handlers
-  const handleDragStart = (event) => setActiveId(event.active.id);
+  const fixedColumns = useMemo(
+    () => visibleColumns.filter((col) => col.isSystem),
+    [visibleColumns]
+  );
+
+  const scrollableColumns = useMemo(
+    () => visibleColumns.filter((col) => !col.isSystem),
+    [visibleColumns]
+  );
+
+  const handleDragStart = (event) => {
+    setActiveId(event.active.id);
+  };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
-    setActiveId(null);
 
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id) {
+      setActiveId(null);
+      return;
+    }
 
-    // Section drag
+    // Check if dragging a section
     if (active.id.toString().startsWith('section-')) {
+      // Extract section IDs from the string IDs
       const activeSectionId = active.id.toString().replace('section-', '');
       const overSectionId = over.id.toString().replace('section-', '');
-      const oldIndex = sections.findIndex((s) => s.id === activeSectionId);
-      const newIndex = sections.findIndex((s) => s.id === overSectionId);
+
+      // Find current positions
+      const oldIndex = sections.findIndex(s => s.id === activeSectionId);
+      const newIndex = sections.findIndex(s => s.id === overSectionId);
 
       if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
         try {
+          // Create new ordered array
           const reorderedSections = [...sections];
           const [removed] = reorderedSections.splice(oldIndex, 1);
           reorderedSections.splice(newIndex, 0, removed);
-          const sectionIds = reorderedSections.map((s) => s.id);
+
+          // Get array of section IDs in new order
+          const sectionIds = reorderedSections.map(s => s.id);
+
+          // Call API to persist the reordering
           await sectionsService.reorder(projectId, sectionIds);
-          toast.success('Section reordered');
+
+          toast.success('Section reordered successfully');
+          // The data will be refreshed by useProjectData hook
         } catch (err) {
+          console.error('Failed to reorder sections:', err);
           toast.error('Failed to reorder section');
         }
       }
     } else {
-      // Task drag
+      // Dragging a task
       const activeTask = tasks.find((t) => t.id === active.id);
-      if (!activeTask) return;
+      if (!activeTask) {
+        setActiveId(null);
+        return;
+      }
 
+      // Determine the destination section and index
       let destinationSectionId = activeTask.sectionId;
       let destinationIndex = 0;
 
+      // Check if dropped on another task
       const overTask = tasks.find((t) => t.id === over.id);
       if (overTask) {
         destinationSectionId = overTask.sectionId;
-        const sectionTasks = tasksBySection[destinationSectionId]?.filter((t) => !t.parentId) || [];
+        const sectionTasks = tasksBySection[destinationSectionId].filter((t) => !t.parentId);
         destinationIndex = sectionTasks.findIndex((t) => t.id === over.id);
       }
 
+      // Move task if section changed OR position changed within same section
       const isSectionChanged = destinationSectionId !== activeTask.sectionId;
       const currentSectionTasks = tasksBySection[activeTask.sectionId]?.filter((t) => !t.parentId) || [];
       const currentIndex = currentSectionTasks.findIndex((t) => t.id === active.id);
@@ -159,87 +229,142 @@ const ListView = ({ projectId }) => {
       if (isSectionChanged || isPositionChanged) {
         try {
           await moveTask(active.id, destinationSectionId, destinationIndex);
-          toast.success('Task moved');
+          toast.success('Task moved successfully');
         } catch (err) {
+          console.error('Failed to move task:', err);
           toast.error('Failed to move task');
         }
       }
     }
+
+    setActiveId(null);
   };
 
-  // Event handlers
   const handleToggleCollapse = (sectionId) => {
-    setCollapsedGroups((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }));
   };
 
   const handleToggleComplete = async (taskId) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
+
     try {
       await updateTask(taskId, {
         completed: !task.completed,
         completedAt: !task.completed ? new Date().toISOString() : null,
       });
     } catch (err) {
-      toast.error('Failed to update task');
+      console.error('Failed to toggle task completion:', err);
     }
   };
 
   const handleAssigneeChange = async (taskId, userId) => {
     try {
-      await updateTask(taskId, { assigneeId: userId });
+      await updateTask(taskId, {
+        assigneeId: userId,
+      });
     } catch (err) {
-      toast.error('Failed to update assignee');
+      console.error('Failed to update task assignee:', err);
     }
   };
 
   const handleDateChange = async (taskId, date) => {
     try {
-      await updateTask(taskId, { dueDate: date });
+      await updateTask(taskId, {
+        dueDate: date,
+      });
     } catch (err) {
-      toast.error('Failed to update date');
+      console.error('Failed to update task due date:', err);
     }
   };
 
   const handleSelectChange = async (taskId, columnId, value) => {
     try {
-      const column = reduxColumns.find((col) => col.id === columnId);
+      const column = reduxColumns.find(col => col.id === columnId);
       if (!column) return;
 
-      const fieldMapping = { Priority: 'priority', Status: 'status' };
-      const updatePayload = fieldMapping[column.name]
-        ? { [fieldMapping[column.name]]: value }
-        : { customFields: { [columnId]: value } };
+      // Map column name to task field for default fields
+      const fieldMapping = {
+        'Priority': 'priority',
+        'Status': 'status',
+      };
+
+      let updatePayload;
+
+      if (fieldMapping[column.name]) {
+        // Standard field (Priority, Status)
+        updatePayload = {
+          [fieldMapping[column.name]]: value,
+        };
+      } else {
+        // Custom field - wrap in customFields object
+        updatePayload = {
+          customFields: {
+            [columnId]: value,
+          },
+        };
+      }
 
       await updateTask(taskId, updatePayload);
     } catch (err) {
+      console.error('Failed to update select field:', err);
       toast.error('Failed to update field');
     }
   };
 
   const handleTaskNameSave = async (taskId, newName) => {
     try {
-      await updateTask(taskId, { title: newName });
+      await updateTask(taskId, {
+        title: newName,
+      });
     } catch (err) {
-      toast.error('Failed to update task name');
-      throw err;
+      console.error('Failed to update task name:', err);
+      throw err; // Re-throw so EditableTaskName can handle it
     }
   };
 
+  const handleAddTask = async (sectionId, taskName) => {
+    if (!taskName.trim()) return;
+
+    try {
+      await createTask(sectionId, { title: taskName.trim() });
+    } catch (err) {
+      console.error('Failed to create task:', err);
+    }
+  };
+
+  // Context menu handlers
   const handleDuplicateTask = async (taskId) => {
     try {
       await duplicateTask(taskId);
-      toast.success('Task duplicated');
+      toast.success('Task duplicated successfully');
     } catch (err) {
+      console.error('Failed to duplicate task:', err);
       toast.error('Failed to duplicate task');
     }
   };
 
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+
+  const handleOpenTaskDetails = (taskId) => {
+    setSelectedTaskId(taskId);
+  };
+
+  const handleCloseTaskDetails = () => {
+    setSelectedTaskId(null);
+  };
+
   const handleCreateSubtask = async (taskId) => {
     try {
-      await createSubtask(taskId, { title: 'New Subtask' });
-      toast.success('Subtask created');
+      await createSubtask(taskId, {
+        title: 'New Subtask',
+      });
+      toast.success('Subtask created successfully');
     } catch (err) {
+      console.error('Failed to create subtask:', err);
       toast.error('Failed to create subtask');
     }
   };
@@ -247,27 +372,37 @@ const ListView = ({ projectId }) => {
   const handleDeleteTask = async (taskId) => {
     try {
       await deleteTask(taskId);
-      toast.success('Task deleted');
+      toast.success('Task deleted successfully');
     } catch (err) {
+      console.error('Failed to delete task:', err);
       toast.error('Failed to delete task');
     }
   };
 
-  const handleOpenTaskDetails = (taskId) => setSelectedTaskId(taskId);
-  const handleCloseTaskDetails = () => setSelectedTaskId(null);
-
-  // Toolbar handlers
-  const handleFilterChange = (filters) => setActiveFilters(filters);
-  const handleSortChange = (sortData) => {
-    setSortConfig(sortData ? { column: sortData.field, direction: sortData.direction } : { column: null, direction: null });
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
   };
+
+  const handleSortChange = (sortData) => {
+    if (sortData) {
+      setSortConfig({ column: sortData.field, direction: sortData.direction });
+    } else {
+      setSortConfig({ column: null, direction: null });
+    }
+  };
+
   const handleColumnVisibilityChange = async (columnId, visible) => {
     const column = reduxColumns.find((col) => col.id === columnId);
     if (!column || column.isSystem) return;
+
     try {
-      await dispatch(updateColumn({ projectId, columnId, updates: { visible } })).unwrap();
+      await dispatch(updateColumn({
+        projectId,
+        columnId,
+        updates: { visible },
+      })).unwrap();
     } catch (err) {
-      toast.error('Failed to update column');
+      console.error('Failed to update column visibility:', err);
     }
   };
 
@@ -276,12 +411,30 @@ const ListView = ({ projectId }) => {
   };
 
   const handleHideColumn = async (columnId) => {
-    await handleColumnVisibilityChange(columnId, false);
+    // Find the column
+    const column = reduxColumns.find((col) => col.id === columnId);
+    if (!column || column.isSystem) return; // Don't hide system columns
+
+    try {
+      await dispatch(updateColumn({
+        projectId,
+        columnId,
+        updates: { visible: false },
+      })).unwrap();
+    } catch (err) {
+      console.error('Failed to hide column:', err);
+    }
   };
 
-  // Render task with subtasks
+  const handleSwapColumn = (columnId) => {
+    // Placeholder for column swapping logic
+    console.log('Swap column:', columnId);
+  };
+
+  // Render task and its subtasks
   const renderTaskWithSubtasks = (task, level = 0) => {
     const subtasks = tasks.filter((t) => t.parentId === task.id);
+
     return (
       <div key={task.id}>
         <TaskRow
@@ -297,13 +450,37 @@ const ListView = ({ projectId }) => {
           onCreateSubtask={handleCreateSubtask}
           onDelete={handleDeleteTask}
           isSubtask={level > 0}
+          columnWidths={COLUMN_WIDTHS}
         />
-        {task.isExpanded && subtasks.map((subtask) => renderTaskWithSubtasks(subtask, level + 1))}
+        {task.isExpanded &&
+          subtasks.map((subtask) => renderTaskWithSubtasks(subtask, level + 1))}
       </div>
     );
   };
 
-  // Context value for toolbar
+  // Get all draggable IDs (sections and top-level tasks)
+  const sectionIds = sections.map((s) => `section-${s.id}`);
+  const topLevelTaskIds = tasks.filter((t) => !t.parentId).map((t) => t.id);
+  const allDraggableIds = [...sectionIds, ...topLevelTaskIds];
+
+  // Loading state
+  if (tasksLoading || columnsLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (tasksError) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-red-500">Error: {tasksError}</div>
+      </div>
+    );
+  }
+
   const listViewContextValue = {
     columns: reduxColumns,
     activeFilters,
@@ -314,86 +491,138 @@ const ListView = ({ projectId }) => {
     onColumnVisibilityChange: handleColumnVisibilityChange,
   };
 
-  if (tasksLoading) return <div className="p-8 text-center">Loading...</div>;
-
   return (
     <ListViewProvider value={listViewContextValue}>
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex flex-col h-full">
-          {/* Header - Sticky */}
-          <div className="sticky top-0 z-30 bg-gray-50 border-b-2 border-gray-300 shadow-sm">
-            <div className="flex">
-              {/* Drag column - Sticky */}
-              <div className="sticky left-0 z-40 bg-gray-50 border-r border-gray-300" style={{ width: FIXED_COLUMNS.drag }} />
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex flex-col h-full bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* Fixed Header - No Scroll */}
+          <div className="sticky top-0 z-40 bg-gray-50 border-b-2 border-gray-300">
+            <div className="flex w-max min-w-full">
+              {/* Drag Icon Column - Sticky Left */}
+              <div className={cn(COLUMN_WIDTHS.drag, 'sticky left-0 z-20 bg-gray-50 border-r border-gray-200')} />
 
-              {/* Task Name column - Sticky */}
-              <div className="sticky z-40 bg-gray-50" style={{ left: FIXED_COLUMNS.drag, width: FIXED_COLUMNS.taskName }}>
-                <ColumnHeader
-                  column={{ id: 'taskName', name: 'Task Name', type: 'text' }}
-                  onSort={handleSort}
-                  onHide={() => {}}
-                  sortConfig={sortConfig}
-                />
-              </div>
+              {/* Fixed Columns (System columns) - excluding taskNumber */}
+              {fixedColumns
+                .filter((col) => col.id !== 'taskNumber')
+                .map((column, index) => {
+                  const leftOffset = index === 0 ? 'left-10' : undefined;
+                  const widthClass = COLUMN_WIDTHS.taskName;
+                  const shadowClass = index === fixedColumns.filter((col) => col.id !== 'taskNumber').length - 1 ? 'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]' : '';
 
-              {/* Scrollable columns */}
-              <div className="flex">
-                {visibleColumns.map((column) => (
-                  <div key={column.id} style={{ width: column.width || 200 }}>
-                    <ColumnHeader column={column} onSort={handleSort} onHide={handleHideColumn} sortConfig={sortConfig} />
+                  return (
+                    <div
+                      key={column.id}
+                      className={cn(
+                        widthClass,
+                        'sticky z-20 bg-gray-50',
+                        leftOffset,
+                        shadowClass
+                      )}
+                    >
+                      <ColumnHeader
+                        column={column}
+                        onSort={handleSort}
+                        onHide={handleHideColumn}
+                        onSwap={handleSwapColumn}
+                        widthClass={widthClass}
+                        sortConfig={sortConfig}
+                      />
+                    </div>
+                  );
+                })}
+
+              {/* Scrollable Columns (Custom columns) */}
+              {scrollableColumns.map((column) => {
+                const widthClass = getColumnWidthClass(column.width);
+                return (
+                  <div key={column.id} className={widthClass}>
+                    <ColumnHeader
+                      column={column}
+                      onSort={handleSort}
+                      onHide={handleHideColumn}
+                      onSwap={handleSwapColumn}
+                      widthClass={widthClass}
+                      sortConfig={sortConfig}
+                    />
                   </div>
-                ))}
+                );
+              })}
 
-                {/* Add Column button - Sticky Right */}
-                <div className="sticky right-0 z-40 bg-gray-50 border-l border-gray-300 flex items-center justify-center" style={{ width: 48 }}>
-                  <AddColumnPopover projectId={projectId} />
-                </div>
+              {/* Add Column Button - Sticky Right */}
+              <div className={cn(COLUMN_WIDTHS.addColumn, 'sticky right-0 z-20 bg-gray-50 border-l border-gray-200 flex items-center justify-center')}>
+                <AddColumnPopover projectId={projectId} />
               </div>
             </div>
           </div>
 
-          {/* Body - Scrollable */}
-          <div className="flex-1 overflow-auto">
+          {/* Scrollable Body - Single Scroll */}
+          <div className="overflow-auto h-[calc(100vh-280px)]">
             <SortableContext items={allDraggableIds} strategy={verticalListSortingStrategy}>
-              {sections.map((section) => {
-                const sectionTasks = tasksBySection[section.id] || [];
-                const topLevelTasks = sectionTasks.filter((t) => !t.parentId);
-                const isCollapsed = collapsedGroups[section.id];
+              {sections.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No sections found. Create a section to get started.
+                </div>
+              ) : (
+                sections.map((section) => {
+                  const sectionTasks = tasksBySection[section.id] || [];
+                  const topLevelTasks = sectionTasks.filter((t) => !t.parentId);
+                  const isCollapsed = collapsedGroups[section.id];
 
-                return (
-                  <div key={section.id} className="border-b border-gray-200">
-                    <GroupHeader
-                      section={section}
-                      taskCount={topLevelTasks.length}
-                      isCollapsed={isCollapsed}
-                      onToggleCollapse={handleToggleCollapse}
-                    />
-                    {!isCollapsed && (
-                      <>
-                        {topLevelTasks.map((task) => renderTaskWithSubtasks(task))}
-                        <AddTaskRow sectionId={section.id} onAddTask={createTask} />
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+                  return (
+                    <div key={section.id} className="border-b border-gray-200 last:border-b-0">
+                      {/* Group Header */}
+                      <GroupHeader
+                        section={section}
+                        taskCount={topLevelTasks.length}
+                        isCollapsed={isCollapsed}
+                        onToggleCollapse={handleToggleCollapse}
+                        columnWidths={COLUMN_WIDTHS}
+                      />
+
+                      {/* Tasks */}
+                      {!isCollapsed && (
+                        <div>
+                          {topLevelTasks.map((task) => renderTaskWithSubtasks(task))}
+
+                          {/* Add Task Row */}
+                          <AddTaskRow
+                            sectionId={section.id}
+                            onAddTask={handleAddTask}
+                            columnWidths={COLUMN_WIDTHS}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </SortableContext>
           </div>
         </div>
 
         {/* Drag Overlay */}
         <DragOverlay>
-          {activeId && (
-            <div className="bg-white px-4 py-2 rounded shadow-xl border-2 border-blue-400">
+          {activeId ? (
+            <div className="bg-white px-3 py-1.5 rounded shadow-lg border border-gray-300 text-sm">
               {activeId.toString().startsWith('section-')
                 ? sections.find((s) => `section-${s.id}` === activeId)?.name
                 : tasks.find((t) => t.id === activeId)?.title || tasks.find((t) => t.id === activeId)?.name}
             </div>
-          )}
+          ) : null}
         </DragOverlay>
       </DndContext>
 
-      <TaskDetailsDialog taskId={selectedTaskId} open={!!selectedTaskId} onClose={handleCloseTaskDetails} />
+      {/* Task Details Dialog */}
+      <TaskDetailsDialog
+        taskId={selectedTaskId}
+        open={!!selectedTaskId}
+        onClose={handleCloseTaskDetails}
+      />
     </ListViewProvider>
   );
 };
