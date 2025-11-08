@@ -503,12 +503,12 @@ const ListView = ({ projectId }) => {
         <div className="relative h-[calc(100vh-170px)] overflow-auto bg-white">
           {/* Sticky Header Row */}
           <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-            <div className="flex min-w-max">
+            <div className="flex w-max min-w-full">
               {/* Drag Handle Column Header - Sticky Left */}
               <div
                 className={cn(
                   COLUMN_WIDTHS.drag,
-                  'sticky z-50 bg-white border-r border-gray-200 flex items-center justify-center'
+                  'sticky z-50 flex-shrink-0 bg-white border-r border-gray-200 flex items-center justify-center'
                 )}
                 style={{ left: 0 }}
               >
@@ -523,7 +523,7 @@ const ListView = ({ projectId }) => {
                     key={column.id}
                     className={cn(
                       COLUMN_WIDTHS.taskName,
-                      'sticky z-50 bg-white border-r border-gray-200'
+                      'sticky z-50 flex-shrink-0 bg-white border-r border-gray-200'
                     )}
                     style={{ left: '40px' }}
                   >
@@ -538,31 +538,33 @@ const ListView = ({ projectId }) => {
                   </div>
                 ))}
 
-              {/* Dynamic/Scrollable Columns */}
-              {scrollableColumns.map((column) => {
-                const widthClass = getColumnWidthClass(column.width);
-                return (
-                  <div
-                    key={column.id}
-                    className={cn(widthClass, 'border-r border-gray-200')}
-                  >
-                    <ColumnHeader
-                      column={column}
-                      onSort={handleSort}
-                      onHide={handleHideColumn}
-                      onSwap={handleSwapColumn}
-                      widthClass={widthClass}
-                      sortConfig={sortConfig}
-                    />
-                  </div>
-                );
-              })}
+              {/* Dynamic/Scrollable Columns Wrapper */}
+              <div className="flex-1 flex border-b">
+                {scrollableColumns.map((column) => {
+                  const widthClass = getColumnWidthClass(column.width);
+                  return (
+                    <div
+                      key={column.id}
+                      className={cn(widthClass, 'border-r border-gray-200')}
+                    >
+                      <ColumnHeader
+                        column={column}
+                        onSort={handleSort}
+                        onHide={handleHideColumn}
+                        onSwap={handleSwapColumn}
+                        widthClass={widthClass}
+                        sortConfig={sortConfig}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* Add Column Button - Sticky Right */}
               <div
                 className={cn(
                   COLUMN_WIDTHS.addColumn,
-                  'sticky z-50 bg-white border-l border-gray-200 flex items-center justify-center'
+                  'sticky z-50 flex-shrink-0 bg-white border-l border-gray-200 flex items-center justify-center'
                 )}
                 style={{ right: 0 }}
               >
@@ -592,7 +594,7 @@ const ListView = ({ projectId }) => {
                       isCollapsed={isCollapsed}
                       onToggleCollapse={handleToggleCollapse}
                       columnWidths={COLUMN_WIDTHS}
-                      scrollableColumnCount={scrollableColumns.length}
+                      scrollableColumns={scrollableColumns}
                     />
 
                     {/* Task Rows */}
@@ -605,7 +607,7 @@ const ListView = ({ projectId }) => {
                           sectionId={section.id}
                           onAddTask={handleAddTask}
                           columnWidths={COLUMN_WIDTHS}
-                          scrollableColumnCount={scrollableColumns.length}
+                          scrollableColumns={scrollableColumns}
                         />
                       </div>
                     )}

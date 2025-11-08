@@ -3,7 +3,17 @@ import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, columnWidths, scrollableColumnCount = 0 }) => {
+// Column width mapping
+const getColumnWidthClass = (width) => {
+  if (width <= 64) return 'w-16';
+  if (width <= 100) return 'w-24';
+  if (width <= 150) return 'w-32';
+  if (width <= 200) return 'w-48';
+  if (width <= 300) return 'w-64';
+  return 'w-80';
+};
+
+const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, columnWidths, scrollableColumns = [] }) => {
   const {
     attributes,
     listeners,
@@ -30,12 +40,12 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
         isDragging && 'opacity-50 scale-[1.02]'
       )}
     >
-      <div className="flex min-w-max">
+      <div className="flex w-max min-w-full">
         {/* Drag Handle - Sticky Left */}
         <div
           className={cn(
             columnWidths.drag,
-            'sticky z-40 bg-gray-50 border-r border-gray-200 flex items-center justify-center cursor-grab active:cursor-grabbing'
+            'sticky z-40 flex-shrink-0 bg-gray-50 border-r border-gray-200 flex items-center justify-center cursor-grab active:cursor-grabbing'
           )}
           style={{ left: 0 }}
           {...attributes}
@@ -48,7 +58,7 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
         <div
           className={cn(
             columnWidths.taskName,
-            'sticky z-40 bg-gray-50 border-r border-gray-200 px-2 py-2 flex items-center gap-2'
+            'sticky z-40 flex-shrink-0 bg-gray-50 border-r border-gray-200 px-2 py-2 flex items-center gap-2'
           )}
           style={{ left: '40px' }}
         >
@@ -88,14 +98,24 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
           )}
         </div>
 
-        {/* Scrollable empty space - fills the rest */}
-        <div className="flex-1 bg-gray-50 border-r border-gray-200" />
+        {/* Scrollable Columns - Individual cells for alignment */}
+        <div className="flex-1 flex">
+          {scrollableColumns.map((column) => {
+            const widthClass = getColumnWidthClass(column.width);
+            return (
+              <div
+                key={column.id}
+                className={cn(widthClass, 'bg-gray-50 border-r border-gray-200')}
+              />
+            );
+          })}
+        </div>
 
         {/* Actions Column - Sticky Right */}
         <div
           className={cn(
             columnWidths.addColumn,
-            'sticky z-40 bg-gray-50 border-l border-gray-200'
+            'sticky z-40 flex-shrink-0 bg-gray-50 border-l border-gray-200'
           )}
           style={{ right: 0 }}
         />
