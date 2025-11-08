@@ -315,6 +315,35 @@ const ListView = ({ projectId }) => {
     }
   };
 
+  // Context menu handlers
+  const handleDuplicateTask = async (taskId) => {
+    // TODO: Implement backend endpoint for duplicating tasks
+    console.log('Duplicate task:', taskId);
+    // const task = tasks.find(t => t.id === taskId);
+    // if (task) await createTask(task.sectionId, { ...task, title: `${task.name} (Copy)` });
+  };
+
+  const handleOpenTaskDetails = (taskId) => {
+    // TODO: Implement task details modal/page
+    console.log('Open task details:', taskId);
+    // navigate(`/projects/${projectId}/tasks/${taskId}`);
+  };
+
+  const handleCreateSubtask = async (taskId) => {
+    // TODO: Implement backend endpoint for creating subtasks
+    console.log('Create subtask for:', taskId);
+    // const task = tasks.find(t => t.id === taskId);
+    // if (task) await createTask(task.sectionId, { parentId: taskId, title: 'New Subtask' });
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await deleteTask(taskId);
+    } catch (err) {
+      console.error('Failed to delete task:', err);
+    }
+  };
+
   const handleFilterChange = (filters) => {
     setActiveFilters(filters);
   };
@@ -381,6 +410,10 @@ const ListView = ({ projectId }) => {
           onDateChange={handleDateChange}
           onSelectChange={handleSelectChange}
           onTaskNameSave={handleTaskNameSave}
+          onDuplicate={handleDuplicateTask}
+          onOpenDetails={handleOpenTaskDetails}
+          onCreateSubtask={handleCreateSubtask}
+          onDelete={handleDeleteTask}
           isSubtask={level > 0}
           columnWidths={COLUMN_WIDTHS}
         />
