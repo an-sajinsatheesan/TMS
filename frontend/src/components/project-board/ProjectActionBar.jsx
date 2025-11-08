@@ -1,4 +1,4 @@
-import { Plus, ArrowUpDown, Columns, Filter } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -6,20 +6,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import ListViewToolbar from './ListView/ListViewToolbar';
+import { useListView } from '@/contexts/ListViewContext';
 
 const ProjectActionBar = ({
   onAddTask,
   onAddSection,
-  onSort,
-  onColumnCustomize,
-  onFilter,
 }) => {
+  const listViewContext = useListView();
   return (
     <div className="sticky top-[3.05rem] z-20 border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="flex h-14 items-center justify-between px-6">
@@ -67,64 +61,22 @@ const ProjectActionBar = ({
           </Button>
         </div>
 
-        {/* Right Side - View Controls */}
-        <TooltipProvider>
-          <div className="flex items-center gap-1">
-              {/* Sort Button */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                    onClick={onSort}
-                  >
-                    <ArrowUpDown className="h-4 w-4" />
-                    <span className="hidden md:inline">Sort</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Sort tasks</p>
-                </TooltipContent>
-              </Tooltip>
-
-              {/* Column Customization Button */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                    onClick={onColumnCustomize}
-                  >
-                    <Columns className="h-4 w-4" />
-                    <span className="hidden md:inline">Columns</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Customize columns</p>
-                </TooltipContent>
-              </Tooltip>
-
-              {/* Filter Button */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="gap-2"
-                    onClick={onFilter}
-                  >
-                    <Filter className="h-4 w-4" />
-                    <span className="hidden md:inline">Filter</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Filter tasks</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
+        {/* Right Side - View Controls (ListView Toolbar when in list view) */}
+        {listViewContext ? (
+          <ListViewToolbar
+            onFilterChange={listViewContext.onFilterChange}
+            onSortChange={listViewContext.onSortChange}
+            onColumnVisibilityChange={listViewContext.onColumnVisibilityChange}
+            columns={listViewContext.columns}
+            activeFilters={listViewContext.activeFilters}
+            activeSort={listViewContext.activeSort}
+            projectMembers={listViewContext.projectMembers}
+          />
+        ) : (
+          <div className="text-sm text-gray-500">
+            {/* Placeholder for other view modes */}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,8 +7,11 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import AssigneeSelect from './AssigneeSelect';
 import DatePicker from './DatePicker';
+import SelectField from './SelectField';
+import EditableTaskName from './EditableTaskName';
+import TaskContextMenu from './TaskContextMenu';
 
-const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChange, isSubtask = false, columnWidths }) => {
+const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChange, onSelectChange, onTaskNameSave, onDuplicate, onOpenDetails, onCreateSubtask, onDelete, isSubtask = false, columnWidths }) => {
   const {
     attributes,
     listeners,
@@ -91,14 +94,22 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'group flex w-max min-w-full items-center border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors',
-        isDragging && 'shadow-lg ring-2 ring-blue-400'
-      )}
+    <TaskContextMenu
+      task={task}
+      onDuplicate={onDuplicate}
+      onMarkComplete={onToggleComplete}
+      onOpenDetails={onOpenDetails}
+      onCreateSubtask={onCreateSubtask}
+      onDelete={onDelete}
     >
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          'group flex w-max min-w-full items-center border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors',
+          isDragging && 'shadow-lg ring-2 ring-blue-400'
+        )}
+      >
       {/* Drag Icon - Sticky Left */}
       <div
         className={cn(
@@ -141,15 +152,13 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
             {getTaskIcon()}
           </button>
 
-          {/* Task Name Text */}
-          <span
-            className={cn(
-              'text-sm font-medium truncate',
-              task.completed && 'line-through text-gray-400'
-            )}
-          >
-            {task.name}
-          </span>
+          {/* Task Name Text - Editable */}
+          <EditableTaskName
+            taskId={task.id}
+            value={task.name}
+            onSave={onTaskNameSave}
+            isCompleted={task.completed}
+          />
 
           {/* Subtask count badge */}
           {task.subtaskCount > 0 && (
@@ -195,18 +204,13 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
                 />
               )}
 
-              {column.type === 'select' && value && (
-                <Badge
-                  variant="outline"
-                  className="text-xs px-1.5 py-0"
-                  style={{
-                    backgroundColor: column.options?.find(opt => opt.value === value)?.color + '20' || 'transparent',
-                    borderColor: column.options?.find(opt => opt.value === value)?.color || 'gray',
-                    color: column.options?.find(opt => opt.value === value)?.color || 'inherit',
-                  }}
-                >
-                  {column.options?.find(opt => opt.value === value)?.label || value}
-                </Badge>
+              {column.type === 'select' && (
+                <SelectField
+                  taskId={task.id}
+                  column={column}
+                  currentValue={value}
+                  onValueChange={onSelectChange}
+                />
               )}
 
               {column.type === 'multiselect' && Array.isArray(value) && value.length > 0 && (
@@ -260,7 +264,8 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
             </div>
           );
         })}
-    </div>
+      </div>
+    </TaskContextMenu>
   );
 };
 
