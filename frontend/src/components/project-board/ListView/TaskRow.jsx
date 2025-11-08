@@ -120,12 +120,12 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
         onCreateSubtask={onCreateSubtask}
         onDelete={onDelete}
       >
-        <div className="flex min-w-max">
+        <div className="flex w-max min-w-full">
           {/* Drag Handle Column - Sticky Left */}
           <div
             className={cn(
               columnWidths.drag,
-              'sticky z-20 bg-white group-hover:bg-gray-50 border-r border-gray-200 flex items-center justify-center',
+              'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-r border-gray-200 flex items-center justify-center',
               !isSubtask && 'cursor-grab active:cursor-grabbing'
             )}
             style={{ left: 0 }}
@@ -141,9 +141,9 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
           <div
             className={cn(
               columnWidths.taskName,
-              'sticky bg-white group-hover:bg-gray-50 border-r border-gray-200 px-2 py-1 flex items-center gap-2'
+              'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-r border-gray-200 px-2 py-1 flex items-center gap-2'
             )}
-            style={{ left: '40px', zIndex: 20 }}
+            style={{ left: '40px' }}
           >
             {/* Subtask Connector Lines */}
             {isSubtask && (
@@ -192,10 +192,11 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
             <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
           </div>
 
-          {/* Dynamic/Scrollable Columns */}
-          {columns
-            .filter((col) => col.visible && !col.isSystem)
-            .map((column) => {
+          {/* Dynamic/Scrollable Columns Wrapper */}
+          <div className="flex-1 flex">
+            {columns
+              .filter((col) => col.visible && !col.isSystem)
+              .map((column) => {
               // Get value from task or custom fields
               let value = task[column.id] || task.customFields?.[column.id];
 
@@ -308,12 +309,13 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
                 </div>
               );
             })}
+          </div>
 
           {/* Actions Column - Sticky Right */}
           <div
             className={cn(
               columnWidths.addColumn,
-              'sticky z-20 bg-white group-hover:bg-gray-50 border-l border-gray-200 flex items-center justify-center'
+              'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-l border-gray-200 flex items-center justify-center'
             )}
             style={{ right: 0 }}
           >
