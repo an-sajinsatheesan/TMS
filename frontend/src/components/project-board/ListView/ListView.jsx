@@ -19,11 +19,12 @@ import TaskRow from './TaskRow';
 import AddTaskRow from './AddTaskRow';
 import ColumnHeader from './ColumnHeader';
 import AddColumnPopover from './AddColumnPopover';
-import ListViewToolbar from './ListViewToolbar';
 import { cn } from '@/lib/utils';
 import { useProjectData } from '@/hooks/useProjectData';
 import { fetchColumns, updateColumn, clearColumns } from '@/store/slices/columnsSlice';
 import { useMembers } from '@/contexts/MembersContext';
+import { ListViewProvider } from '@/contexts/ListViewContext';
+import { sectionsService } from '@/services/api/sections.service';
 
 // Column width mapping
 const getColumnWidthClass = (width) => {
@@ -167,8 +168,32 @@ const ListView = ({ projectId }) => {
 
     // Check if dragging a section
     if (active.id.toString().startsWith('section-')) {
-      // Section reordering would require a backend API endpoint
-      console.log('Section reordering not yet implemented');
+      // Extract section IDs from the string IDs
+      const activeSectionId = active.id.toString().replace('section-', '');
+      const overSectionId = over.id.toString().replace('section-', '');
+
+      // Find current positions
+      const oldIndex = sections.findIndex(s => s.id === activeSectionId);
+      const newIndex = sections.findIndex(s => s.id === overSectionId);
+
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        try {
+          // Create new ordered array
+          const reorderedSections = [...sections];
+          const [removed] = reorderedSections.splice(oldIndex, 1);
+          reorderedSections.splice(newIndex, 0, removed);
+
+          // Get array of section IDs in new order
+          const sectionIds = reorderedSections.map(s => s.id);
+
+          // Call API to persist the reordering
+          await sectionsService.reorder(projectId, sectionIds);
+
+          // The data will be refreshed by useProjectData hook
+        } catch (err) {
+          console.error('Failed to reorder sections:', err);
+        }
+      }
     } else {
       // Dragging a task
       const activeTask = tasks.find((t) => t.id === active.id);
@@ -248,6 +273,38 @@ const ListView = ({ projectId }) => {
     }
   };
 
+  const handleSelectChange = async (taskId, columnId, value) => {
+    try {
+      const column = reduxColumns.find(col => col.id === columnId);
+      if (!column) return;
+
+      // Map column name to task field
+      const fieldMapping = {
+        'Priority': 'priority',
+        'Status': 'status',
+      };
+
+      const fieldName = fieldMapping[column.name] || columnId;
+
+      await updateTask(taskId, {
+        [fieldName]: value,
+      });
+    } catch (err) {
+      console.error('Failed to update select field:', err);
+    }
+  };
+
+  const handleTaskNameSave = async (taskId, newName) => {
+    try {
+      await updateTask(taskId, {
+        title: newName,
+      });
+    } catch (err) {
+      console.error('Failed to update task name:', err);
+      throw err; // Re-throw so EditableTaskName can handle it
+    }
+  };
+
   const handleAddTask = async (sectionId, taskName) => {
     if (!taskName.trim()) return;
 
@@ -322,6 +379,8 @@ const ListView = ({ projectId }) => {
           onToggleComplete={handleToggleComplete}
           onAssigneeChange={handleAssigneeChange}
           onDateChange={handleDateChange}
+          onSelectChange={handleSelectChange}
+          onTaskNameSave={handleTaskNameSave}
           isSubtask={level > 0}
           columnWidths={COLUMN_WIDTHS}
         />
@@ -354,19 +413,18 @@ const ListView = ({ projectId }) => {
     );
   }
 
-  return (
-    <>
-      {/* Toolbar with filters, sort, and column visibility */}
-      <ListViewToolbar
-        onFilterChange={handleFilterChange}
-        onSortChange={handleSortChange}
-        onColumnVisibilityChange={handleColumnVisibilityChange}
-        columns={reduxColumns}
-        activeFilters={activeFilters}
-        activeSort={sortConfig.column ? { field: sortConfig.column, direction: sortConfig.direction } : null}
-        projectMembers={projectMembers}
-      />
+  const listViewContextValue = {
+    columns: reduxColumns,
+    activeFilters,
+    activeSort: sortConfig.column ? { field: sortConfig.column, direction: sortConfig.direction } : null,
+    projectMembers,
+    onFilterChange: handleFilterChange,
+    onSortChange: handleSortChange,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
+  };
 
+  return (
+    <ListViewProvider value={listViewContextValue}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -490,7 +548,7 @@ const ListView = ({ projectId }) => {
           ) : null}
         </DragOverlay>
       </DndContext>
-    </>
+    </ListViewProvider>
   );
 };
 
