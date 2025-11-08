@@ -120,79 +120,53 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
         onCreateSubtask={onCreateSubtask}
         onDelete={onDelete}
       >
-        <div className="flex w-max min-w-full">
-          {/* Drag Handle Column - Sticky Left */}
+        <div className="flex w-max min-w-full border-b">
+          {/* Checkbox Column - Sticky Left */}
           <div
             className={cn(
-              columnWidths.drag,
-              'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-r border-gray-200 flex items-center justify-center',
-              !isSubtask && 'cursor-grab active:cursor-grabbing'
+              columnWidths.checkbox,
+              'sticky left-0 flex-shrink-0 border-r p-2 bg-white'
             )}
-            style={{ left: 0 }}
+            {...attributes}
+            {...listeners}
           >
-            {!isSubtask && (
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity" {...attributes} {...listeners}>
-                <GripVertical className="h-4 w-4 text-gray-400" />
-              </div>
-            )}
-          </div>
-
-          {/* Task Name Column - Sticky Left - 3 Parts: Status Icon | Task Title | Arrow */}
-          <div
-            className={cn(
-              columnWidths.taskName,
-              'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-r border-gray-200 px-2 py-1 flex items-center gap-2'
-            )}
-            style={{ left: '40px' }}
-          >
-            {/* Subtask Connector Lines */}
-            {isSubtask && (
-              <>
-                <div className="absolute left-2 top-0 bottom-0 w-px bg-gray-300" />
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-px bg-gray-300" />
-              </>
-            )}
-
-            {/* Left padding for subtasks only */}
-            {isSubtask && <div className="w-6 flex-shrink-0" />}
-
-            {/* Left: Status Icon (Colored dot or checkmark) */}
             <button
               onClick={() => onToggleComplete(task.id)}
-              className="flex-shrink-0 hover:scale-110 transition-transform"
+              className="flex items-center justify-center w-full h-full"
             >
               {getTaskIcon()}
             </button>
+          </div>
 
-            {/* Center: Task Title Text */}
-            <div className="flex-1 min-w-0 flex items-center gap-1.5">
-              {/* Subtask indicator icon */}
-              {isSubtask && (
-                <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              )}
+          {/* Task Name Column - Sticky Left */}
+          <div
+            className={cn(
+              columnWidths.taskName,
+              'sticky left-12 flex-shrink-0 border-r p-2 bg-white flex items-center gap-2'
+            )}
+          >
+            {/* Subtask padding */}
+            {isSubtask && <div className="w-4 flex-shrink-0" />}
 
+            {/* Task Title */}
+            <div className="flex-1 min-w-0">
               <EditableTaskName
                 taskId={task.id}
                 value={task.name}
                 onSave={onTaskNameSave}
                 isCompleted={task.completed}
               />
-
-              {/* Subtask count badge */}
-              {task.subtaskCount > 0 && (
-                <Badge variant="secondary" className="text-xs px-1.5 py-0 flex-shrink-0">
-                  {task.subtaskCount}
-                </Badge>
-              )}
             </div>
 
-            {/* Right: Arrow Icon (Chevron for expanding) */}
-            <ChevronRight className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+            {/* Subtask count badge */}
+            {task.subtaskCount > 0 && (
+              <Badge variant="secondary" className="text-xs px-1.5 py-0 flex-shrink-0">
+                {task.subtaskCount}
+              </Badge>
+            )}
           </div>
 
-          {/* Dynamic/Scrollable Columns Wrapper */}
+          {/* Scrollable content */}
           <div className="flex-1 flex">
             {columns
               .filter((col) => col.visible && !col.isSystem)
@@ -208,17 +182,10 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
 
               const widthClass = getColumnWidthClass(column.width);
 
-              // Select fields need to fill entire cell for Monday.com style
-              const isSelectField = column.type === 'select';
-
               return (
                 <div
                   key={column.id}
-                  className={cn(
-                    widthClass,
-                    'border-r border-gray-200 flex items-center text-sm text-gray-700',
-                    !isSelectField && 'px-2 py-1'
-                  )}
+                  className={cn(widthClass, 'p-2 border-r flex items-center text-sm text-gray-700')}
                 >
                   {/* Render based on column type */}
                   {column.type === 'user' && (
@@ -303,7 +270,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
                   )}
 
                   {/* Show empty state if no value and not an input type */}
-                  {!value && !['checkbox', 'text', 'number', 'select', 'multiselect', 'user'].includes(column.type) && (
+                  {!value && !['checkbox', 'text', 'number', 'select', 'multiselect', 'user', 'date'].includes(column.type) && (
                     <span className="text-gray-400">-</span>
                   )}
                 </div>
@@ -311,15 +278,12 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
             })}
           </div>
 
-          {/* Actions Column - Sticky Right */}
-          <div
-            className={cn(
-              columnWidths.addColumn,
-              'sticky z-20 flex-shrink-0 bg-white group-hover:bg-gray-50 border-l border-gray-200 flex items-center justify-center'
-            )}
-            style={{ right: 0 }}
-          >
-            <span className="text-gray-400 text-sm opacity-0 group-hover:opacity-100 transition-opacity">⋯</span>
+          {/* Fixed Right Column */}
+          <div className={cn(
+            columnWidths.addColumn,
+            'sticky right-0 flex-shrink-0 border-l bg-white text-center p-2'
+          )}>
+            <span className="text-gray-400 text-sm">⋯</span>
           </div>
         </div>
       </TaskContextMenu>
