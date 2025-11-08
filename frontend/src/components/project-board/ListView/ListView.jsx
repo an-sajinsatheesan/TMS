@@ -19,12 +19,15 @@ import TaskRow from './TaskRow';
 import AddTaskRow from './AddTaskRow';
 import ColumnHeader from './ColumnHeader';
 import AddColumnPopover from './AddColumnPopover';
+import TaskDetailsDialog from '../TaskDetailsDialog';
 import { cn } from '@/lib/utils';
 import { useProjectData } from '@/hooks/useProjectData';
 import { fetchColumns, updateColumn, clearColumns } from '@/store/slices/columnsSlice';
 import { useMembers } from '@/contexts/MembersContext';
 import { ListViewProvider } from '@/contexts/ListViewContext';
 import { sectionsService } from '@/services/api/sections.service';
+import { tasksService } from '@/services/api/tasks.service';
+import { toast } from 'sonner';
 
 // Column width mapping
 const getColumnWidthClass = (width) => {
@@ -317,30 +320,48 @@ const ListView = ({ projectId }) => {
 
   // Context menu handlers
   const handleDuplicateTask = async (taskId) => {
-    // TODO: Implement backend endpoint for duplicating tasks
-    console.log('Duplicate task:', taskId);
-    // const task = tasks.find(t => t.id === taskId);
-    // if (task) await createTask(task.sectionId, { ...task, title: `${task.name} (Copy)` });
+    try {
+      const response = await tasksService.duplicate(taskId);
+      toast.success('Task duplicated successfully');
+      // The data will be refreshed by useProjectData hook
+      console.log('Duplicated task:', response.data);
+    } catch (err) {
+      console.error('Failed to duplicate task:', err);
+      toast.error('Failed to duplicate task');
+    }
   };
 
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+
   const handleOpenTaskDetails = (taskId) => {
-    // TODO: Implement task details modal/page
-    console.log('Open task details:', taskId);
-    // navigate(`/projects/${projectId}/tasks/${taskId}`);
+    setSelectedTaskId(taskId);
+  };
+
+  const handleCloseTaskDetails = () => {
+    setSelectedTaskId(null);
   };
 
   const handleCreateSubtask = async (taskId) => {
-    // TODO: Implement backend endpoint for creating subtasks
-    console.log('Create subtask for:', taskId);
-    // const task = tasks.find(t => t.id === taskId);
-    // if (task) await createTask(task.sectionId, { parentId: taskId, title: 'New Subtask' });
+    try {
+      const response = await tasksService.createSubtask(taskId, {
+        title: 'New Subtask',
+      });
+      toast.success('Subtask created successfully');
+      // The data will be refreshed by useProjectData hook
+      console.log('Created subtask:', response.data);
+    } catch (err) {
+      console.error('Failed to create subtask:', err);
+      toast.error('Failed to create subtask');
+    }
   };
 
   const handleDeleteTask = async (taskId) => {
     try {
       await deleteTask(taskId);
+      toast.success('Task deleted successfully');
     } catch (err) {
       console.error('Failed to delete task:', err);
+      toast.error('Failed to delete task');
     }
   };
 
@@ -581,6 +602,13 @@ const ListView = ({ projectId }) => {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Task Details Dialog */}
+      <TaskDetailsDialog
+        taskId={selectedTaskId}
+        open={!!selectedTaskId}
+        onClose={handleCloseTaskDetails}
+      />
     </ListViewProvider>
   );
 };
