@@ -499,71 +499,79 @@ const ListView = ({ projectId }) => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        {/* Main Container with Fixed Height and Overflow */}
-        <div className="relative h-[calc(100vh-240px)] bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto">
-          {/* Fixed Header - Sticky Top */}
-          <div className="sticky top-0 z-40 bg-gray-50 border-b-2 border-gray-300">
-            <div className="flex w-max min-w-full">
-              {/* Drag Icon Column - Sticky Left */}
-              <div className={cn(COLUMN_WIDTHS.drag, 'sticky left-0 z-50 bg-gray-50 border-r border-gray-200')} />
-
-              {/* Fixed Columns (System columns) - excluding taskNumber */}
-              {fixedColumns
-                .filter((col) => col.id !== 'taskNumber')
-                .map((column, index) => {
-                  const leftOffset = index === 0 ? 'left-10' : undefined;
-                  const widthClass = COLUMN_WIDTHS.taskName;
-                  const shadowClass = index === fixedColumns.filter((col) => col.id !== 'taskNumber').length - 1 ? 'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]' : '';
-
-                  return (
-                    <div
-                      key={column.id}
-                      className={cn(
-                        widthClass,
-                        'sticky z-50 bg-gray-50',
-                        leftOffset,
-                        shadowClass
-                      )}
-                    >
-                      <ColumnHeader
-                        column={column}
-                        onSort={handleSort}
-                        onHide={handleHideColumn}
-                        onSwap={handleSwapColumn}
-                        widthClass={widthClass}
-                        sortConfig={sortConfig}
-                      />
-                    </div>
-                  );
-                })}
-
-              {/* Scrollable Columns (Custom columns) */}
-              <div className="flex-1 flex border-b">
-                {scrollableColumns.map((column) => {
-                  const widthClass = getColumnWidthClass(column.width);
-                  return (
-                    <div key={column.id} className={widthClass}>
-                      <ColumnHeader
-                        column={column}
-                        onSort={handleSort}
-                        onHide={handleHideColumn}
-                        onSwap={handleSwapColumn}
-                        widthClass={widthClass}
-                        sortConfig={sortConfig}
-                      />
-                    </div>
-                  );
-                })}
+        {/* Main Scrollable Container */}
+        <div className="relative h-[calc(100vh-170px)] overflow-auto bg-white">
+          {/* Sticky Header Row */}
+          <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+            <div className="flex min-w-max">
+              {/* Drag Handle Column Header - Sticky Left */}
+              <div
+                className={cn(
+                  COLUMN_WIDTHS.drag,
+                  'sticky z-50 bg-white border-r border-gray-200 flex items-center justify-center'
+                )}
+                style={{ left: 0 }}
+              >
+                <span className="text-gray-400 text-xs">≡</span>
               </div>
 
+              {/* Task Name Column Header - Sticky Left */}
+              {fixedColumns
+                .filter((col) => col.id !== 'taskNumber')
+                .map((column) => (
+                  <div
+                    key={column.id}
+                    className={cn(
+                      COLUMN_WIDTHS.taskName,
+                      'sticky z-50 bg-white border-r border-gray-200'
+                    )}
+                    style={{ left: '40px' }}
+                  >
+                    <ColumnHeader
+                      column={column}
+                      onSort={handleSort}
+                      onHide={handleHideColumn}
+                      onSwap={handleSwapColumn}
+                      widthClass={COLUMN_WIDTHS.taskName}
+                      sortConfig={sortConfig}
+                    />
+                  </div>
+                ))}
+
+              {/* Dynamic/Scrollable Columns */}
+              {scrollableColumns.map((column) => {
+                const widthClass = getColumnWidthClass(column.width);
+                return (
+                  <div
+                    key={column.id}
+                    className={cn(widthClass, 'border-r border-gray-200')}
+                  >
+                    <ColumnHeader
+                      column={column}
+                      onSort={handleSort}
+                      onHide={handleHideColumn}
+                      onSwap={handleSwapColumn}
+                      widthClass={widthClass}
+                      sortConfig={sortConfig}
+                    />
+                  </div>
+                );
+              })}
+
               {/* Add Column Button - Sticky Right */}
-              <div className={cn(COLUMN_WIDTHS.addColumn, 'sticky right-0 z-50 bg-gray-50 border-l border-gray-200 flex items-center justify-center')}>
+              <div
+                className={cn(
+                  COLUMN_WIDTHS.addColumn,
+                  'sticky z-50 bg-white border-l border-gray-200 flex items-center justify-center'
+                )}
+                style={{ right: 0 }}
+              >
                 <AddColumnPopover projectId={projectId} />
               </div>
             </div>
           </div>
 
-          {/* Scrollable Body */}
+          {/* Scrollable Content Body */}
           <SortableContext items={allDraggableIds} strategy={verticalListSortingStrategy}>
             {sections.length === 0 ? (
               <div className="flex items-center justify-center h-full text-gray-500">
@@ -576,17 +584,18 @@ const ListView = ({ projectId }) => {
                 const isCollapsed = collapsedGroups[section.id];
 
                 return (
-                  <div key={section.id} className="border-b border-gray-200 last:border-b-0">
-                    {/* Group Header */}
+                  <div key={section.id}>
+                    {/* Sticky Group Title */}
                     <GroupHeader
                       section={section}
                       taskCount={topLevelTasks.length}
                       isCollapsed={isCollapsed}
                       onToggleCollapse={handleToggleCollapse}
                       columnWidths={COLUMN_WIDTHS}
+                      scrollableColumnCount={scrollableColumns.length}
                     />
 
-                    {/* Tasks */}
+                    {/* Task Rows */}
                     {!isCollapsed && (
                       <div>
                         {topLevelTasks.map((task) => renderTaskWithSubtasks(task))}
@@ -596,6 +605,7 @@ const ListView = ({ projectId }) => {
                           sectionId={section.id}
                           onAddTask={handleAddTask}
                           columnWidths={COLUMN_WIDTHS}
+                          scrollableColumnCount={scrollableColumns.length}
                         />
                       </div>
                     )}

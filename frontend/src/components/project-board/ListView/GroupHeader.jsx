@@ -3,7 +3,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, ChevronRight, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, columnWidths }) => {
+const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, columnWidths, scrollableColumnCount = 0 }) => {
   const {
     attributes,
     listeners,
@@ -23,82 +23,83 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, top: '37px' }}
       className={cn(
-        'group sticky top-[41px] z-30 flex w-max min-w-full items-center border-b-2',
+        'group sticky z-30 bg-gray-50 border-b border-gray-200',
         'transition-all duration-200',
-        isDragging
-          ? 'bg-white border-2 border-dashed border-blue-500 shadow-2xl opacity-90 scale-[1.02]'
-          : 'bg-gray-100 border-gray-300 hover:bg-gray-150'
+        isDragging && 'opacity-50 scale-[1.02]'
       )}
     >
-      {/* Drag Handle - Sticky Left */}
-      <div
-        className={cn(
-          columnWidths.drag,
-          'sticky left-0 z-50 flex items-center justify-center border-r transition-colors',
-          'cursor-grab active:cursor-grabbing',
-          isDragging
-            ? 'bg-white border-blue-500'
-            : 'bg-gray-100 group-hover:bg-gray-150 border-gray-300'
-        )}
-      >
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity" {...attributes} {...listeners}>
-          <GripVertical className="h-5 w-5 text-gray-500" />
-        </div>
-      </div>
-
-      {/* Collapse/Expand + Group Info - Sticky Left Column */}
-      <div className={cn(
-        'sticky left-10 z-50 flex items-center gap-2 px-2 py-1.5 transition-colors',
-        isDragging ? 'bg-white' : 'bg-gray-100 group-hover:bg-gray-150'
-      )}>
-        {/* Collapse/Expand Icon */}
-        <button
-          onClick={() => onToggleCollapse(section.id)}
-          className="flex-shrink-0 hover:bg-gray-200 rounded p-0.5 transition-colors"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4 text-gray-600" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-gray-600" />
-          )}
-        </button>
-
-        {/* Color Indicator */}
+      <div className="flex min-w-max">
+        {/* Drag Handle - Sticky Left */}
         <div
-          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-          style={{ backgroundColor: section.color }}
+          className={cn(
+            columnWidths.drag,
+            'sticky z-40 bg-gray-50 border-r border-gray-200 flex items-center justify-center cursor-grab active:cursor-grabbing'
+          )}
+          style={{ left: 0 }}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
+
+        {/* Group Title - Sticky Left */}
+        <div
+          className={cn(
+            columnWidths.taskName,
+            'sticky z-40 bg-gray-50 border-r border-gray-200 px-2 py-2 flex items-center gap-2'
+          )}
+          style={{ left: '40px' }}
+        >
+          {/* Collapse/Expand Button */}
+          <button
+            onClick={() => onToggleCollapse(section.id)}
+            className="flex-shrink-0 hover:bg-gray-200 rounded p-0.5 transition-colors"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4 text-gray-600" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-gray-600" />
+            )}
+          </button>
+
+          {/* Color Indicator */}
+          <div
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: section.color || '#6B7280' }}
+          />
+
+          {/* Section Title */}
+          <h3 className="text-sm font-semibold text-gray-900">{section.name}</h3>
+
+          {/* Task Count */}
+          {taskCount > 0 && (
+            <span className="text-xs text-gray-500 font-medium">
+              ({taskCount})
+            </span>
+          )}
+
+          {/* WIP Limit */}
+          {section.kanbanWipLimit && (
+            <span className="ml-auto text-xs text-gray-500 font-medium">
+              Limit: {section.kanbanWipLimit}
+            </span>
+          )}
+        </div>
+
+        {/* Scrollable empty space - fills the rest */}
+        <div className="flex-1 bg-gray-50 border-r border-gray-200" />
+
+        {/* Actions Column - Sticky Right */}
+        <div
+          className={cn(
+            columnWidths.addColumn,
+            'sticky z-40 bg-gray-50 border-l border-gray-200'
+          )}
+          style={{ right: 0 }}
         />
-
-        {/* Section Title */}
-        <h3 className="text-sm font-semibold text-gray-800">{section.name}</h3>
-
-        {/* Task Count */}
-        {taskCount > 0 && (
-          <span className="text-xs text-gray-500 font-medium">
-            ({taskCount})
-          </span>
-        )}
-
-        {/* WIP Limit (if applicable) */}
-        {section.kanbanWipLimit && (
-          <span className="ml-auto text-xs text-gray-500 font-medium">
-            Limit: {section.kanbanWipLimit}
-          </span>
-        )}
       </div>
-
-      {/* Scrollable alignment columns - fills remaining space */}
-      <div className="flex-1 flex">
-        {/* Empty space for alignment with scrollable columns */}
-      </div>
-
-      {/* Fixed Right Column (Sticky) - Alignment with header */}
-      <div className={cn(
-        'sticky right-0 z-50 w-12 flex-shrink-0 border-l transition-colors',
-        isDragging ? 'bg-white' : 'bg-gray-100 group-hover:bg-gray-150'
-      )} />
     </div>
   );
 };

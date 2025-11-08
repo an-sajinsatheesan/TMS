@@ -104,7 +104,7 @@ const ProjectBoardLayout = ({ children }) => {
 
         {/* Scrollable Content Area */}
         <main className="flex-1 overflow-y-auto">
-          <div className="container mx-auto p-6">
+          <div className="container mx-auto">
             {children || <Outlet />}
           </div>
         </main>

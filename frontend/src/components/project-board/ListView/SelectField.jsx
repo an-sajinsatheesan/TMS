@@ -26,35 +26,21 @@ const SelectField = ({ taskId, column, currentValue, onValueChange }) => {
 
   const selectedOption = column.options?.find(opt => opt.value === currentValue);
 
-  const triggerContent = selectedOption ? (
-    <Badge
-      variant="outline"
-      className="text-xs px-2 py-0.5 cursor-pointer hover:opacity-80 transition-opacity"
-      style={{
-        backgroundColor: selectedOption.color + '20' || 'transparent',
-        borderColor: selectedOption.color || 'gray',
-        color: selectedOption.color || 'inherit',
-      }}
-    >
-      {selectedOption.label || currentValue}
-      <ChevronDown className="ml-1 h-3 w-3 opacity-50" />
-    </Badge>
-  ) : (
-    <div className="flex items-center gap-1 text-gray-400 hover:text-gray-600 cursor-pointer px-2 py-1 rounded hover:bg-gray-100">
-      <span className="text-xs">Set {column.name.toLowerCase()}</span>
-      <ChevronDown className="h-3 w-3" />
-    </div>
-  );
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          className="h-auto p-0 hover:bg-transparent w-full justify-start"
+        <button
+          className="w-full h-full flex items-center px-2 py-1 text-left hover:opacity-80 transition-opacity"
+          style={{
+            backgroundColor: selectedOption ? selectedOption.color : 'transparent',
+            color: selectedOption ? 'white' : '#9CA3AF',
+          }}
         >
-          {triggerContent}
-        </Button>
+          <span className="text-xs font-medium flex-1">
+            {selectedOption ? selectedOption.label : '-'}
+          </span>
+          <ChevronDown className="h-3 w-3 flex-shrink-0 ml-1" />
+        </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="start">
         <div className="space-y-1">

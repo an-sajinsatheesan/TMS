@@ -59,7 +59,7 @@ const ProjectBoardWrapper = ({ children }) => {
 
       {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto">
           {children}
         </div>
       </div>
