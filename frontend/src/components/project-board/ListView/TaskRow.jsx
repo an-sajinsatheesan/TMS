@@ -5,8 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import AssigneeSelect from './AssigneeSelect';
+import DatePicker from './DatePicker';
 
-const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false, columnWidths }) => {
+const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChange, isSubtask = false, columnWidths }) => {
   const {
     attributes,
     listeners,
@@ -112,21 +114,11 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false, columnWid
         )}
       </div>
 
-      {/* Task Number - Sticky Left */}
-      <div
-        className={cn(
-          columnWidths.taskNumber,
-          'sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-2 py-1 text-xs text-gray-500'
-        )}
-      >
-        {task.id}
-      </div>
-
       {/* Task Name - Sticky Left with Shadow */}
       <div
         className={cn(
           columnWidths.taskName,
-          'sticky left-26 z-10 bg-white group-hover:bg-gray-50 px-2 py-1 flex items-center gap-2 relative',
+          'sticky left-10 z-10 bg-white group-hover:bg-gray-50 px-2 py-1 flex items-center gap-2 relative',
           'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]'
         )}
       >
@@ -193,16 +185,14 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false, columnWid
               )}
             >
               {/* Render based on column type */}
-              {column.type === 'user' && task.assigneeName && (
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={task.assigneeAvatar} alt={task.assigneeName} />
-                    <AvatarFallback className="text-xs">
-                      {getInitials(task.assigneeName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate text-xs">{task.assigneeName}</span>
-                </div>
+              {column.type === 'user' && (
+                <AssigneeSelect
+                  taskId={task.id}
+                  currentAssigneeId={task.assigneeId}
+                  currentAssigneeName={task.assigneeName}
+                  currentAssigneeAvatar={task.assigneeAvatar}
+                  onAssigneeChange={onAssigneeChange}
+                />
               )}
 
               {column.type === 'select' && value && (
@@ -238,8 +228,12 @@ const TaskRow = ({ task, columns, onToggleComplete, isSubtask = false, columnWid
                 </div>
               )}
 
-              {column.type === 'date' && value && (
-                <span className="text-xs">{formatDate(value)}</span>
+              {column.type === 'date' && (
+                <DatePicker
+                  taskId={task.id}
+                  currentDate={value}
+                  onDateChange={onDateChange}
+                />
               )}
 
               {column.type === 'text' && value && (

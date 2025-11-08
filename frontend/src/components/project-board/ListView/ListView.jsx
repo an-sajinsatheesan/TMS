@@ -19,9 +19,11 @@ import TaskRow from './TaskRow';
 import AddTaskRow from './AddTaskRow';
 import ColumnHeader from './ColumnHeader';
 import AddColumnPopover from './AddColumnPopover';
+import ListViewToolbar from './ListViewToolbar';
 import { cn } from '@/lib/utils';
 import { useProjectData } from '@/hooks/useProjectData';
 import { fetchColumns, updateColumn, clearColumns } from '@/store/slices/columnsSlice';
+import { useMembers } from '@/contexts/MembersContext';
 
 // Column width mapping
 const getColumnWidthClass = (width) => {
@@ -60,6 +62,9 @@ const ListView = ({ projectId }) => {
   const [activeId, setActiveId] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
+  const [activeFilters, setActiveFilters] = useState({});
+
+  const { users: projectMembers } = useMembers();
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -167,9 +172,12 @@ const ListView = ({ projectId }) => {
     } else {
       // Dragging a task
       const activeTask = tasks.find((t) => t.id === active.id);
-      if (!activeTask) return;
+      if (!activeTask) {
+        setActiveId(null);
+        return;
+      }
 
-      // Determine the destination section
+      // Determine the destination section and index
       let destinationSectionId = activeTask.sectionId;
       let destinationIndex = 0;
 
@@ -181,8 +189,13 @@ const ListView = ({ projectId }) => {
         destinationIndex = sectionTasks.findIndex((t) => t.id === over.id);
       }
 
-      // Only move if section changed
-      if (destinationSectionId !== activeTask.sectionId) {
+      // Move task if section changed OR position changed within same section
+      const isSectionChanged = destinationSectionId !== activeTask.sectionId;
+      const currentSectionTasks = tasksBySection[activeTask.sectionId]?.filter((t) => !t.parentId) || [];
+      const currentIndex = currentSectionTasks.findIndex((t) => t.id === active.id);
+      const isPositionChanged = currentIndex !== destinationIndex;
+
+      if (isSectionChanged || isPositionChanged) {
         try {
           await moveTask(active.id, destinationSectionId, destinationIndex);
         } catch (err) {
@@ -215,6 +228,26 @@ const ListView = ({ projectId }) => {
     }
   };
 
+  const handleAssigneeChange = async (taskId, userId) => {
+    try {
+      await updateTask(taskId, {
+        assigneeId: userId,
+      });
+    } catch (err) {
+      console.error('Failed to update task assignee:', err);
+    }
+  };
+
+  const handleDateChange = async (taskId, date) => {
+    try {
+      await updateTask(taskId, {
+        dueDate: date,
+      });
+    } catch (err) {
+      console.error('Failed to update task due date:', err);
+    }
+  };
+
   const handleAddTask = async (sectionId, taskName) => {
     if (!taskName.trim()) return;
 
@@ -222,6 +255,33 @@ const ListView = ({ projectId }) => {
       await createTask(sectionId, { title: taskName.trim() });
     } catch (err) {
       console.error('Failed to create task:', err);
+    }
+  };
+
+  const handleFilterChange = (filters) => {
+    setActiveFilters(filters);
+  };
+
+  const handleSortChange = (sortData) => {
+    if (sortData) {
+      setSortConfig({ column: sortData.field, direction: sortData.direction });
+    } else {
+      setSortConfig({ column: null, direction: null });
+    }
+  };
+
+  const handleColumnVisibilityChange = async (columnId, visible) => {
+    const column = reduxColumns.find((col) => col.id === columnId);
+    if (!column || column.isSystem) return;
+
+    try {
+      await dispatch(updateColumn({
+        projectId,
+        columnId,
+        updates: { visible },
+      })).unwrap();
+    } catch (err) {
+      console.error('Failed to update column visibility:', err);
     }
   };
 
@@ -260,6 +320,8 @@ const ListView = ({ projectId }) => {
           task={task}
           columns={visibleColumns}
           onToggleComplete={handleToggleComplete}
+          onAssigneeChange={handleAssigneeChange}
+          onDateChange={handleDateChange}
           isSubtask={level > 0}
           columnWidths={COLUMN_WIDTHS}
         />
@@ -294,6 +356,17 @@ const ListView = ({ projectId }) => {
 
   return (
     <>
+      {/* Toolbar with filters, sort, and column visibility */}
+      <ListViewToolbar
+        onFilterChange={handleFilterChange}
+        onSortChange={handleSortChange}
+        onColumnVisibilityChange={handleColumnVisibilityChange}
+        columns={reduxColumns}
+        activeFilters={activeFilters}
+        activeSort={sortConfig.column ? { field: sortConfig.column, direction: sortConfig.direction } : null}
+        projectMembers={projectMembers}
+      />
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -307,33 +380,35 @@ const ListView = ({ projectId }) => {
               {/* Drag Icon Column - Sticky Left */}
               <div className={cn(COLUMN_WIDTHS.drag, 'sticky left-0 z-20 bg-gray-50 border-r border-gray-200')} />
 
-              {/* Fixed Columns (System columns) */}
-              {fixedColumns.map((column, index) => {
-                const leftOffset = index === 0 ? 'left-10' : index === 1 ? 'left-26' : undefined;
-                const widthClass = column.id === 'taskNumber' ? COLUMN_WIDTHS.taskNumber : COLUMN_WIDTHS.taskName;
-                const shadowClass = index === fixedColumns.length - 1 ? 'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]' : '';
+              {/* Fixed Columns (System columns) - excluding taskNumber */}
+              {fixedColumns
+                .filter((col) => col.id !== 'taskNumber')
+                .map((column, index) => {
+                  const leftOffset = index === 0 ? 'left-10' : undefined;
+                  const widthClass = COLUMN_WIDTHS.taskName;
+                  const shadowClass = index === fixedColumns.filter((col) => col.id !== 'taskNumber').length - 1 ? 'shadow-[inset_-8px_0_8px_-8px_rgba(0,0,0,0.1)]' : '';
 
-                return (
-                  <div
-                    key={column.id}
-                    className={cn(
-                      widthClass,
-                      'sticky z-20 bg-gray-50',
-                      leftOffset,
-                      shadowClass
-                    )}
-                  >
-                    <ColumnHeader
-                      column={column}
-                      onSort={handleSort}
-                      onHide={handleHideColumn}
-                      onSwap={handleSwapColumn}
-                      widthClass={widthClass}
-                      sortConfig={sortConfig}
-                    />
-                  </div>
-                );
-              })}
+                  return (
+                    <div
+                      key={column.id}
+                      className={cn(
+                        widthClass,
+                        'sticky z-20 bg-gray-50',
+                        leftOffset,
+                        shadowClass
+                      )}
+                    >
+                      <ColumnHeader
+                        column={column}
+                        onSort={handleSort}
+                        onHide={handleHideColumn}
+                        onSwap={handleSwapColumn}
+                        widthClass={widthClass}
+                        sortConfig={sortConfig}
+                      />
+                    </div>
+                  );
+                })}
 
               {/* Scrollable Columns (Custom columns) */}
               {scrollableColumns.map((column) => {
