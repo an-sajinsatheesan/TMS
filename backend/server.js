@@ -2,6 +2,7 @@ const app = require("./app");
 const prisma = require('./config/prisma');
 const { PORT, NODE_ENV } = require("./config/env");
 const logger = require("./utils/logger");
+const SchedulerService = require("./services/scheduler.service");
 
 // Handle uncaught exceptions
 process.on("uncaughtException", (err) => {
@@ -16,6 +17,9 @@ const connectDB = async () => {
     try {
         await prisma.$connect();
         logger.info('✅ Prisma connected to PostgreSQL');
+
+        // Start scheduler service after database connection
+        SchedulerService.start();
     } catch (error) {
         logger.error('❌ Prisma connection failed:', error);
         process.exit(1);

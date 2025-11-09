@@ -222,10 +222,12 @@ class ProjectController {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // Get projects where user is a member
+    // Get projects where user is a member (exclude deleted and templates)
     const [projects, total] = await Promise.all([
       prisma.project.findMany({
         where: {
+          deletedAt: null,
+          isTemplate: false,
           members: {
             some: {
               userId,
@@ -261,6 +263,8 @@ class ProjectController {
       }),
       prisma.project.count({
         where: {
+          deletedAt: null,
+          isTemplate: false,
           members: {
             some: {
               userId,
@@ -471,6 +475,674 @@ class ProjectController {
     });
 
     ApiResponse.success(null, 'Project deleted successfully').send(res);
+  });
+
+  /**
+   * @route   PATCH /api/v1/projects/:projectId/status
+   * @desc    Update project status
+   * @access  Private (requires OWNER or ADMIN)
+   */
+  static updateProjectStatus = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+    const { status } = req.body;
+
+    if (!status || !['ACTIVE', 'PAUSED', 'COMPLETED', 'ARCHIVED'].includes(status)) {
+      throw ApiError.badRequest('Invalid status. Must be one of: ACTIVE, PAUSED, COMPLETED, ARCHIVED');
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Get old status for activity log
+      const oldProject = await tx.project.findUnique({
+        where: { id: projectId },
+        select: { status: true, name: true },
+      });
+
+      // Update project status
+      const updatedProject = await tx.project.update({
+        where: { id: projectId },
+        data: { status },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          updatedAt: true,
+        },
+      });
+
+      // Create activity log
+      await tx.projectActivity.create({
+        data: {
+          projectId,
+          userId: req.user.id,
+          type: 'PROJECT_STATUS_CHANGED',
+          description: `changed project status from ${oldProject.status} to ${status}`,
+          metadata: {
+            oldStatus: oldProject.status,
+            newStatus: status,
+          },
+        },
+      });
+
+      return updatedProject;
+    });
+
+    ApiResponse.success(result, 'Project status updated successfully').send(res);
+  });
+
+  /**
+   * @route   PATCH /api/v1/projects/:projectId/due-date
+   * @desc    Update project due date
+   * @access  Private (requires OWNER or ADMIN)
+   */
+  static updateProjectDueDate = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+    const { dueDate } = req.body;
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Update project due date
+      const updatedProject = await tx.project.update({
+        where: { id: projectId },
+        data: {
+          dueDate: dueDate ? new Date(dueDate) : null
+        },
+        select: {
+          id: true,
+          name: true,
+          dueDate: true,
+          updatedAt: true,
+        },
+      });
+
+      // Create activity log
+      await tx.projectActivity.create({
+        data: {
+          projectId,
+          userId: req.user.id,
+          type: 'PROJECT_UPDATED',
+          description: dueDate ? `set project due date to ${new Date(dueDate).toLocaleDateString()}` : 'removed project due date',
+          metadata: {
+            field: 'dueDate',
+            newValue: dueDate,
+          },
+        },
+      });
+
+      return updatedProject;
+    });
+
+    ApiResponse.success(result, 'Project due date updated successfully').send(res);
+  });
+
+  /**
+   * @route   POST /api/v1/projects/:projectId/trash
+   * @desc    Move project to trash (soft delete)
+   * @access  Private (requires OWNER)
+   */
+  static moveToTrash = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const trashedProject = await tx.project.update({
+        where: { id: projectId },
+        data: { deletedAt: new Date() },
+        select: {
+          id: true,
+          name: true,
+          deletedAt: true,
+        },
+      });
+
+      // Create activity log
+      await tx.projectActivity.create({
+        data: {
+          projectId,
+          userId: req.user.id,
+          type: 'PROJECT_DELETED',
+          description: 'moved project to trash',
+        },
+      });
+
+      return trashedProject;
+    });
+
+    ApiResponse.success(result, 'Project moved to trash successfully').send(res);
+  });
+
+  /**
+   * @route   POST /api/v1/projects/:projectId/restore
+   * @desc    Restore project from trash
+   * @access  Private (requires OWNER)
+   */
+  static restoreFromTrash = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+
+    const result = await prisma.$transaction(async (tx) => {
+      const restoredProject = await tx.project.update({
+        where: {
+          id: projectId,
+          deletedAt: { not: null },
+        },
+        data: { deletedAt: null },
+        select: {
+          id: true,
+          name: true,
+          deletedAt: true,
+        },
+      });
+
+      // Create activity log
+      await tx.projectActivity.create({
+        data: {
+          projectId,
+          userId: req.user.id,
+          type: 'PROJECT_RESTORED',
+          description: 'restored project from trash',
+        },
+      });
+
+      return restoredProject;
+    });
+
+    ApiResponse.success(result, 'Project restored successfully').send(res);
+  });
+
+  /**
+   * @route   DELETE /api/v1/projects/:projectId/permanent
+   * @desc    Permanently delete a trashed project
+   * @access  Private (requires OWNER)
+   */
+  static permanentDelete = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+
+    // Verify project is in trash before permanent deletion
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { deletedAt: true },
+    });
+
+    if (!project || !project.deletedAt) {
+      throw ApiError.badRequest('Project must be in trash before permanent deletion');
+    }
+
+    // Permanently delete project (cascades to all related data)
+    await prisma.project.delete({
+      where: { id: projectId },
+    });
+
+    ApiResponse.success(null, 'Project permanently deleted').send(res);
+  });
+
+  /**
+   * @route   GET /api/v1/projects/trash/list
+   * @desc    List trashed projects
+   * @access  Private
+   */
+  static listTrashedProjects = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+
+    const trashedProjects = await prisma.project.findMany({
+      where: {
+        deletedAt: { not: null },
+        members: {
+          some: {
+            userId,
+            role: 'OWNER', // Only owners can see trashed projects
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        deletedAt: true,
+        createdAt: true,
+        creator: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+        _count: {
+          select: {
+            tasks: true,
+            members: true,
+          },
+        },
+      },
+      orderBy: {
+        deletedAt: 'desc',
+      },
+    });
+
+    // Calculate days until auto-deletion (30 days from deletedAt)
+    const projectsWithDaysLeft = trashedProjects.map(project => {
+      const deletedDate = new Date(project.deletedAt);
+      const autoDeleteDate = new Date(deletedDate);
+      autoDeleteDate.setDate(autoDeleteDate.getDate() + 30);
+      const daysLeft = Math.ceil((autoDeleteDate - new Date()) / (1000 * 60 * 60 * 24));
+
+      return {
+        ...project,
+        autoDeleteDate,
+        daysUntilPermanentDeletion: Math.max(0, daysLeft),
+      };
+    });
+
+    ApiResponse.success(projectsWithDaysLeft, 'Trashed projects retrieved successfully').send(res);
+  });
+
+  /**
+   * @route   GET /api/v1/projects/:projectId/activities
+   * @desc    Get project activity feed
+   * @access  Private (requires ProjectMember)
+   */
+  static getActivities = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+    const { limit = 50, offset = 0 } = req.query;
+
+    const activities = await prisma.projectActivity.findMany({
+      where: { projectId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: parseInt(limit),
+      skip: parseInt(offset),
+    });
+
+    const total = await prisma.projectActivity.count({
+      where: { projectId },
+    });
+
+    ApiResponse.success(
+      {
+        data: activities,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+        },
+      },
+      'Activities retrieved successfully'
+    ).send(res);
+  });
+
+  /**
+   * @route   GET /api/v1/projects/:projectId/dashboard
+   * @desc    Get project dashboard statistics
+   * @access  Private (requires ProjectMember)
+   */
+  static getDashboardStats = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+
+    const [
+      totalTasks,
+      completedTasks,
+      incompleteTasks,
+      overdueTasks,
+      tasksBySection,
+      tasksByStatus,
+      upcomingTasksByAssignee,
+      taskCompletionOverTime,
+    ] = await Promise.all([
+      // Total tasks count
+      prisma.task.count({
+        where: { projectId, parentId: null },
+      }),
+
+      // Completed tasks count
+      prisma.task.count({
+        where: { projectId, completed: true, parentId: null },
+      }),
+
+      // Incomplete tasks count
+      prisma.task.count({
+        where: { projectId, completed: false, parentId: null },
+      }),
+
+      // Overdue tasks count
+      prisma.task.count({
+        where: {
+          projectId,
+          completed: false,
+          dueDate: { lt: new Date() },
+          parentId: null,
+        },
+      }),
+
+      // Tasks by section (for bar chart)
+      prisma.projectSection.findMany({
+        where: { projectId },
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          _count: {
+            select: {
+              tasks: {
+                where: {
+                  completed: false,
+                  parentId: null,
+                },
+              },
+            },
+          },
+        },
+      }),
+
+      // Tasks by completion status (for pie chart)
+      prisma.task.groupBy({
+        by: ['completed'],
+        where: { projectId, parentId: null },
+        _count: true,
+      }),
+
+      // Upcoming tasks by assignee (for bar chart)
+      prisma.task.groupBy({
+        by: ['assigneeId'],
+        where: {
+          projectId,
+          completed: false,
+          dueDate: { gte: new Date() },
+          parentId: null,
+        },
+        _count: true,
+      }),
+
+      // Task completion over last 7 days (for line chart)
+      prisma.task.findMany({
+        where: {
+          projectId,
+          completedAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+          parentId: null,
+        },
+        select: {
+          completedAt: true,
+        },
+      }),
+    ]);
+
+    // Get assignee details for upcoming tasks
+    const assigneeIds = upcomingTasksByAssignee
+      .map(item => item.assigneeId)
+      .filter(id => id !== null);
+
+    const assignees = await prisma.user.findMany({
+      where: { id: { in: assigneeIds } },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        avatarUrl: true,
+      },
+    });
+
+    // Format data for charts
+    const tasksBySectionData = tasksBySection.map(section => ({
+      name: section.name,
+      count: section._count.tasks,
+      color: section.color,
+    }));
+
+    const tasksByStatusData = tasksByStatus.map(item => ({
+      status: item.completed ? 'Completed' : 'Incomplete',
+      count: item._count,
+    }));
+
+    const upcomingTasksByAssigneeData = upcomingTasksByAssignee.map(item => {
+      const assignee = assignees.find(a => a.id === item.assigneeId);
+      return {
+        assignee: assignee ? assignee.fullName || assignee.email : 'Unassigned',
+        count: item._count,
+      };
+    });
+
+    // Group task completions by date
+    const completionByDate = {};
+    taskCompletionOverTime.forEach(task => {
+      const date = new Date(task.completedAt).toISOString().split('T')[0];
+      completionByDate[date] = (completionByDate[date] || 0) + 1;
+    });
+
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      last7Days.push({
+        date: dateStr,
+        count: completionByDate[dateStr] || 0,
+      });
+    }
+
+    ApiResponse.success(
+      {
+        summary: {
+          totalTasks,
+          completedTasks,
+          incompleteTasks,
+          overdueTasks,
+        },
+        charts: {
+          tasksBySection: tasksBySectionData,
+          tasksByStatus: tasksByStatusData,
+          upcomingTasksByAssignee: upcomingTasksByAssigneeData,
+          taskCompletionOverTime: last7Days,
+        },
+      },
+      'Dashboard statistics retrieved successfully'
+    ).send(res);
+  });
+
+  /**
+   * @route   GET /api/v1/projects/templates/list
+   * @desc    List all project templates
+   * @access  Private
+   */
+  static listTemplates = asyncHandler(async (req, res) => {
+    const { category } = req.query;
+
+    const where = {
+      isTemplate: true,
+      deletedAt: null,
+    };
+
+    if (category && category !== 'ALL') {
+      where.templateCategory = category;
+    }
+
+    const templates = await prisma.project.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        color: true,
+        layout: true,
+        templateCategory: true,
+        _count: {
+          select: {
+            sections: true,
+            tasks: true,
+          },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    // Group templates by category
+    const groupedTemplates = templates.reduce((acc, template) => {
+      const category = template.templateCategory;
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push(template);
+      return acc;
+    }, {});
+
+    ApiResponse.success(
+      {
+        all: templates,
+        byCategory: groupedTemplates,
+      },
+      'Templates retrieved successfully'
+    ).send(res);
+  });
+
+  /**
+   * @route   POST /api/v1/projects/templates/:templateId/clone
+   * @desc    Clone template to create new project
+   * @access  Private
+   */
+  static cloneTemplate = asyncHandler(async (req, res) => {
+    const { templateId } = req.params;
+    const { name } = req.body;
+    const userId = req.user.id;
+
+    if (!name) {
+      throw ApiError.badRequest('Project name is required');
+    }
+
+    // Get user's tenant
+    const tenantUser = await prisma.tenantUser.findFirst({
+      where: { userId },
+      select: { tenantId: true },
+    });
+
+    if (!tenantUser) {
+      throw ApiError.forbidden('You must belong to a workspace to create a project');
+    }
+
+    // Get template with sections and tasks
+    const template = await prisma.project.findUnique({
+      where: {
+        id: templateId,
+        isTemplate: true,
+      },
+      include: {
+        sections: {
+          orderBy: { position: 'asc' },
+          include: {
+            tasks: {
+              where: { parentId: null },
+              orderBy: { orderIndex: 'asc' },
+            },
+          },
+        },
+        columns: {
+          orderBy: { position: 'asc' },
+        },
+      },
+    });
+
+    if (!template) {
+      throw ApiError.notFound('Template not found');
+    }
+
+    // Clone template in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create new project from template
+      const project = await tx.project.create({
+        data: {
+          tenantId: tenantUser.tenantId,
+          name,
+          description: template.description,
+          color: template.color,
+          layout: template.layout,
+          createdBy: userId,
+          isTemplate: false,
+        },
+      });
+
+      // Add creator as project owner
+      await tx.projectMember.create({
+        data: {
+          projectId: project.id,
+          userId,
+          role: 'OWNER',
+        },
+      });
+
+      // Clone columns
+      for (const column of template.columns) {
+        await tx.projectColumn.create({
+          data: {
+            projectId: project.id,
+            name: column.name,
+            type: column.type,
+            width: column.width,
+            visible: column.visible,
+            isDefault: column.isDefault,
+            position: column.position,
+            options: column.options,
+          },
+        });
+      }
+
+      // Clone sections and tasks
+      const sectionMapping = {};
+      for (const section of template.sections) {
+        const newSection = await tx.projectSection.create({
+          data: {
+            projectId: project.id,
+            name: section.name,
+            color: section.color,
+            position: section.position,
+          },
+        });
+        sectionMapping[section.id] = newSection.id;
+
+        // Clone tasks for this section
+        for (const task of section.tasks) {
+          await tx.task.create({
+            data: {
+              projectId: project.id,
+              sectionId: newSection.id,
+              title: task.title,
+              description: task.description,
+              type: task.type,
+              priority: task.priority,
+              status: task.status,
+              orderIndex: task.orderIndex,
+              level: task.level,
+              createdBy: userId,
+            },
+          });
+        }
+      }
+
+      // Create activity log
+      await tx.projectActivity.create({
+        data: {
+          projectId: project.id,
+          userId,
+          type: 'PROJECT_CREATED',
+          description: `created project from template "${template.name}"`,
+          metadata: {
+            templateId: template.id,
+            templateName: template.name,
+          },
+        },
+      });
+
+      return project;
+    });
+
+    ApiResponse.success(result, 'Project created from template successfully').send(res, 201);
   });
 }
 
