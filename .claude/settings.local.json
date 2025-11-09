@@ -22,7 +22,8 @@
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate reset:*)",
       "Bash(npx prisma db seed)",
       "Bash(npm run db:seed:*)",
-      "Bash(timeout 10 bash:*)"
+      "Bash(timeout 10 bash:*)",
+      "Bash(timeout 10 npm start)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Flag, ChevronRight, CheckCircle2, Circle } from 'lucide-react';
+import { GripVertical, Flag, ChevronRight, CheckCircle2, Circle, ListTree } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,7 @@ const getColumnWidthClass = (width) => {
   return 'w-80';
 };
 
-const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChange, onSelectChange, onTaskNameSave, onDuplicate, onOpenDetails, onCreateSubtask, onDelete, isSubtask = false, columnWidths }) => {
+const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChange, onSelectChange, onTaskNameSave, onDuplicate, onOpenDetails, onCreateSubtask, onDelete, onToggleExpand, isSubtask = false, isExpanded = false, hasSubtasks = false, level = 0, columnWidths }) => {
   const {
     attributes,
     listeners,
@@ -41,6 +41,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
   };
 
   const getTaskIcon = () => {
+    // Milestone icon
     if (task.type === 'milestone') {
       return (
         <Flag
@@ -51,6 +52,17 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
         />
       );
     }
+
+    // Subtask uses smaller circle
+    if (isSubtask) {
+      return task.completed ? (
+        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 fill-emerald-500" />
+      ) : (
+        <Circle className="h-3.5 w-3.5 text-gray-400" />
+      );
+    }
+
+    // Regular task
     return task.completed ? (
       <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-500" />
     ) : (
@@ -139,11 +151,28 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
           <div
             className={cn(
               columnWidths.taskName,
-              'sticky z-20 left-8 flex-shrink-0 border-r px-2 py-1 bg-white flex items-center gap-2'
+              'sticky z-20 left-8 flex-shrink-0 border-r px-2 py-1 bg-white flex items-center gap-1'
             )}
           >
-            {/* Subtask padding */}
-            {isSubtask && <div className="w-4 flex-shrink-0" />}
+            {/* Indentation for nested tasks */}
+            {level > 0 && <div className="flex-shrink-0" style={{ width: `${level * 20}px` }} />}
+
+            {/* Expand/Collapse Chevron */}
+            {hasSubtasks ? (
+              <button
+                onClick={() => onToggleExpand(task.id)}
+                className="flex items-center justify-center flex-shrink-0 hover:bg-gray-100 rounded p-0.5"
+              >
+                <ChevronRight
+                  className={cn(
+                    'h-4 w-4 text-gray-500 transition-transform',
+                    isExpanded && 'transform rotate-90'
+                  )}
+                />
+              </button>
+            ) : (
+              <div className="w-5 flex-shrink-0" />
+            )}
 
             {/* Completion Circle */}
             <button
@@ -164,9 +193,10 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
             </div>
 
             {/* Subtask count badge */}
-            {task.subtaskCount > 0 && (
-              <Badge variant="secondary" className="text-xs px-1.5 py-0 flex-shrink-0">
-                {task.subtaskCount}
+            {hasSubtasks && (
+              <Badge variant="secondary" className="text-xs px-1.5 py-0 flex-shrink-0 flex items-center gap-1">
+                <ListTree className="h-3 w-3" />
+                {task.subtasks?.length || 0}
               </Badge>
             )}
           </div>

@@ -45,9 +45,10 @@ export function useProjectData(projectId) {
 
       try {
         // Fetch sections and tasks in parallel
+        // Use nested: true to get hierarchical structure
         const [sectionsResponse, tasksResponse] = await Promise.all([
           sectionsService.getAll(projectId),
-          tasksService.getAll(projectId, { limit: 1000 }),
+          tasksService.getAll(projectId, { limit: 1000, nested: true }),
         ]);
 
         if (!isMounted) return;
@@ -78,33 +79,58 @@ export function useProjectData(projectId) {
   }, [projectId]);
 
   /**
+   * Helper: Recursively update a task in nested structure
+   */
+  const updateTaskInTree = (tasks, taskId, updates) => {
+    return tasks.map((task) => {
+      if (task.id === taskId) {
+        return { ...task, ...updates, updatedAt: new Date().toISOString() };
+      }
+      if (task.subtasks && task.subtasks.length > 0) {
+        return {
+          ...task,
+          subtasks: updateTaskInTree(task.subtasks, taskId, updates),
+        };
+      }
+      return task;
+    });
+  };
+
+  /**
+   * Helper: Find a task in nested structure
+   */
+  const findTaskInTree = (tasks, taskId) => {
+    for (const task of tasks) {
+      if (task.id === taskId) return task;
+      if (task.subtasks && task.subtasks.length > 0) {
+        const found = findTaskInTree(task.subtasks, taskId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  /**
    * Update a task with optimistic update
    * Uses ref to avoid stale closure
+   * Now handles nested task structure
    */
   const updateTask = useCallback(async (taskId, updates) => {
     // Keep backup for rollback using ref
-    const taskBackup = tasksRef.current.find((t) => t.id === taskId);
+    const taskBackup = findTaskInTree(tasksRef.current, taskId);
 
-    // Optimistic update
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
-      )
-    );
+    // Optimistic update - recursively update in nested structure
+    setTasks((prev) => updateTaskInTree(prev, taskId, updates));
 
     try {
       const response = await tasksService.update(taskId, updates);
-      // Update with server response
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? response.data : t))
-      );
+      // Update with server response - recursively
+      setTasks((prev) => updateTaskInTree(prev, taskId, response.data));
     } catch (err) {
       console.error('Failed to update task:', err);
       // Revert on error
       if (taskBackup) {
-        setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? taskBackup : t))
-        );
+        setTasks((prev) => updateTaskInTree(prev, taskId, taskBackup));
       }
       setError('Failed to update task');
       throw err;

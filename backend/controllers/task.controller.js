@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { buildTaskHierarchy, transformTask } = require('../utils/taskHelpers');
 
 /**
  * Task Controller
@@ -109,10 +110,11 @@ class TaskController {
    * @route   GET /api/v1/projects/:projectId/tasks
    * @desc    List tasks in a project
    * @access  Private (requires ProjectMember)
+   * @query   nested - If true, returns hierarchical structure with subtasks nested
    */
   static listTasks = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const { sectionId, assigneeId, priority, status, completed, search, parentId, page = 1, limit = 1000 } =
+    const { sectionId, assigneeId, priority, status, completed, search, parentId, nested, page = 1, limit = 1000 } =
       req.query;
 
     // Build where clause
@@ -125,7 +127,12 @@ class TaskController {
     if (priority) where.priority = priority;
     if (status) where.status = status;
     if (completed !== undefined) where.completed = completed;
-    if (parentId !== undefined) where.parentId = parentId;
+
+    // When nested is requested, ignore parentId filter - we'll build hierarchy from all tasks
+    if (nested !== 'true' && parentId !== undefined) {
+      where.parentId = parentId;
+    }
+
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
@@ -137,12 +144,13 @@ class TaskController {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    const [tasks, total] = await Promise.all([
-      prisma.task.findMany({
+    // If nested structure is requested, fetch ALL tasks for the section/project (no pagination on flat list)
+    // Then build hierarchy and paginate the top-level tasks
+    if (nested === 'true') {
+      // Fetch all tasks in this project/section (including all subtasks at all levels)
+      const allTasks = await prisma.task.findMany({
         where,
         orderBy: { orderIndex: 'asc' },
-        skip,
-        take: limitNum,
         include: {
           assignee: {
             select: {
@@ -158,32 +166,82 @@ class TaskController {
             },
           },
         },
-      }),
-      prisma.task.count({ where }),
-    ]);
+      });
 
-    // Transform tasks to match UI expectations
-    const transformedTasks = tasks.map((task) => ({
-      ...task,
-      name: task.title,
-      assigneeName: task.assignee?.fullName || null,
-      assigneeAvatar: task.assignee?.avatarUrl || null,
-      subtaskCount: task._count.subtasks,
-      isExpanded: false,
-    }));
+      // Build hierarchical structure
+      const hierarchicalTasks = buildTaskHierarchy(allTasks, null);
 
-    ApiResponse.success(
-      {
-        data: transformedTasks,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum),
+      // Transform tasks to match UI expectations
+      const transformedTasks = hierarchicalTasks.map(transformTask);
+
+      // Count only top-level tasks for pagination
+      const topLevelTotal = transformedTasks.length;
+
+      // Paginate at the top level
+      const paginatedTasks = transformedTasks.slice(skip, skip + limitNum);
+
+      ApiResponse.success(
+        {
+          data: paginatedTasks,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total: topLevelTotal,
+            totalPages: Math.ceil(topLevelTotal / limitNum),
+          },
         },
-      },
-      'Tasks retrieved successfully'
-    ).send(res);
+        'Tasks retrieved successfully'
+      ).send(res);
+    } else {
+      // Original flat structure (backward compatible)
+      const [tasks, total] = await Promise.all([
+        prisma.task.findMany({
+          where,
+          orderBy: { orderIndex: 'asc' },
+          skip,
+          take: limitNum,
+          include: {
+            assignee: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
+            _count: {
+              select: {
+                subtasks: true,
+              },
+            },
+          },
+        }),
+        prisma.task.count({ where }),
+      ]);
+
+      // Transform tasks to match UI expectations
+      const transformedTasks = tasks.map((task) => ({
+        ...task,
+        name: task.title,
+        assigneeName: task.assignee?.fullName || null,
+        assigneeAvatar: task.assignee?.avatarUrl || null,
+        subtaskCount: task._count.subtasks,
+        isExpanded: false,
+      }));
+
+      ApiResponse.success(
+        {
+          data: transformedTasks,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total,
+            totalPages: Math.ceil(total / limitNum),
+          },
+        },
+        'Tasks retrieved successfully'
+      ).send(res);
+    }
   });
 
   /**

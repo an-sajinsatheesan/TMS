@@ -3,6 +3,9 @@ import axiosInstance from '../../api/axios.instance';
 export const tasksService = {
   /**
    * Get all tasks for a project
+   * @param {string} projectId - Project ID
+   * @param {object} filters - Filters and options
+   * @param {boolean} filters.nested - If true, returns hierarchical structure with nested subtasks
    */
   getAll: async (projectId, filters = {}) => {
     try {
@@ -16,6 +19,7 @@ export const tasksService = {
       if (filters.parentId !== undefined) params.append('parentId', filters.parentId);
       if (filters.page) params.append('page', filters.page);
       if (filters.limit) params.append('limit', filters.limit);
+      if (filters.nested !== undefined) params.append('nested', filters.nested);
 
       const response = await axiosInstance.get(`/projects/${projectId}/tasks?${params.toString()}`);
       return response;

@@ -66,6 +66,7 @@ const ListView = ({ projectId }) => {
 
   const [activeId, setActiveId] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  const [expandedTasks, setExpandedTasks] = useState({});
   const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
   const [activeFilters, setActiveFilters] = useState({});
 
@@ -95,6 +96,7 @@ const ListView = ({ projectId }) => {
   }, [projectId, dispatch]);
 
   // Group tasks by section with sorting
+  // Tasks are now nested, so we only need top-level tasks per section
   const tasksBySection = useMemo(() => {
     const grouped = {};
 
@@ -216,13 +218,13 @@ const ListView = ({ projectId }) => {
       const overTask = tasks.find((t) => t.id === over.id);
       if (overTask) {
         destinationSectionId = overTask.sectionId;
-        const sectionTasks = tasksBySection[destinationSectionId].filter((t) => !t.parentId);
+        const sectionTasks = tasksBySection[destinationSectionId] || [];
         destinationIndex = sectionTasks.findIndex((t) => t.id === over.id);
       }
 
       // Move task if section changed OR position changed within same section
       const isSectionChanged = destinationSectionId !== activeTask.sectionId;
-      const currentSectionTasks = tasksBySection[activeTask.sectionId]?.filter((t) => !t.parentId) || [];
+      const currentSectionTasks = tasksBySection[activeTask.sectionId] || [];
       const currentIndex = currentSectionTasks.findIndex((t) => t.id === active.id);
       const isPositionChanged = currentIndex !== destinationIndex;
 
@@ -247,8 +249,28 @@ const ListView = ({ projectId }) => {
     }));
   };
 
+  const handleToggleTaskExpand = (taskId) => {
+    setExpandedTasks((prev) => ({
+      ...prev,
+      [taskId]: !prev[taskId],
+    }));
+  };
+
+  // Helper to find task in nested structure
+  const findTaskInTree = (taskList, taskId) => {
+    for (const task of taskList) {
+      if (task.id === taskId) return task;
+      if (task.subtasks && task.subtasks.length > 0) {
+        const found = findTaskInTree(task.subtasks, taskId);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
   const handleToggleComplete = async (taskId) => {
-    const task = tasks.find((t) => t.id === taskId);
+    // Search in nested structure
+    const task = findTaskInTree(tasks, taskId);
     if (!task) return;
 
     try {
@@ -433,7 +455,8 @@ const ListView = ({ projectId }) => {
 
   // Render task and its subtasks
   const renderTaskWithSubtasks = (task, level = 0) => {
-    const subtasks = tasks.filter((t) => t.parentId === task.id);
+    const isExpanded = expandedTasks[task.id] || false;
+    const hasSubtasks = task.subtasks && task.subtasks.length > 0;
 
     return (
       <div key={task.id}>
@@ -449,18 +472,24 @@ const ListView = ({ projectId }) => {
           onOpenDetails={handleOpenTaskDetails}
           onCreateSubtask={handleCreateSubtask}
           onDelete={handleDeleteTask}
+          onToggleExpand={handleToggleTaskExpand}
           isSubtask={level > 0}
+          isExpanded={isExpanded}
+          hasSubtasks={hasSubtasks}
+          level={level}
           columnWidths={COLUMN_WIDTHS}
         />
-        {task.isExpanded &&
-          subtasks.map((subtask) => renderTaskWithSubtasks(subtask, level + 1))}
+        {isExpanded &&
+          hasSubtasks &&
+          task.subtasks.map((subtask) => renderTaskWithSubtasks(subtask, level + 1))}
       </div>
     );
   };
 
   // Get all draggable IDs (sections and top-level tasks)
+  // Since tasks are now nested, they are already top-level tasks
   const sectionIds = sections.map((s) => `section-${s.id}`);
-  const topLevelTaskIds = tasks.filter((t) => !t.parentId).map((t) => t.id);
+  const topLevelTaskIds = tasks.map((t) => t.id);
   const allDraggableIds = [...sectionIds, ...topLevelTaskIds];
 
   // Loading state
@@ -576,7 +605,7 @@ const ListView = ({ projectId }) => {
             ) : (
               sections.map((section) => {
                 const sectionTasks = tasksBySection[section.id] || [];
-                const topLevelTasks = sectionTasks.filter((t) => !t.parentId);
+                // Tasks are already top-level from backend with nested subtasks
                 const isCollapsed = collapsedGroups[section.id];
 
                 return (
@@ -584,7 +613,7 @@ const ListView = ({ projectId }) => {
                     {/* Sticky Group Title */}
                     <GroupHeader
                       section={section}
-                      taskCount={topLevelTasks.length}
+                      taskCount={sectionTasks.length}
                       isCollapsed={isCollapsed}
                       onToggleCollapse={handleToggleCollapse}
                       columnWidths={COLUMN_WIDTHS}
@@ -594,7 +623,7 @@ const ListView = ({ projectId }) => {
                     {/* Task Rows */}
                     {!isCollapsed && (
                       <div>
-                        {topLevelTasks.map((task) => renderTaskWithSubtasks(task))}
+                        {sectionTasks.map((task) => renderTaskWithSubtasks(task))}
 
                         {/* Add Task Row */}
                         <AddTaskRow
