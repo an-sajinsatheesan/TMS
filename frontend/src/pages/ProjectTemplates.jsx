@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, FolderPlus } from 'lucide-react';
+import { Sparkles, Search, FolderPlus, Copy } from 'lucide-react';
 import { projectsService } from '../services/api/projects.service';
 import { toast } from 'sonner';
 
 const CATEGORIES = [
+  { value: 'MY_ORG', label: 'My Organization' },
   { value: 'ALL', label: 'All Templates' },
   { value: 'MARKETING', label: 'Marketing' },
   { value: 'HR', label: 'HR' },
@@ -18,52 +19,65 @@ const CATEGORIES = [
 const ProjectTemplates = () => {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState([]);
-  const [filteredTemplates, setFilteredTemplates] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [userProjects, setUserProjects] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('MY_ORG');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [creatingProject, setCreatingProject] = useState(null);
 
   useEffect(() => {
-    fetchTemplates();
+    fetchData();
   }, []);
 
   useEffect(() => {
-    filterTemplates();
-  }, [selectedCategory, searchQuery, templates]);
+    filterItems();
+  }, [selectedCategory, searchQuery, templates, userProjects]);
 
-  const fetchTemplates = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await projectsService.getTemplates();
-      setTemplates(response.data.data.all || []);
+      const [templatesResponse, projectsResponse] = await Promise.all([
+        projectsService.getTemplates(),
+        projectsService.getAll()
+      ]);
+      setTemplates(templatesResponse.data.data.all || []);
+      setUserProjects(projectsResponse.data.data.data || []);
     } catch (error) {
-      console.error('Error fetching templates:', error);
+      console.error('Error fetching data:', error);
       toast.error('Failed to load templates');
     } finally {
       setLoading(false);
     }
   };
 
-  const filterTemplates = () => {
-    let filtered = templates;
+  const filterItems = () => {
+    let filtered = [];
 
-    // Filter by category
-    if (selectedCategory !== 'ALL') {
-      filtered = filtered.filter(t => t.templateCategory === selectedCategory);
+    if (selectedCategory === 'MY_ORG') {
+      // Show user's own projects
+      filtered = userProjects;
+    } else {
+      // Show templates
+      filtered = templates;
+
+      // Filter by category
+      if (selectedCategory !== 'ALL') {
+        filtered = filtered.filter(t => t.templateCategory === selectedCategory);
+      }
     }
 
     // Filter by search query
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        t =>
-          t.name.toLowerCase().includes(query) ||
-          t.description?.toLowerCase().includes(query)
+        item =>
+          item.name.toLowerCase().includes(query) ||
+          item.description?.toLowerCase().includes(query)
       );
     }
 
-    setFilteredTemplates(filtered);
+    setFilteredItems(filtered);
   };
 
   const handleUseTemplate = async (template) => {
@@ -90,16 +104,44 @@ const ProjectTemplates = () => {
     }
   };
 
+  const handleCloneOrgProject = async (project) => {
+    const projectName = prompt(`Enter name for your new project:`, `${project.name} (Copy)`);
+
+    if (!projectName || !projectName.trim()) {
+      return;
+    }
+
+    try {
+      setCreatingProject(project.id);
+      // For now, we'll use the same clone endpoint but in the future,
+      // we could add a specific endpoint for cloning user projects
+      const response = await projectsService.cloneTemplate(project.id, projectName.trim());
+      const newProject = response.data.data;
+
+      toast.success(`Project "${projectName}" created successfully!`);
+
+      // Navigate to the new project
+      navigate(`/project-board/${newProject.createdBy}/${newProject.id}/list`);
+    } catch (error) {
+      console.error('Error cloning project:', error);
+      toast.error('Failed to clone project');
+    } finally {
+      setCreatingProject(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading templates...</p>
+          <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
+
+  const isMyOrgTab = selectedCategory === 'MY_ORG';
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -108,10 +150,14 @@ const ProjectTemplates = () => {
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
             <Sparkles className="w-8 h-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Project Templates</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {isMyOrgTab ? 'My Projects' : 'Project Templates'}
+            </h1>
           </div>
           <p className="text-gray-600">
-            Start your project with a pre-built template
+            {isMyOrgTab
+              ? 'Clone from your existing projects'
+              : 'Start your project with a pre-built template'}
           </p>
         </div>
 
@@ -142,7 +188,7 @@ const ProjectTemplates = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search templates..."
+                placeholder={`Search ${isMyOrgTab ? 'projects' : 'templates'}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -154,63 +200,79 @@ const ProjectTemplates = () => {
         {/* Results Count */}
         <div className="mb-4">
           <p className="text-sm text-gray-600">
-            Showing {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
+            Showing {filteredItems.length} {isMyOrgTab ? 'project' : 'template'}{filteredItems.length !== 1 ? 's' : ''}
           </p>
         </div>
 
-        {/* Templates Grid */}
-        {filteredTemplates.length === 0 ? (
+        {/* Items Grid */}
+        {filteredItems.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-lg border-2 border-dashed border-gray-300">
             <FolderPlus className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No templates found
+              {isMyOrgTab ? 'No projects found' : 'No templates found'}
             </h3>
             <p className="text-gray-500">
-              Try adjusting your filters or search query
+              {isMyOrgTab
+                ? 'You don\'t have any projects yet'
+                : 'Try adjusting your filters or search query'}
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTemplates.map((template) => (
+            {filteredItems.map((item) => (
               <div
-                key={template.id}
+                key={item.id}
                 className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
               >
-                {/* Template Header */}
+                {/* Item Header */}
                 <div className="p-6 border-b border-gray-200">
                   <div className="flex items-start gap-3 mb-3">
                     <div
                       className="w-3 h-3 rounded-full mt-1 flex-shrink-0"
-                      style={{ backgroundColor: template.color || '#3b82f6' }}
+                      style={{ backgroundColor: item.color || '#3b82f6' }}
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        {template.name}
+                        {item.name}
                       </h3>
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                        {template.templateCategory}
-                      </span>
+                      {!isMyOrgTab && item.templateCategory && (
+                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                          {item.templateCategory}
+                        </span>
+                      )}
+                      {isMyOrgTab && (
+                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                          {item.layout || 'LIST'}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2">
-                    {template.description || 'No description available'}
+                    {item.description || 'No description available'}
                   </p>
                 </div>
 
-                {/* Template Info */}
+                {/* Item Info */}
                 <div className="px-6 py-4 bg-gray-50">
                   <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                    <span>{template._count.sections || 0} sections</span>
-                    <span>{template._count.tasks || 0} tasks</span>
+                    <span>{item._count?.sections || item.memberCount || 0} sections</span>
+                    <span>{item._count?.tasks || item.taskCount || 0} tasks</span>
                   </div>
 
-                  {/* Use Template Button */}
+                  {/* Action Button */}
                   <button
-                    onClick={() => handleUseTemplate(template)}
-                    disabled={creatingProject === template.id}
-                    className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                    onClick={() => isMyOrgTab ? handleCloneOrgProject(item) : handleUseTemplate(item)}
+                    disabled={creatingProject === item.id}
+                    className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
                   >
-                    {creatingProject === template.id ? 'Creating...' : 'Use Template'}
+                    {creatingProject === item.id ? (
+                      'Creating...'
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        {isMyOrgTab ? 'Clone Project' : 'Use Template'}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Activity,
   FileText,
@@ -11,9 +11,11 @@ import {
   FolderPlus,
   Trash2,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-react';
 import { projectsService } from '../services/api/projects.service';
 import { toast } from 'sonner';
+import { Button } from '../components/ui/button';
 
 const ACTIVITY_ICONS = {
   PROJECT_CREATED: FolderPlus,
@@ -49,13 +51,25 @@ const ACTIVITY_COLORS = {
 
 const ProjectOverview = () => {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
+  const [project, setProject] = useState(null);
 
   useEffect(() => {
     fetchActivities();
+    fetchProject();
   }, [projectId]);
+
+  const fetchProject = async () => {
+    try {
+      const response = await projectsService.getById(projectId);
+      setProject(response.data.data.project);
+    } catch (error) {
+      console.error('Error fetching project:', error);
+    }
+  };
 
   const fetchActivities = async (offset = 0) => {
     try {
@@ -109,16 +123,36 @@ const ProjectOverview = () => {
     );
   }
 
+  const handleBackToProject = () => {
+    navigate(`/project-board/${project?.createdBy}/${projectId}/list`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Activity className="w-8 h-8 text-gray-700" />
-            <h1 className="text-3xl font-bold text-gray-900">Project Overview</h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleBackToProject}
+                className="h-10 w-10"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <div className="flex items-center gap-3">
+                  <Activity className="w-8 h-8 text-gray-700" />
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    {project?.name || 'Project'} Overview
+                  </h1>
+                </div>
+                <p className="text-gray-600 ml-11">Recent activity and updates</p>
+              </div>
+            </div>
           </div>
-          <p className="text-gray-600">Recent activity and updates</p>
         </div>
 
         {/* Activity Feed */}
