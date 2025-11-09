@@ -37,7 +37,6 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
   const getTaskIcon = () => {
@@ -120,8 +119,8 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group hover:bg-gray-50 transition-colors border-b border-gray-200 min-h-[32px]',
-        isDragging && 'opacity-50'
+        'group hover:bg-gray-50 transition-all duration-200 border-b border-gray-200 min-h-[32px]',
+        isDragging && 'opacity-0 h-0 min-h-0 overflow-hidden'
       )}
     >
       <TaskContextMenu
@@ -137,13 +136,17 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
           <div
             className={cn(
               columnWidths.checkbox,
-              'sticky left-0 z-20 flex-shrink-0 border-r p-1 bg-white cursor-grab active:cursor-grabbing'
+              'sticky left-0 z-20 flex-shrink-0 border-r p-1 bg-white',
+              !isSubtask && 'cursor-grab active:cursor-grabbing'
             )}
-            {...attributes}
-            {...listeners}
+            {...(!isSubtask ? attributes : {})}
+            {...(!isSubtask ? listeners : {})}
           >
-            <div className="flex  items-center justify-center w-full h-full text-gray-400 hover:text-gray-600">
-              <GripVertical className="h-3 w-3" />
+            <div className={cn(
+              "flex items-center justify-center w-full h-full",
+              isSubtask ? "text-gray-300" : "text-gray-400 hover:text-gray-600"
+            )}>
+              {!isSubtask && <GripVertical className="h-3 w-3" />}
             </div>
           </div>
 

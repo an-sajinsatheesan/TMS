@@ -22,6 +22,7 @@ import AddTaskRow from './AddTaskRow';
 import ColumnHeader from './ColumnHeader';
 import AddColumnPopover from './AddColumnPopover';
 import TaskDetailsDialog from '../TaskDetailsDialog';
+import DropIndicator from './DropIndicator';
 import ProjectActionBar from '../ProjectActionBar';
 import { cn } from '@/lib/utils';
 import { useProjectData } from '@/hooks/useProjectData';
@@ -71,6 +72,7 @@ const ListView = ({ projectId }) => {
   const [expandedTasks, setExpandedTasks] = useState({});
   const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
   const [activeFilters, setActiveFilters] = useState({});
+  const [overId, setOverId] = useState(null);
 
   const { users: projectMembers } = useMembers();
 
@@ -166,9 +168,15 @@ const ListView = ({ projectId }) => {
     setActiveId(event.active.id);
   };
 
+  const handleDragOver = (event) => {
+    const { over } = event;
+    setOverId(over?.id || null);
+  };
+
   const handleDragEnd = async (event) => {
     const { active, over } = event;
 
+    setOverId(null);
     if (!over || active.id === over.id) {
       setActiveId(null);
       return;
@@ -472,9 +480,17 @@ const ListView = ({ projectId }) => {
   const renderTaskWithSubtasks = (task, level = 0) => {
     const isExpanded = expandedTasks[task.id] || false;
     const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+    const showDropIndicator = activeId && overId === task.id && activeId !== task.id;
 
     return (
       <div key={task.id}>
+        {/* Show drop indicator above the task if dragging over it */}
+        {showDropIndicator && (
+          <DropIndicator
+            columnWidths={COLUMN_WIDTHS}
+            scrollableColumnsCount={scrollableColumns.length}
+          />
+        )}
         <TaskRow
           task={task}
           columns={visibleColumns}
@@ -577,6 +593,7 @@ const ListView = ({ projectId }) => {
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           {/* Main Scrollable Container */}
@@ -653,9 +670,18 @@ const ListView = ({ projectId }) => {
                 const sectionTasks = tasksBySection[section.id] || [];
                 // Tasks are already top-level from backend with nested subtasks
                 const isCollapsed = collapsedGroups[section.id];
+                const sectionDraggableId = `section-${section.id}`;
+                const showSectionDropIndicator = activeId && overId === sectionDraggableId && activeId !== sectionDraggableId;
 
                 return (
                   <div key={section.id}>
+                    {/* Show drop indicator above the section if dragging over it */}
+                    {showSectionDropIndicator && (
+                      <DropIndicator
+                        columnWidths={COLUMN_WIDTHS}
+                        scrollableColumnsCount={scrollableColumns.length}
+                      />
+                    )}
                     {/* Sticky Group Title */}
                     <GroupHeader
                       section={section}

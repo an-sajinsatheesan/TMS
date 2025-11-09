@@ -25,10 +25,10 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
     id: `section-${section.id}`,
   });
 
-  const style = isDragging ? {
+  const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-  } : {};
+  };
 
   return (
     <div className="w-max min-w-full">
@@ -37,8 +37,8 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
         ref={setNodeRef}
         style={style}
         className={cn(
-          "sticky top-[26px] z-30 flex bg-gray-200 border-b border-gray-300 w-max min-w-full",
-          isDragging && 'opacity-50'
+          "sticky top-[26px] z-30 flex bg-gray-200 border-b border-gray-300 w-max min-w-full transition-all duration-200",
+          isDragging && 'opacity-0 h-0 min-h-0 overflow-hidden'
         )}
       >
         {/* Left sticky column - empty for checkbox alignment */}
