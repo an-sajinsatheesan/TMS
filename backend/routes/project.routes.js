@@ -101,6 +101,132 @@ router.delete(
 );
 
 // ============================================
+// Project Status and Management Routes
+// ============================================
+
+/**
+ * @route   PATCH /api/v1/projects/:projectId/status
+ * @desc    Update project status
+ * @access  Private (requires OWNER or ADMIN)
+ */
+router.patch(
+  '/:projectId/status',
+  authenticate,
+  checkProjectAccess,
+  checkProjectAdmin,
+  ProjectController.updateProjectStatus
+);
+
+/**
+ * @route   PATCH /api/v1/projects/:projectId/due-date
+ * @desc    Update project due date
+ * @access  Private (requires OWNER or ADMIN)
+ */
+router.patch(
+  '/:projectId/due-date',
+  authenticate,
+  checkProjectAccess,
+  checkProjectAdmin,
+  ProjectController.updateProjectDueDate
+);
+
+/**
+ * @route   POST /api/v1/projects/:projectId/trash
+ * @desc    Move project to trash (soft delete)
+ * @access  Private (requires OWNER)
+ */
+router.post(
+  '/:projectId/trash',
+  authenticate,
+  checkProjectAccess,
+  checkProjectOwner,
+  ProjectController.moveToTrash
+);
+
+/**
+ * @route   POST /api/v1/projects/:projectId/restore
+ * @desc    Restore project from trash
+ * @access  Private (requires OWNER)
+ */
+router.post(
+  '/:projectId/restore',
+  authenticate,
+  checkProjectAccess,
+  checkProjectOwner,
+  ProjectController.restoreFromTrash
+);
+
+/**
+ * @route   DELETE /api/v1/projects/:projectId/permanent
+ * @desc    Permanently delete a trashed project
+ * @access  Private (requires OWNER)
+ */
+router.delete(
+  '/:projectId/permanent',
+  authenticate,
+  checkProjectAccess,
+  checkProjectOwner,
+  ProjectController.permanentDelete
+);
+
+// ============================================
+// Project Activity and Analytics Routes
+// ============================================
+
+/**
+ * @route   GET /api/v1/projects/:projectId/activities
+ * @desc    Get project activity feed
+ * @access  Private (requires ProjectMember)
+ */
+router.get(
+  '/:projectId/activities',
+  authenticate,
+  checkProjectAccess,
+  ProjectController.getActivities
+);
+
+/**
+ * @route   GET /api/v1/projects/:projectId/dashboard
+ * @desc    Get project dashboard statistics
+ * @access  Private (requires ProjectMember)
+ */
+router.get(
+  '/:projectId/dashboard',
+  authenticate,
+  checkProjectAccess,
+  ProjectController.getDashboardStats
+);
+
+// ============================================
+// Trash and Template Routes (Global)
+// ============================================
+
+/**
+ * @route   GET /api/v1/projects/trash/list
+ * @desc    List trashed projects
+ * @access  Private
+ */
+router.get('/trash/list', authenticate, ProjectController.listTrashedProjects);
+
+/**
+ * @route   GET /api/v1/projects/templates/list
+ * @desc    List all project templates
+ * @access  Private
+ */
+router.get('/templates/list', authenticate, ProjectController.listTemplates);
+
+/**
+ * @route   POST /api/v1/projects/templates/:templateId/clone
+ * @desc    Clone template to create new project
+ * @access  Private
+ */
+router.post(
+  '/templates/:templateId/clone',
+  authenticate,
+  ProjectController.cloneTemplate
+);
+
+// ============================================
 // Project Member Routes
 // ============================================
 

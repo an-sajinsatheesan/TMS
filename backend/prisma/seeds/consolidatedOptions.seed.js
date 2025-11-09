@@ -179,12 +179,548 @@ async function seedSubscriptionPlans() {
   console.log(`✓ Seeded ${plans.length} subscription plans`);
 }
 
+async function seedProjectTemplates() {
+  console.log('Seeding project templates...');
+
+  const templates = [
+    // Marketing Templates
+    {
+      name: 'Marketing Campaign Launch',
+      description: 'Template for planning and executing marketing campaigns',
+      templateCategory: 'MARKETING',
+      isTemplate: true,
+      color: '#ef4444',
+      layout: 'LIST',
+      sections: [
+        { name: 'Planning', color: '#3b82f6', position: 0 },
+        { name: 'Content Creation', color: '#10b981', position: 1 },
+        { name: 'Review & Approval', color: '#f59e0b', position: 2 },
+        { name: 'Launch', color: '#8b5cf6', position: 3 },
+      ],
+      tasks: [
+        { title: 'Define campaign goals and KPIs', sectionIndex: 0, position: 0 },
+        { title: 'Identify target audience', sectionIndex: 0, position: 1 },
+        { title: 'Create content calendar', sectionIndex: 1, position: 0 },
+        { title: 'Design creatives', sectionIndex: 1, position: 1 },
+        { title: 'Write copy', sectionIndex: 1, position: 2 },
+        { title: 'Internal review', sectionIndex: 2, position: 0 },
+        { title: 'Stakeholder approval', sectionIndex: 2, position: 1 },
+        { title: 'Schedule posts', sectionIndex: 3, position: 0 },
+        { title: 'Monitor performance', sectionIndex: 3, position: 1 },
+      ]
+    },
+    {
+      name: 'Social Media Management',
+      description: 'Organize and track social media content across platforms',
+      templateCategory: 'MARKETING',
+      isTemplate: true,
+      color: '#ec4899',
+      layout: 'BOARD',
+      sections: [
+        { name: 'Ideas', color: '#f59e0b', position: 0 },
+        { name: 'In Progress', color: '#3b82f6', position: 1 },
+        { name: 'Scheduled', color: '#8b5cf6', position: 2 },
+        { name: 'Published', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Product announcement post', sectionIndex: 0, position: 0 },
+        { title: 'Customer testimonial video', sectionIndex: 0, position: 1 },
+        { title: 'Behind-the-scenes content', sectionIndex: 1, position: 0 },
+      ]
+    },
+    {
+      name: 'Content Marketing Pipeline',
+      description: 'Manage blog posts, videos, and other content creation',
+      templateCategory: 'MARKETING',
+      isTemplate: true,
+      color: '#f59e0b',
+      layout: 'LIST',
+      sections: [
+        { name: 'Research & Ideation', color: '#6366f1', position: 0 },
+        { name: 'Drafting', color: '#3b82f6', position: 1 },
+        { name: 'Editing', color: '#f59e0b', position: 2 },
+        { name: 'Published', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Research trending topics', sectionIndex: 0, position: 0 },
+        { title: 'Keyword analysis', sectionIndex: 0, position: 1 },
+        { title: 'Create outline', sectionIndex: 1, position: 0 },
+      ]
+    },
+
+    // HR Templates
+    {
+      name: 'Employee Onboarding',
+      description: 'Streamline new hire onboarding process',
+      templateCategory: 'HR',
+      isTemplate: true,
+      color: '#06b6d4',
+      layout: 'LIST',
+      sections: [
+        { name: 'Pre-boarding', color: '#3b82f6', position: 0 },
+        { name: 'First Day', color: '#10b981', position: 1 },
+        { name: 'First Week', color: '#f59e0b', position: 2 },
+        { name: 'First Month', color: '#8b5cf6', position: 3 },
+      ],
+      tasks: [
+        { title: 'Send welcome email', sectionIndex: 0, position: 0 },
+        { title: 'Setup workstation', sectionIndex: 0, position: 1 },
+        { title: 'Create email account', sectionIndex: 0, position: 2 },
+        { title: 'Office tour', sectionIndex: 1, position: 0 },
+        { title: 'Team introductions', sectionIndex: 1, position: 1 },
+        { title: 'Product training', sectionIndex: 2, position: 0 },
+        { title: '30-day check-in', sectionIndex: 3, position: 0 },
+      ]
+    },
+    {
+      name: 'Recruitment Pipeline',
+      description: 'Track candidates through the hiring process',
+      templateCategory: 'HR',
+      isTemplate: true,
+      color: '#14b8a6',
+      layout: 'BOARD',
+      sections: [
+        { name: 'Applied', color: '#94a3b8', position: 0 },
+        { name: 'Screening', color: '#3b82f6', position: 1 },
+        { name: 'Interview', color: '#f59e0b', position: 2 },
+        { name: 'Offer', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Review applications', sectionIndex: 0, position: 0 },
+        { title: 'Phone screening', sectionIndex: 1, position: 0 },
+        { title: 'Technical interview', sectionIndex: 2, position: 0 },
+      ]
+    },
+    {
+      name: 'Performance Review Cycle',
+      description: 'Manage quarterly or annual performance reviews',
+      templateCategory: 'HR',
+      isTemplate: true,
+      color: '#0ea5e9',
+      layout: 'LIST',
+      sections: [
+        { name: 'Preparation', color: '#3b82f6', position: 0 },
+        { name: 'Self-Assessment', color: '#8b5cf6', position: 1 },
+        { name: 'Manager Review', color: '#f59e0b', position: 2 },
+        { name: 'Completed', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Send review templates', sectionIndex: 0, position: 0 },
+        { title: 'Collect peer feedback', sectionIndex: 0, position: 1 },
+        { title: 'Employee self-assessment', sectionIndex: 1, position: 0 },
+      ]
+    },
+
+    // IT Templates
+    {
+      name: 'Software Development Sprint',
+      description: 'Agile sprint planning and execution',
+      templateCategory: 'IT',
+      isTemplate: true,
+      color: '#8b5cf6',
+      layout: 'BOARD',
+      sections: [
+        { name: 'Backlog', color: '#94a3b8', position: 0 },
+        { name: 'To Do', color: '#3b82f6', position: 1 },
+        { name: 'In Progress', color: '#f59e0b', position: 2 },
+        { name: 'Done', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Sprint planning meeting', sectionIndex: 1, position: 0 },
+        { title: 'User story refinement', sectionIndex: 0, position: 0 },
+        { title: 'Code review', sectionIndex: 2, position: 0 },
+      ]
+    },
+    {
+      name: 'Bug Tracking & Resolution',
+      description: 'Track and resolve software bugs',
+      templateCategory: 'IT',
+      isTemplate: true,
+      color: '#ef4444',
+      layout: 'LIST',
+      sections: [
+        { name: 'Reported', color: '#ef4444', position: 0 },
+        { name: 'Triaged', color: '#f59e0b', position: 1 },
+        { name: 'In Progress', color: '#3b82f6', position: 2 },
+        { name: 'Resolved', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Reproduce bug', sectionIndex: 1, position: 0 },
+        { title: 'Assign priority', sectionIndex: 1, position: 1 },
+        { title: 'Fix and test', sectionIndex: 2, position: 0 },
+      ]
+    },
+    {
+      name: 'IT Infrastructure Setup',
+      description: 'Setup and configure IT infrastructure for new projects',
+      templateCategory: 'IT',
+      isTemplate: true,
+      color: '#6366f1',
+      layout: 'LIST',
+      sections: [
+        { name: 'Planning', color: '#3b82f6', position: 0 },
+        { name: 'Setup', color: '#f59e0b', position: 1 },
+        { name: 'Configuration', color: '#8b5cf6', position: 2 },
+        { name: 'Testing', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Define requirements', sectionIndex: 0, position: 0 },
+        { title: 'Provision servers', sectionIndex: 1, position: 0 },
+        { title: 'Configure networking', sectionIndex: 2, position: 0 },
+      ]
+    },
+
+    // Sales Templates
+    {
+      name: 'Sales Pipeline',
+      description: 'Track leads through the sales funnel',
+      templateCategory: 'SALES',
+      isTemplate: true,
+      color: '#10b981',
+      layout: 'BOARD',
+      sections: [
+        { name: 'Lead', color: '#94a3b8', position: 0 },
+        { name: 'Qualified', color: '#3b82f6', position: 1 },
+        { name: 'Proposal', color: '#f59e0b', position: 2 },
+        { name: 'Closed', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Initial contact', sectionIndex: 0, position: 0 },
+        { title: 'Discovery call', sectionIndex: 1, position: 0 },
+        { title: 'Send proposal', sectionIndex: 2, position: 0 },
+      ]
+    },
+    {
+      name: 'Product Launch Sales Plan',
+      description: 'Coordinate sales activities for new product launches',
+      templateCategory: 'SALES',
+      isTemplate: true,
+      color: '#22c55e',
+      layout: 'LIST',
+      sections: [
+        { name: 'Pre-Launch', color: '#3b82f6', position: 0 },
+        { name: 'Launch Week', color: '#f59e0b', position: 1 },
+        { name: 'Follow-up', color: '#8b5cf6', position: 2 },
+        { name: 'Closed Deals', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Prepare sales materials', sectionIndex: 0, position: 0 },
+        { title: 'Train sales team', sectionIndex: 0, position: 1 },
+        { title: 'Reach out to prospects', sectionIndex: 1, position: 0 },
+      ]
+    },
+    {
+      name: 'Account Management',
+      description: 'Manage and grow existing customer accounts',
+      templateCategory: 'SALES',
+      isTemplate: true,
+      color: '#059669',
+      layout: 'LIST',
+      sections: [
+        { name: 'Onboarding', color: '#3b82f6', position: 0 },
+        { name: 'Regular Check-ins', color: '#8b5cf6', position: 1 },
+        { name: 'Upsell Opportunities', color: '#f59e0b', position: 2 },
+        { name: 'Renewal', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Welcome call', sectionIndex: 0, position: 0 },
+        { title: 'Quarterly business review', sectionIndex: 1, position: 0 },
+        { title: 'Identify expansion opportunities', sectionIndex: 2, position: 0 },
+      ]
+    },
+
+    // Operations Templates
+    {
+      name: 'Process Improvement Initiative',
+      description: 'Plan and implement operational improvements',
+      templateCategory: 'OPERATION',
+      isTemplate: true,
+      color: '#f97316',
+      layout: 'LIST',
+      sections: [
+        { name: 'Analysis', color: '#3b82f6', position: 0 },
+        { name: 'Planning', color: '#8b5cf6', position: 1 },
+        { name: 'Implementation', color: '#f59e0b', position: 2 },
+        { name: 'Review', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Identify bottlenecks', sectionIndex: 0, position: 0 },
+        { title: 'Map current process', sectionIndex: 0, position: 1 },
+        { title: 'Design new workflow', sectionIndex: 1, position: 0 },
+      ]
+    },
+    {
+      name: 'Vendor Management',
+      description: 'Track vendor relationships and contracts',
+      templateCategory: 'OPERATION',
+      isTemplate: true,
+      color: '#ea580c',
+      layout: 'LIST',
+      sections: [
+        { name: 'Evaluation', color: '#3b82f6', position: 0 },
+        { name: 'Contracting', color: '#f59e0b', position: 1 },
+        { name: 'Active', color: '#10b981', position: 2 },
+        { name: 'Renewal/Termination', color: '#8b5cf6', position: 3 },
+      ],
+      tasks: [
+        { title: 'RFP preparation', sectionIndex: 0, position: 0 },
+        { title: 'Vendor comparison', sectionIndex: 0, position: 1 },
+        { title: 'Contract negotiation', sectionIndex: 1, position: 0 },
+      ]
+    },
+    {
+      name: 'Inventory Management',
+      description: 'Track and manage inventory levels',
+      templateCategory: 'OPERATION',
+      isTemplate: true,
+      color: '#fb923c',
+      layout: 'LIST',
+      sections: [
+        { name: 'Stock Check', color: '#3b82f6', position: 0 },
+        { name: 'Reorder', color: '#f59e0b', position: 1 },
+        { name: 'Receiving', color: '#8b5cf6', position: 2 },
+        { name: 'Stocked', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Weekly inventory audit', sectionIndex: 0, position: 0 },
+        { title: 'Check reorder points', sectionIndex: 0, position: 1 },
+        { title: 'Create purchase order', sectionIndex: 1, position: 0 },
+      ]
+    },
+
+    // Campaign Templates
+    {
+      name: 'Email Marketing Campaign',
+      description: 'Plan and execute email marketing campaigns',
+      templateCategory: 'CAMPAIGN',
+      isTemplate: true,
+      color: '#ec4899',
+      layout: 'LIST',
+      sections: [
+        { name: 'Planning', color: '#3b82f6', position: 0 },
+        { name: 'Design', color: '#8b5cf6', position: 1 },
+        { name: 'Testing', color: '#f59e0b', position: 2 },
+        { name: 'Sent', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Define campaign goals', sectionIndex: 0, position: 0 },
+        { title: 'Segment audience', sectionIndex: 0, position: 1 },
+        { title: 'Write email copy', sectionIndex: 1, position: 0 },
+        { title: 'Design template', sectionIndex: 1, position: 1 },
+        { title: 'A/B test subject lines', sectionIndex: 2, position: 0 },
+      ]
+    },
+    {
+      name: 'Event Planning & Execution',
+      description: 'Organize corporate events and conferences',
+      templateCategory: 'CAMPAIGN',
+      isTemplate: true,
+      color: '#d946ef',
+      layout: 'LIST',
+      sections: [
+        { name: 'Planning', color: '#3b82f6', position: 0 },
+        { name: 'Promotion', color: '#f59e0b', position: 1 },
+        { name: 'Execution', color: '#8b5cf6', position: 2 },
+        { name: 'Follow-up', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Book venue', sectionIndex: 0, position: 0 },
+        { title: 'Arrange catering', sectionIndex: 0, position: 1 },
+        { title: 'Send invitations', sectionIndex: 1, position: 0 },
+        { title: 'Event day coordination', sectionIndex: 2, position: 0 },
+      ]
+    },
+    {
+      name: 'PR Campaign',
+      description: 'Manage public relations and media outreach campaigns',
+      templateCategory: 'CAMPAIGN',
+      isTemplate: true,
+      color: '#c026d3',
+      layout: 'LIST',
+      sections: [
+        { name: 'Strategy', color: '#3b82f6', position: 0 },
+        { name: 'Outreach', color: '#f59e0b', position: 1 },
+        { name: 'Coverage', color: '#8b5cf6', position: 2 },
+        { name: 'Analysis', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Create press release', sectionIndex: 0, position: 0 },
+        { title: 'Build media list', sectionIndex: 0, position: 1 },
+        { title: 'Pitch to journalists', sectionIndex: 1, position: 0 },
+      ]
+    },
+
+    // Design Templates
+    {
+      name: 'Website Redesign',
+      description: 'Plan and execute website redesign projects',
+      templateCategory: 'DESIGN',
+      isTemplate: true,
+      color: '#a855f7',
+      layout: 'LIST',
+      sections: [
+        { name: 'Discovery', color: '#3b82f6', position: 0 },
+        { name: 'Design', color: '#8b5cf6', position: 1 },
+        { name: 'Development', color: '#f59e0b', position: 2 },
+        { name: 'Launch', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'User research', sectionIndex: 0, position: 0 },
+        { title: 'Create wireframes', sectionIndex: 1, position: 0 },
+        { title: 'Design mockups', sectionIndex: 1, position: 1 },
+        { title: 'Frontend development', sectionIndex: 2, position: 0 },
+      ]
+    },
+    {
+      name: 'Brand Identity Development',
+      description: 'Create comprehensive brand identity systems',
+      templateCategory: 'DESIGN',
+      isTemplate: true,
+      color: '#9333ea',
+      layout: 'LIST',
+      sections: [
+        { name: 'Research', color: '#3b82f6', position: 0 },
+        { name: 'Concepts', color: '#8b5cf6', position: 1 },
+        { name: 'Refinement', color: '#f59e0b', position: 2 },
+        { name: 'Delivery', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Competitive analysis', sectionIndex: 0, position: 0 },
+        { title: 'Logo concepts', sectionIndex: 1, position: 0 },
+        { title: 'Color palette development', sectionIndex: 1, position: 1 },
+        { title: 'Brand guidelines document', sectionIndex: 3, position: 0 },
+      ]
+    },
+    {
+      name: 'UI/UX Design Sprint',
+      description: 'Rapid design and prototyping for new features',
+      templateCategory: 'DESIGN',
+      isTemplate: true,
+      color: '#7c3aed',
+      layout: 'LIST',
+      sections: [
+        { name: 'Understand', color: '#3b82f6', position: 0 },
+        { name: 'Sketch', color: '#8b5cf6', position: 1 },
+        { name: 'Prototype', color: '#f59e0b', position: 2 },
+        { name: 'Test', color: '#10b981', position: 3 },
+      ],
+      tasks: [
+        { title: 'Define problem statement', sectionIndex: 0, position: 0 },
+        { title: 'User flow mapping', sectionIndex: 0, position: 1 },
+        { title: 'Low-fi wireframes', sectionIndex: 1, position: 0 },
+        { title: 'Interactive prototype', sectionIndex: 2, position: 0 },
+      ]
+    },
+  ];
+
+  let createdCount = 0;
+
+  for (const template of templates) {
+    // Check if a Free Trial subscription exists (required for template projects)
+    const freeTrialPlan = await prisma.subscriptionPlan.findUnique({
+      where: { name: 'Free Trial' }
+    });
+
+    if (!freeTrialPlan) {
+      console.log('⚠ Skipping template seeding: Free Trial subscription plan not found');
+      break;
+    }
+
+    // Create a system tenant for templates if it doesn't exist
+    let systemTenant = await prisma.tenant.findFirst({
+      where: { slug: 'system-templates' }
+    });
+
+    if (!systemTenant) {
+      // Create a system user for templates
+      let systemUser = await prisma.user.findFirst({
+        where: { email: 'system@templates.local' }
+      });
+
+      if (!systemUser) {
+        systemUser = await prisma.user.create({
+          data: {
+            email: 'system@templates.local',
+            fullName: 'System Templates',
+            isEmailVerified: true,
+            authProvider: 'EMAIL',
+          }
+        });
+      }
+
+      systemTenant = await prisma.tenant.create({
+        data: {
+          name: 'System Templates',
+          slug: 'system-templates',
+          ownerId: systemUser.id,
+          subscriptionPlanId: freeTrialPlan.id,
+        }
+      });
+    }
+
+    // Check if template already exists
+    const existing = await prisma.project.findFirst({
+      where: {
+        name: template.name,
+        isTemplate: true,
+        tenantId: systemTenant.id
+      }
+    });
+
+    if (existing) {
+      continue; // Skip if already exists
+    }
+
+    // Create the template project with sections and tasks
+    const { sections, tasks, ...projectData } = template;
+
+    const project = await prisma.project.create({
+      data: {
+        ...projectData,
+        tenantId: systemTenant.id,
+        createdBy: systemTenant.ownerId,
+      }
+    });
+
+    // Create sections
+    const createdSections = [];
+    for (const section of sections) {
+      const createdSection = await prisma.projectSection.create({
+        data: {
+          ...section,
+          projectId: project.id,
+        }
+      });
+      createdSections.push(createdSection);
+    }
+
+    // Create tasks
+    for (const task of tasks) {
+      const { sectionIndex, position, ...taskData } = task;
+      await prisma.task.create({
+        data: {
+          ...taskData,
+          projectId: project.id,
+          sectionId: createdSections[sectionIndex].id,
+          orderIndex: position,
+          createdBy: systemTenant.ownerId,
+        }
+      });
+    }
+
+    createdCount++;
+  }
+
+  console.log(`✓ Seeded ${createdCount} project templates`);
+}
+
 async function main() {
   try {
     await seedConsolidatedOptions();
     await seedTaskStatusOptions();
     await seedTaskPriorityOptions();
     await seedSubscriptionPlans();
+    await seedProjectTemplates();
   } catch (error) {
     console.error('Error seeding data:', error);
     throw error;
@@ -210,5 +746,6 @@ module.exports = {
   seedConsolidatedOptions,
   seedTaskStatusOptions,
   seedTaskPriorityOptions,
-  seedSubscriptionPlans
+  seedSubscriptionPlans,
+  seedProjectTemplates
 };
