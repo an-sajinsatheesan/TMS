@@ -1,18 +1,21 @@
 import { useState } from 'react';
-import { Outlet, useLocation, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useParams, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import AppHeader from './AppHeader';
-import AddProjectModal from '../modals/AddProjectModal';
 import { cn } from '@/lib/utils';
 
 const AppLayout = ({ children }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState(false);
   const location = useLocation();
   const params = useParams();
+  const navigate = useNavigate();
 
   // Determine if we're on a project board page
   const isProjectBoard = location.pathname.startsWith('/project-board');
+
+  const handleAddProject = () => {
+    navigate('/project-templates');
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -20,7 +23,7 @@ const AppLayout = ({ children }) => {
       <Sidebar
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
-        onAddProject={() => setIsAddProjectModalOpen(true)}
+        onAddProject={handleAddProject}
       />
 
       {/* Main Content Area */}
@@ -41,12 +44,6 @@ const AppLayout = ({ children }) => {
           onClick={() => setIsSidebarCollapsed(true)}
         />
       )}
-
-      {/* Add Project Modal */}
-      <AddProjectModal
-        isOpen={isAddProjectModalOpen}
-        onClose={() => setIsAddProjectModalOpen(false)}
-      />
     </div>
   );
 };

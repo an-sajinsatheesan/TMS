@@ -320,6 +320,12 @@ class ProjectController {
           createdBy: true,
           createdAt: true,
           updatedAt: true,
+          status: true,
+          dueDate: true,
+          description: true,
+          deletedAt: true,
+          isTemplate: true,
+          templateCategory: true,
         },
       }),
       // Get sections ordered by position
@@ -455,6 +461,12 @@ class ProjectController {
         createdBy: true,
         createdAt: true,
         updatedAt: true,
+        status: true,
+        dueDate: true,
+        description: true,
+        deletedAt: true,
+        isTemplate: true,
+        templateCategory: true,
       },
     });
 

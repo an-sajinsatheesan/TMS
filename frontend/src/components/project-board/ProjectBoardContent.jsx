@@ -3,6 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import ListView from './ListView/ListView';
+import Overview from './Overview';
+import Dashboard from './Dashboard';
 
 const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
   // Mock tasks data
@@ -88,6 +90,14 @@ const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
         return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
+
+  if (viewMode === 'overview') {
+    return <Overview projectId={projectId} />;
+  }
+
+  if (viewMode === 'dashboard') {
+    return <Dashboard projectId={projectId} />;
+  }
 
   if (viewMode === 'list') {
     // ListView has its own provider, just return it
