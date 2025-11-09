@@ -41,11 +41,19 @@ const ProjectTemplates = () => {
         projectsService.getTemplates(),
         projectsService.getAll()
       ]);
-      setTemplates(templatesResponse.data.data.all || []);
-      setUserProjects(projectsResponse.data.data.data || []);
+
+      // Handle templates response - backend returns { data: { all: [...], byCategory: {...} } }
+      const templatesData = templatesResponse.data?.data || templatesResponse.data;
+      setTemplates(templatesData?.all || []);
+
+      // Handle projects response - backend returns { data: { data: [...], pagination: {...} } }
+      const projectsData = projectsResponse.data?.data || projectsResponse.data;
+      setUserProjects(projectsData?.data || projectsData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast.error('Failed to load templates');
+      setTemplates([]);
+      setUserProjects([]);
     } finally {
       setLoading(false);
     }

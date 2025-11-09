@@ -52,11 +52,18 @@ const ProjectBoardHeader = ({ project, onProjectUpdate, onDelete }) => {
   const fetchMembers = async () => {
     try {
       const response = await projectMembersService.list(project.id);
-      setMembers(response.data.data || []);
+      const responseData = response.data?.data || response.data;
+      setMembers(Array.isArray(responseData) ? responseData : []);
     } catch (error) {
       console.error('Error fetching members:', error);
+      setMembers([]);
     }
   };
+
+  // Don't render if project is not loaded
+  if (!project || !project.id) {
+    return null;
+  }
 
   const handleStatusChange = async (newStatus) => {
     try {

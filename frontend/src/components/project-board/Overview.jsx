@@ -64,7 +64,11 @@ const Overview = ({ projectId }) => {
         limit: 50,
         offset,
       });
-      const { data, pagination } = response.data.data;
+
+      // Handle API response structure
+      const responseData = response.data.data || response.data;
+      const data = responseData.data || [];
+      const pagination = responseData.pagination || { limit: 50, offset: 0, total: 0 };
 
       if (offset === 0) {
         setActivities(data);
@@ -76,6 +80,8 @@ const Overview = ({ projectId }) => {
     } catch (error) {
       console.error('Error fetching activities:', error);
       toast.error('Failed to load activities');
+      setActivities([]);
+      setHasMore(false);
     } finally {
       setLoading(false);
     }

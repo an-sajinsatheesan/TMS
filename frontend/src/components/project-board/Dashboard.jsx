@@ -38,10 +38,26 @@ const Dashboard = ({ projectId }) => {
     try {
       setLoading(true);
       const response = await projectsService.getDashboard(projectId);
-      setDashboardData(response.data.data);
+      const data = response.data.data || response.data;
+      setDashboardData(data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data');
+      // Set default empty data instead of null
+      setDashboardData({
+        summary: {
+          totalTasks: 0,
+          completedTasks: 0,
+          incompleteTasks: 0,
+          overdueTasks: 0,
+        },
+        charts: {
+          tasksBySection: [],
+          tasksByStatus: [],
+          upcomingTasksByAssignee: [],
+          taskCompletionOverTime: [],
+        },
+      });
     } finally {
       setLoading(false);
     }
@@ -58,15 +74,19 @@ const Dashboard = ({ projectId }) => {
     );
   }
 
-  if (!dashboardData) {
-    return (
-      <div className="p-8 text-center">
-        <p className="text-gray-500">No dashboard data available</p>
-      </div>
-    );
-  }
+  const summary = dashboardData?.summary || {
+    totalTasks: 0,
+    completedTasks: 0,
+    incompleteTasks: 0,
+    overdueTasks: 0,
+  };
 
-  const { summary, charts } = dashboardData;
+  const charts = dashboardData?.charts || {
+    tasksBySection: [],
+    tasksByStatus: [],
+    upcomingTasksByAssignee: [],
+    taskCompletionOverTime: [],
+  };
 
   // Stats cards configuration
   const stats = [
