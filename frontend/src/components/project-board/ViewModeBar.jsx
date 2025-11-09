@@ -18,19 +18,8 @@ const ViewModeBar = ({ currentView, onViewChange }) => {
   ];
 
   const handleTabChange = (value) => {
-    const mode = viewModes.find((m) => m.value === value);
-
-    if (mode?.type === 'navigation') {
-      // Navigate to overview or dashboard pages
-      if (value === 'overview') {
-        navigate(`/project/${projectId}/overview`);
-      } else if (value === 'dashboard') {
-        navigate(`/project/${projectId}/dashboard`);
-      }
-    } else {
-      // Change view mode within the project board
-      onViewChange(value);
-    }
+    // All view modes now change within the project board
+    onViewChange?.(value);
   };
 
   return (

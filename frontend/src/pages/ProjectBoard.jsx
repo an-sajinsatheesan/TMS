@@ -11,10 +11,14 @@ const ProjectBoard = () => {
   const { user } = useAuth();
   const [currentView, setCurrentView] = useState(viewMode || 'list');
 
+  const handleViewChange = (newView) => {
+    setCurrentView(newView);
+  };
+
   return (
     <AppLayout>
       <MembersProvider projectId={projectId}>
-        <ProjectBoardWrapper>
+        <ProjectBoardWrapper currentView={currentView} onViewChange={handleViewChange}>
           <ProjectBoardContent viewMode={currentView} projectId={projectId} />
         </ProjectBoardWrapper>
       </MembersProvider>

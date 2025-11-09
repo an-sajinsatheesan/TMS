@@ -38,8 +38,6 @@ import Notifications from './pages/Notifications';
 
 // Project Features
 import Trash from './pages/Trash';
-import ProjectDashboard from './pages/ProjectDashboard';
-import ProjectOverview from './pages/ProjectOverview';
 import ProjectTemplates from './pages/ProjectTemplates';
 
 // Guards
@@ -230,23 +228,6 @@ function App() {
                             }
                         />
 
-                        {/* Protected Project Dashboard & Overview Routes */}
-                        <Route
-                            path="/project/:projectId/dashboard"
-                            element={
-                                <ProtectedRoute>
-                                    <ProjectDashboard />
-                                </ProtectedRoute>
-                            }
-                        />
-                        <Route
-                            path="/project/:projectId/overview"
-                            element={
-                                <ProtectedRoute>
-                                    <ProjectOverview />
-                                </ProtectedRoute>
-                            }
-                        />
 
                         {/* Default Route */}
                         <Route path="/" element={<Navigate to="/login" replace />} />
