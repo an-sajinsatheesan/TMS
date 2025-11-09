@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   BarChart,
   Bar,
@@ -15,9 +15,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { CheckCircle2, Circle, AlertCircle, ListTodo } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, ListTodo, ArrowLeft } from 'lucide-react';
 import { projectsService } from '../services/api/projects.service';
 import { toast } from 'sonner';
+import { Button } from '../components/ui/button';
 
 const COLORS = {
   completed: '#10b981',
@@ -27,12 +28,24 @@ const COLORS = {
 
 const ProjectDashboard = () => {
   const { projectId } = useParams();
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
+  const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
+    fetchProject();
   }, [projectId]);
+
+  const fetchProject = async () => {
+    try {
+      const response = await projectsService.getById(projectId);
+      setProject(response.data.data.project);
+    } catch (error) {
+      console.error('Error fetching project:', error);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -112,13 +125,31 @@ const ProjectDashboard = () => {
 
   const PIE_COLORS = [COLORS.incomplete, COLORS.completed];
 
+  const handleBackToProject = () => {
+    navigate(`/project-board/${project?.createdBy}/${projectId}/list`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Project analytics and statistics</p>
+          <div className="flex items-center gap-3 mb-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBackToProject}
+              className="h-10 w-10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                {project?.name || 'Project'} Dashboard
+              </h1>
+              <p className="text-gray-600">Project analytics and statistics</p>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards Row */}
