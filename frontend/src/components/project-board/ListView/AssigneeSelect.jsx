@@ -60,7 +60,7 @@ const AssigneeSelect = ({ taskId, currentAssigneeId, currentAssigneeName, curren
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          className="h-auto p-0 hover:bg-gray-100 rounded px-2 py-1 w-full justify-start"
+          className="h-auto p-0 hover:bg-gray-100 rounded px-1 py-0 w-full justify-start -mx-2"
         >
           {triggerContent}
         </Button>

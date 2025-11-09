@@ -20,6 +20,7 @@ import AddTaskRow from './AddTaskRow';
 import ColumnHeader from './ColumnHeader';
 import AddColumnPopover from './AddColumnPopover';
 import TaskDetailsDialog from '../TaskDetailsDialog';
+import ProjectActionBar from '../ProjectActionBar';
 import { cn } from '@/lib/utils';
 import { useProjectData } from '@/hooks/useProjectData';
 import { fetchColumns, updateColumn, clearColumns } from '@/store/slices/columnsSlice';
@@ -39,9 +40,9 @@ const getColumnWidthClass = (width) => {
 };
 
 const COLUMN_WIDTHS = {
-  checkbox: 'w-12',
-  taskName: 'w-60',
-  addColumn: 'w-20',
+  checkbox: 'w-8',
+  taskName: 'w-96',
+  addColumn: 'w-8',
 };
 
 const ListView = ({ projectId }) => {
@@ -325,7 +326,7 @@ const ListView = ({ projectId }) => {
     }
   };
 
-  const handleAddTask = async (sectionId, taskName) => {
+  const handleAddTaskToSection = async (sectionId, taskName) => {
     if (!taskName.trim()) return;
 
     try {
@@ -490,33 +491,48 @@ const ListView = ({ projectId }) => {
     onColumnVisibilityChange: handleColumnVisibilityChange,
   };
 
+  const handleAddTask = (type) => {
+    console.log('Add task type:', type);
+  };
+
+  const handleAddSection = () => {
+    console.log('Add section');
+  };
+
   return (
     <ListViewProvider value={listViewContextValue}>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        {/* Main Scrollable Container */}
-        <div className="relative h-[500px] border rounded overflow-auto" id="scroll-container">
+      <div className="flex flex-col h-full">
+        {/* Project Action Bar */}
+        <ProjectActionBar
+          onAddTask={handleAddTask}
+          onAddSection={handleAddSection}
+        />
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {/* Main Scrollable Container */}
+          <div className="relative h-[calc(100vh-170px)] overflow-auto" id="scroll-container">
           {/* Header Row */}
           <div className="flex w-max min-w-full sticky top-0 z-40 bg-gray-100">
-            {/* Checkbox Column Header - Sticky Left */}
+            {/* Drag Handle Column Header - Sticky Left */}
             <div
               className={cn(
                 COLUMN_WIDTHS.checkbox,
-                'sticky left-0 z-50 flex-shrink-0 border-r border-b p-2 bg-gray-100'
+                'sticky left-0 z-50 flex-shrink-0 border-r border-b p-1 bg-gray-100 text-xs flex items-center justify-center'
               )}
             >
-              #
+              <span className="text-gray-400">⋮⋮</span>
             </div>
 
             {/* Task Name Column Header - Sticky Left */}
             <div
               className={cn(
                 COLUMN_WIDTHS.taskName,
-                'sticky left-12 z-50 flex-shrink-0 border-r border-b p-2 bg-gray-100'
+                'sticky left-8 z-50 flex-shrink-0 border-r border-b px-2 py-1 bg-gray-100 text-xs font-semibold'
               )}
             >
               Task Name
@@ -529,9 +545,14 @@ const ListView = ({ projectId }) => {
                 return (
                   <div
                     key={column.id}
-                    className={cn(widthClass, 'p-2 border-r')}
+                    className={cn(widthClass, 'border-r')}
                   >
-                    {column.name}
+                    <ColumnHeader
+                      column={column}
+                      onSort={handleSort}
+                      onHide={handleHideColumn}
+                      sortConfig={sortConfig}
+                    />
                   </div>
                 );
               })}
@@ -578,7 +599,7 @@ const ListView = ({ projectId }) => {
                         {/* Add Task Row */}
                         <AddTaskRow
                           sectionId={section.id}
-                          onAddTask={handleAddTask}
+                          onAddTask={handleAddTaskToSection}
                           columnWidths={COLUMN_WIDTHS}
                           scrollableColumns={scrollableColumns}
                         />
@@ -601,14 +622,15 @@ const ListView = ({ projectId }) => {
             </div>
           ) : null}
         </DragOverlay>
-      </DndContext>
+        </DndContext>
 
-      {/* Task Details Dialog */}
-      <TaskDetailsDialog
-        taskId={selectedTaskId}
-        open={!!selectedTaskId}
-        onClose={handleCloseTaskDetails}
-      />
+        {/* Task Details Dialog */}
+        <TaskDetailsDialog
+          taskId={selectedTaskId}
+          open={!!selectedTaskId}
+          onClose={handleCloseTaskDetails}
+        />
+      </div>
     </ListViewProvider>
   );
 };

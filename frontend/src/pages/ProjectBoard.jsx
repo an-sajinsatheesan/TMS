@@ -4,6 +4,7 @@ import AppLayout from '../components/layout/AppLayout';
 import ProjectBoardWrapper from '../components/layout/ProjectBoardWrapper';
 import ProjectBoardContent from '../components/project-board/ProjectBoardContent';
 import { useAuth } from '../contexts/AuthContext';
+import { MembersProvider } from '../contexts/MembersContext';
 
 const ProjectBoard = () => {
   const { userId, projectId, viewMode } = useParams();
@@ -12,9 +13,11 @@ const ProjectBoard = () => {
 
   return (
     <AppLayout>
-      <ProjectBoardWrapper>
-        <ProjectBoardContent viewMode={currentView} projectId={projectId} />
-      </ProjectBoardWrapper>
+      <MembersProvider projectId={projectId}>
+        <ProjectBoardWrapper>
+          <ProjectBoardContent viewMode={currentView} projectId={projectId} />
+        </ProjectBoardWrapper>
+      </MembersProvider>
     </AppLayout>
   );
 };

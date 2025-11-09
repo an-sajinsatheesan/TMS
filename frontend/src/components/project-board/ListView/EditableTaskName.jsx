@@ -70,7 +70,7 @@ const EditableTaskName = ({ taskId, value, onSave, isCompleted }) => {
         onChange={(e) => setEditValue(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className="text-sm font-medium px-1 py-0.5 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full"
+        className="text-xs font-medium px-1 py-0.5 border border-blue-500 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full"
         onClick={(e) => e.stopPropagation()} // Prevent drag when clicking input
       />
     );
@@ -80,7 +80,7 @@ const EditableTaskName = ({ taskId, value, onSave, isCompleted }) => {
     <span
       onClick={handleClick}
       className={cn(
-        'text-sm font-medium truncate cursor-text hover:bg-gray-100 px-1 py-0.5 rounded transition-colors',
+        'text-xs font-medium truncate cursor-text hover:bg-gray-100 px-1 py-0.5 rounded transition-colors',
         isCompleted && 'line-through text-gray-400'
       )}
     >

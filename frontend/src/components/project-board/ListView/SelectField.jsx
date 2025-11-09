@@ -30,7 +30,7 @@ const SelectField = ({ taskId, column, currentValue, onValueChange }) => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="w-full h-full flex items-center px-2 py-1 text-left hover:opacity-80 transition-opacity"
+          className="w-full h-full flex items-center px-1 py-0 text-left hover:opacity-80 transition-opacity -mx-2"
           style={{
             backgroundColor: selectedOption ? selectedOption.color : 'transparent',
             color: selectedOption ? 'white' : '#9CA3AF',

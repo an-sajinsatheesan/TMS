@@ -25,22 +25,22 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
     id: `section-${section.id}`,
   });
 
-  const style = {
+  const style = isDragging ? {
     transform: CSS.Transform.toString(transform),
     transition,
-  };
+  } : {};
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'group w-max min-w-full relative',
-        isDragging && 'opacity-50'
-      )}
-    >
+    <div className="w-max min-w-full">
       {/* Sticky Group Header */}
-      <div className="sticky top-[33px] z-30 flex bg-gray-200 border-b border-gray-300 w-max min-w-full">
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={cn(
+          "sticky top-[26px] z-30 flex bg-gray-200 border-b border-gray-300 w-max min-w-full",
+          isDragging && 'opacity-50'
+        )}
+      >
         {/* Left sticky column - empty for checkbox alignment */}
         <div className={cn(
           columnWidths.checkbox,
@@ -51,7 +51,7 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
         {/* Group Title - Sticky Left */}
         <div className={cn(
           columnWidths.taskName,
-          'sticky left-12 flex-shrink-0 p-2 font-bold bg-gray-200 flex items-center gap-2'
+          'sticky left-8 flex-shrink-0 px-2 py-1 font-bold bg-gray-200 flex items-center gap-2'
         )}>
           {/* Collapse/Expand Button */}
           <button
@@ -74,7 +74,7 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
           />
 
           {/* Section Title */}
-          <h3 className="text-sm font-semibold text-gray-900">{section.name}</h3>
+          <h3 className="text-xs font-semibold text-gray-900">{section.name}</h3>
 
           {/* Task Count */}
           {taskCount > 0 && (
@@ -91,7 +91,7 @@ const GroupHeader = ({ section, taskCount, isCollapsed, onToggleCollapse, column
             return (
               <div
                 key={column.id}
-                className={cn(widthClass, 'p-2 bg-gray-200')}
+                className={cn(widthClass, 'px-2 py-1 bg-gray-200')}
               />
             );
           })}

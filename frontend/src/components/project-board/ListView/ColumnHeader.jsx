@@ -24,7 +24,7 @@ const ColumnHeader = ({ column, onSort, onHide, sortConfig }) => {
   };
 
   return (
-    <div className="flex items-center justify-between px-3 py-2 bg-gray-50 text-xs font-semibold text-gray-700 uppercase tracking-wider group h-full">
+    <div className="flex items-center justify-between px-2 py-1 bg-gray-100 text-xs font-semibold text-gray-700 tracking-wide group h-full">
       <div className="flex items-center gap-1 min-w-0 flex-1">
         {isSortable ? (
           <button onClick={handleSort} className="flex items-center gap-1 hover:text-gray-900 transition-colors min-w-0 flex-1">

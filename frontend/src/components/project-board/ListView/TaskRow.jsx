@@ -108,7 +108,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
       ref={setNodeRef}
       style={style}
       className={cn(
-        'group hover:bg-gray-50 transition-colors border-b border-gray-200 min-h-[36px]',
+        'group hover:bg-gray-50 transition-colors border-b border-gray-200 min-h-[32px]',
         isDragging && 'opacity-50'
       )}
     >
@@ -121,32 +121,37 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
         onDelete={onDelete}
       >
         <div className="flex w-max min-w-full border-b">
-          {/* Checkbox Column - Sticky Left */}
+          {/* Drag Handle Column - Sticky Left */}
           <div
             className={cn(
               columnWidths.checkbox,
-              'sticky left-0 flex-shrink-0 border-r p-2 bg-white'
+              'sticky left-0 z-20 flex-shrink-0 border-r p-1 bg-white cursor-grab active:cursor-grabbing'
             )}
             {...attributes}
             {...listeners}
           >
-            <button
-              onClick={() => onToggleComplete(task.id)}
-              className="flex items-center justify-center w-full h-full"
-            >
-              {getTaskIcon()}
-            </button>
+            <div className="flex  items-center justify-center w-full h-full text-gray-400 hover:text-gray-600">
+              <GripVertical className="h-3 w-3" />
+            </div>
           </div>
 
           {/* Task Name Column - Sticky Left */}
           <div
             className={cn(
               columnWidths.taskName,
-              'sticky left-12 flex-shrink-0 border-r p-2 bg-white flex items-center gap-2'
+              'sticky z-20 left-8 flex-shrink-0 border-r px-2 py-1 bg-white flex items-center gap-2'
             )}
           >
             {/* Subtask padding */}
             {isSubtask && <div className="w-4 flex-shrink-0" />}
+
+            {/* Completion Circle */}
+            <button
+              onClick={() => onToggleComplete(task.id)}
+              className="flex items-center justify-center flex-shrink-0"
+            >
+              {getTaskIcon()}
+            </button>
 
             {/* Task Title */}
             <div className="flex-1 min-w-0">
@@ -185,7 +190,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
               return (
                 <div
                   key={column.id}
-                  className={cn(widthClass, 'p-2 border-r flex items-center text-sm text-gray-700')}
+                  className={cn(widthClass, 'border-r flex items-center justify-center text-xs text-gray-700')}
                 >
                   {/* Render based on column type */}
                   {column.type === 'user' && (
@@ -246,7 +251,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
                       value={value || ''}
                       onChange={(e) => onSelectChange(task.id, column.id, e.target.value)}
                       placeholder="-"
-                      className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm"
+                      className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs px-0"
                     />
                   )}
 
@@ -256,7 +261,7 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
                       value={value || ''}
                       onChange={(e) => onSelectChange(task.id, column.id, e.target.value ? Number(e.target.value) : null)}
                       placeholder="-"
-                      className="w-full bg-transparent border-none outline-none focus:ring-0 text-sm"
+                      className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs px-0"
                     />
                   )}
 
@@ -281,9 +286,9 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
           {/* Fixed Right Column */}
           <div className={cn(
             columnWidths.addColumn,
-            'sticky right-0 flex-shrink-0 border-l bg-white text-center p-2'
+            'sticky right-0 flex-shrink-0 border-l bg-white text-center p-1'
           )}>
-            <span className="text-gray-400 text-sm">⋯</span>
+            <span className="text-gray-400 text-xs">⋯</span>
           </div>
         </div>
       </TaskContextMenu>

@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, cloneElement, Children } from 'react';
 import { useParams } from 'react-router-dom';
 import ViewModeBar from '../project-board/ViewModeBar';
-import ProjectActionBar from '../project-board/ProjectActionBar';
 
 const ProjectBoardWrapper = ({ children }) => {
   const { viewMode } = useParams();
@@ -28,18 +27,6 @@ const ProjectBoardWrapper = ({ children }) => {
     console.log('Add section');
   };
 
-  const handleSort = () => {
-    console.log('Open sort options');
-  };
-
-  const handleColumnCustomize = () => {
-    console.log('Customize columns');
-  };
-
-  const handleFilter = () => {
-    console.log('Open filters');
-  };
-
   return (
     <>
       {/* Fixed View Mode Bar */}
@@ -48,20 +35,9 @@ const ProjectBoardWrapper = ({ children }) => {
         onViewChange={handleViewChange}
       />
 
-      {/* Fixed Project Action Bar */}
-      <ProjectActionBar
-        onAddTask={handleAddTask}
-        onAddSection={handleAddSection}
-        onSort={handleSort}
-        onColumnCustomize={handleColumnCustomize}
-        onFilter={handleFilter}
-      />
-
-      {/* Scrollable Content Area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="container mx-auto">
-          {children}
-        </div>
+      {/* Scrollable Content Area with Action Bar */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {children}
       </div>
     </>
   );

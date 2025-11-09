@@ -2,8 +2,7 @@ import { CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ListView } from './ListView';
-import { MembersProvider } from '@/contexts/MembersContext';
+import ListView from './ListView/ListView';
 
 const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
   // Mock tasks data
@@ -91,11 +90,8 @@ const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
   };
 
   if (viewMode === 'list') {
-    return (
-      <MembersProvider projectId={projectId}>
-        <ListView projectId={projectId} />
-      </MembersProvider>
-    );
+    // ListView has its own provider, just return it
+    return <ListView projectId={projectId} />;
   }
 
   if (viewMode === 'kanban') {
