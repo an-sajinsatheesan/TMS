@@ -9,6 +9,7 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import {
   SortableContext,
   sortableKeyboardCoordinates,
@@ -16,6 +17,7 @@ import {
 } from '@dnd-kit/sortable';
 import GroupHeader from './GroupHeader';
 import TaskRow from './TaskRow';
+import TaskRowSkeleton from './TaskRowSkeleton';
 import AddTaskRow from './AddTaskRow';
 import ColumnHeader from './ColumnHeader';
 import AddColumnPopover from './AddColumnPopover';
@@ -453,6 +455,19 @@ const ListView = ({ projectId }) => {
     console.log('Swap column:', columnId);
   };
 
+  const handleTaskNameSort = () => {
+    if (sortConfig.column === 'title') {
+      // Toggle direction or clear
+      if (sortConfig.direction === 'asc') {
+        setSortConfig({ column: 'title', direction: 'desc' });
+      } else {
+        setSortConfig({ column: null, direction: null });
+      }
+    } else {
+      setSortConfig({ column: 'title', direction: 'asc' });
+    }
+  };
+
   // Render task and its subtasks
   const renderTaskWithSubtasks = (task, level = 0) => {
     const isExpanded = expandedTasks[task.id] || false;
@@ -492,11 +507,32 @@ const ListView = ({ projectId }) => {
   const topLevelTaskIds = tasks.map((t) => t.id);
   const allDraggableIds = [...sectionIds, ...topLevelTaskIds];
 
-  // Loading state
+  // Loading state with skeleton
   if (tasksLoading || columnsLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-gray-500">Loading...</div>
+      <div className="flex flex-col h-full">
+        <ProjectActionBar
+          onAddTask={() => {}}
+          onAddSection={() => {}}
+        />
+        <div className="relative h-[calc(100vh-170px)] overflow-auto">
+          {/* Header Row */}
+          <div className="flex w-max min-w-full sticky top-0 z-40 bg-gray-100">
+            <div className={cn(COLUMN_WIDTHS.checkbox, 'sticky left-0 z-50 flex-shrink-0 border-r border-b p-1 bg-gray-100 text-xs flex items-center justify-center')}>
+              <span className="text-gray-400">⋮⋮</span>
+            </div>
+            <div className={cn(COLUMN_WIDTHS.taskName, 'sticky left-8 z-50 flex-shrink-0 border-r border-b px-2 py-1 bg-gray-100 text-xs font-semibold flex items-center gap-1')}>
+              <span>Task Name</span>
+              <ArrowUpDown className="h-3 w-3 opacity-50" />
+            </div>
+            <div className="flex-1 border-b" />
+            <div className={cn(COLUMN_WIDTHS.addColumn, 'sticky right-0 z-50 flex-shrink-0 border-l border-b bg-gray-100')} />
+          </div>
+          {/* Skeleton Rows */}
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <TaskRowSkeleton key={idx} columnWidths={COLUMN_WIDTHS} scrollableColumnsCount={3} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -558,14 +594,24 @@ const ListView = ({ projectId }) => {
             </div>
 
             {/* Task Name Column Header - Sticky Left */}
-            <div
+            <button
+              onClick={handleTaskNameSort}
               className={cn(
                 COLUMN_WIDTHS.taskName,
-                'sticky left-8 z-50 flex-shrink-0 border-r border-b px-2 py-1 bg-gray-100 text-xs font-semibold'
+                'sticky left-8 z-50 flex-shrink-0 border-r border-b px-2 py-1 bg-gray-100 text-xs font-semibold hover:bg-gray-200 transition-colors flex items-center gap-1'
               )}
             >
-              Task Name
-            </div>
+              <span>Task Name</span>
+              {sortConfig.column === 'title' ? (
+                sortConfig.direction === 'asc' ? (
+                  <ArrowUp className="h-3 w-3" />
+                ) : (
+                  <ArrowDown className="h-3 w-3" />
+                )
+              ) : (
+                <ArrowUpDown className="h-3 w-3 opacity-50" />
+              )}
+            </button>
 
             {/* Scrollable header cells */}
             <div className="flex-1 flex border-b">

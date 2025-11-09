@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Flag, ChevronRight, CheckCircle2, Circle, ListTree } from 'lucide-react';
+import { GripVertical, Flag, ChevronRight, CheckCircle2, Circle, ListTree, Square, CheckSquare, ArrowRight } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -53,16 +53,16 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
       );
     }
 
-    // Subtask uses smaller circle
+    // Subtask uses square checkbox
     if (isSubtask) {
       return task.completed ? (
-        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 fill-emerald-500" />
+        <CheckSquare className="h-3.5 w-3.5 text-emerald-500 fill-emerald-500" />
       ) : (
-        <Circle className="h-3.5 w-3.5 text-gray-400" />
+        <Square className="h-3.5 w-3.5 text-gray-400" />
       );
     }
 
-    // Regular task
+    // Regular task uses circle
     return task.completed ? (
       <CheckCircle2 className="h-4 w-4 text-emerald-500 fill-emerald-500" />
     ) : (
@@ -316,9 +316,15 @@ const TaskRow = ({ task, columns, onToggleComplete, onAssigneeChange, onDateChan
           {/* Fixed Right Column */}
           <div className={cn(
             columnWidths.addColumn,
-            'sticky right-0 flex-shrink-0 border-l bg-white text-center p-1'
+            'sticky right-0 flex-shrink-0 border-l bg-white flex items-center justify-center p-1'
           )}>
-            <span className="text-gray-400 text-xs">⋯</span>
+            <button
+              onClick={() => onOpenDetails(task.id)}
+              className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-100 rounded p-0.5"
+              title="Open task details"
+            >
+              <ArrowRight className="h-3.5 w-3.5 text-gray-500" />
+            </button>
           </div>
         </div>
       </TaskContextMenu>
