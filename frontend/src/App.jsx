@@ -36,6 +36,12 @@ import Teams from './pages/Teams';
 import Analytics from './pages/Analytics';
 import Notifications from './pages/Notifications';
 
+// Project Features
+import Trash from './pages/Trash';
+import ProjectDashboard from './pages/ProjectDashboard';
+import ProjectOverview from './pages/ProjectOverview';
+import ProjectTemplates from './pages/ProjectTemplates';
+
 // Guards
 import OnboardingStepGuard from './components/common/OnboardingStepGuard';
 
@@ -186,6 +192,26 @@ function App() {
                             }
                         />
 
+                        {/* Protected Trash Routes */}
+                        <Route
+                            path="/trash"
+                            element={
+                                <ProtectedRoute>
+                                    <Trash />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Project Templates Routes */}
+                        <Route
+                            path="/project-templates"
+                            element={
+                                <ProtectedRoute>
+                                    <ProjectTemplates />
+                                </ProtectedRoute>
+                            }
+                        />
+
                         {/* Protected Project Board Routes */}
                         <Route
                             path="/project-board/:userId/:projectId/:viewMode"
@@ -200,6 +226,24 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     <ProjectBoard />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Project Dashboard & Overview Routes */}
+                        <Route
+                            path="/project/:projectId/dashboard"
+                            element={
+                                <ProtectedRoute>
+                                    <ProjectDashboard />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/project/:projectId/overview"
+                            element={
+                                <ProtectedRoute>
+                                    <ProjectOverview />
                                 </ProtectedRoute>
                             }
                         />
