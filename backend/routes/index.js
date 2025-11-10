@@ -11,6 +11,7 @@ const projectRolesRoutes = require('./projectRoles.routes');
 const sectionByIdRoutes = require('./sectionById.routes');
 const taskByIdRoutes = require('./taskById.routes');
 const commentByIdRoutes = require('./commentById.routes');
+const superAdminRoutes = require('./superAdmin.routes');
 
 // Health check route
 router.get('/health', (req, res) => {
@@ -31,5 +32,6 @@ router.use('/project-roles', projectRolesRoutes);
 router.use('/sections', sectionByIdRoutes);
 router.use('/tasks', taskByIdRoutes);
 router.use('/comments', commentByIdRoutes);
+router.use('/admin', superAdminRoutes); // Super admin routes
 
 module.exports = router;

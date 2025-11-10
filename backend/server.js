@@ -45,11 +45,41 @@ process.on("unhandledRejection", (err) => {
     });
 });
 
-// Graceful shutdown
-process.on("SIGTERM", async () => {
-    logger.info("👋 SIGTERM RECEIVED. Shutting down gracefully");
+// Graceful shutdown handler
+const gracefulShutdown = async (signal) => {
+    logger.info(`👋 ${signal} RECEIVED. Shutting down gracefully...`);
+
+    // Stop accepting new connections
     server.close(async () => {
-        await prisma.$disconnect();
-        logger.info("💥 Process terminated!");
+        logger.info("🔒 HTTP server closed");
+
+        try {
+            // Stop scheduler service
+            logger.info("⏸️  Stopping scheduler service...");
+            SchedulerService.stop();
+
+            // Disconnect from database
+            logger.info("🔌 Disconnecting from database...");
+            await prisma.$disconnect();
+            logger.info("✅ Database disconnected");
+
+            logger.info("💥 Process terminated gracefully!");
+            process.exit(0);
+        } catch (error) {
+            logger.error("❌ Error during graceful shutdown:", error);
+            process.exit(1);
+        }
     });
-});
+
+    // Force shutdown after 30 seconds if graceful shutdown fails
+    setTimeout(() => {
+        logger.error("⚠️  Graceful shutdown timeout, forcing exit...");
+        process.exit(1);
+    }, 30000);
+};
+
+// Handle graceful shutdown on SIGTERM (docker stop, kubernetes)
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
+// Handle graceful shutdown on SIGINT (Ctrl+C)
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
