@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, FolderPlus, Copy } from 'lucide-react';
+import { Sparkles, Search, FolderPlus, Copy, Globe } from 'lucide-react';
 import { projectsService } from '../services/api/projects.service';
 import { toast } from 'sonner';
 
@@ -243,16 +243,27 @@ const ProjectTemplates = () => {
                       <h3 className="text-lg font-semibold text-gray-900 mb-1">
                         {item.name}
                       </h3>
-                      {!isMyOrgTab && item.templateCategory && (
-                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                          {item.templateCategory}
-                        </span>
-                      )}
-                      {isMyOrgTab && (
-                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
-                          {item.layout || 'LIST'}
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {/* Global Template Badge */}
+                        {!isMyOrgTab && item.isGlobal && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 border border-purple-200">
+                            <Globe className="w-3 h-3" />
+                            Global
+                          </span>
+                        )}
+                        {/* Category Badge */}
+                        {!isMyOrgTab && item.templateCategory && (
+                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                            {item.templateCategory}
+                          </span>
+                        )}
+                        {/* Layout Badge (for My Org projects) */}
+                        {isMyOrgTab && (
+                          <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+                            {item.layout || 'LIST'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2">

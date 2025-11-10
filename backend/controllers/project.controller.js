@@ -960,15 +960,33 @@ class ProjectController {
 
   /**
    * @route   GET /api/v1/projects/templates/list
-   * @desc    List all project templates
+   * @desc    List global templates + tenant-specific templates
    * @access  Private
    */
   static listTemplates = asyncHandler(async (req, res) => {
     const { category } = req.query;
+    const userId = req.user.id;
 
+    // Get user's tenant - CRITICAL for multi-tenant isolation
+    const tenantUser = await prisma.tenantUser.findFirst({
+      where: { userId },
+      select: { tenantId: true },
+    });
+
+    if (!tenantUser) {
+      throw ApiError.forbidden('You must belong to a workspace to view templates');
+    }
+
+    // Build where clause to include:
+    // 1. Global templates (isGlobal=true, accessible to all tenants)
+    // 2. Tenant-specific templates (tenantId matches user's tenant)
     const where = {
       isTemplate: true,
       deletedAt: null,
+      OR: [
+        { isGlobal: true }, // Global templates created by super admins
+        { tenantId: tenantUser.tenantId }, // Tenant's own templates
+      ],
     };
 
     if (category && category !== 'ALL') {
@@ -984,6 +1002,8 @@ class ProjectController {
         color: true,
         layout: true,
         templateCategory: true,
+        isGlobal: true,
+        tenantId: true,
         _count: {
           select: {
             sections: true,
@@ -991,9 +1011,10 @@ class ProjectController {
           },
         },
       },
-      orderBy: {
-        name: 'asc',
-      },
+      orderBy: [
+        { isGlobal: 'desc' }, // Global templates first
+        { name: 'asc' },
+      ],
     });
 
     // Group templates by category
@@ -1006,10 +1027,16 @@ class ProjectController {
       return acc;
     }, {});
 
+    // Separate global and tenant templates for UI
+    const globalTemplates = templates.filter((t) => t.isGlobal);
+    const tenantTemplates = templates.filter((t) => !t.isGlobal);
+
     ApiResponse.success(
       {
         all: templates,
         byCategory: groupedTemplates,
+        global: globalTemplates,
+        tenant: tenantTemplates,
       },
       'Templates retrieved successfully'
     ).send(res);
