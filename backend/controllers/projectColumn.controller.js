@@ -33,6 +33,49 @@ class ProjectColumnController {
   static createColumn = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     const { name, type, width, visible, options } = req.body;
+    const userId = req.user.id;
+
+    // Get project and verify it exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, tenantId: true },
+    });
+
+    if (!project) {
+      throw ApiError.notFound('Project not found');
+    }
+
+    // Check if user has admin access (project-level or tenant-level membership)
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        tenantId: project.tenantId,
+        OR: [
+          {
+            level: 'PROJECT',
+            projectId,
+          },
+          {
+            level: 'TENANT',
+            projectId: null,
+          },
+        ],
+      },
+      select: {
+        id: true,
+        role: true,
+        level: true,
+      },
+    });
+
+    if (!membership) {
+      throw ApiError.forbidden('Access denied: You are not a member of this project');
+    }
+
+    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
+    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+      throw ApiError.forbidden('Access denied: Requires ADMIN role');
+    }
 
     // Get the next position
     const lastColumn = await prisma.projectColumn.findFirst({
@@ -64,7 +107,58 @@ class ProjectColumnController {
    */
   static updateColumn = asyncHandler(async (req, res) => {
     const { columnId } = req.params;
+    const userId = req.user.id;
     const updateData = { ...req.body };
+
+    // Get column and verify it exists
+    const existingColumn = await prisma.projectColumn.findUnique({
+      where: { id: columnId },
+      select: {
+        id: true,
+        projectId: true,
+        project: {
+          select: {
+            tenantId: true,
+          },
+        },
+      },
+    });
+
+    if (!existingColumn) {
+      throw ApiError.notFound('Column not found');
+    }
+
+    // Check if user has admin access (project-level or tenant-level membership)
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        tenantId: existingColumn.project.tenantId,
+        OR: [
+          {
+            level: 'PROJECT',
+            projectId: existingColumn.projectId,
+          },
+          {
+            level: 'TENANT',
+            projectId: null,
+          },
+        ],
+      },
+      select: {
+        id: true,
+        role: true,
+        level: true,
+      },
+    });
+
+    if (!membership) {
+      throw ApiError.forbidden('Access denied: You are not a member of this project');
+    }
+
+    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
+    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+      throw ApiError.forbidden('Access denied: Requires ADMIN role');
+    }
 
     // Remove fields that shouldn't be updated directly
     delete updateData.id;
@@ -86,14 +180,57 @@ class ProjectColumnController {
    */
   static deleteColumn = asyncHandler(async (req, res) => {
     const { columnId } = req.params;
+    const userId = req.user.id;
 
     // Check if column is a default column
     const column = await prisma.projectColumn.findUnique({
       where: { id: columnId },
+      select: {
+        id: true,
+        projectId: true,
+        isDefault: true,
+        project: {
+          select: {
+            tenantId: true,
+          },
+        },
+      },
     });
 
     if (!column) {
       throw ApiError.notFound('Column not found');
+    }
+
+    // Check if user has admin access (project-level or tenant-level membership)
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        tenantId: column.project.tenantId,
+        OR: [
+          {
+            level: 'PROJECT',
+            projectId: column.projectId,
+          },
+          {
+            level: 'TENANT',
+            projectId: null,
+          },
+        ],
+      },
+      select: {
+        id: true,
+        role: true,
+        level: true,
+      },
+    });
+
+    if (!membership) {
+      throw ApiError.forbidden('Access denied: You are not a member of this project');
+    }
+
+    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
+    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+      throw ApiError.forbidden('Access denied: Requires ADMIN role');
     }
 
     if (column.isDefault) {
@@ -115,9 +252,52 @@ class ProjectColumnController {
   static reorderColumns = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     const { columnIds } = req.body; // Array of column IDs in new order
+    const userId = req.user.id;
 
     if (!Array.isArray(columnIds)) {
       throw ApiError.badRequest('columnIds must be an array');
+    }
+
+    // Get project and verify it exists
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { id: true, tenantId: true },
+    });
+
+    if (!project) {
+      throw ApiError.notFound('Project not found');
+    }
+
+    // Check if user has admin access (project-level or tenant-level membership)
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        tenantId: project.tenantId,
+        OR: [
+          {
+            level: 'PROJECT',
+            projectId,
+          },
+          {
+            level: 'TENANT',
+            projectId: null,
+          },
+        ],
+      },
+      select: {
+        id: true,
+        role: true,
+        level: true,
+      },
+    });
+
+    if (!membership) {
+      throw ApiError.forbidden('Access denied: You are not a member of this project');
+    }
+
+    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
+    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+      throw ApiError.forbidden('Access denied: Requires ADMIN role');
     }
 
     // Update positions in a transaction

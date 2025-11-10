@@ -4,10 +4,10 @@ const ProjectController = require('../controllers/project.controller');
 const ProjectMemberController = require('../controllers/projectMember.controller');
 const { authenticate } = require('../middlewares/auth');
 const {
-  checkProjectAccess,
-  checkProjectAdmin,
-  checkProjectOwner,
-} = require('../middlewares/projectAccess.middleware');
+  projectContext,
+  requireProjectAdmin,
+  requireProjectOwner,
+} = require('../middlewares/membership');
 const {
   validate,
   validateQuery,
@@ -69,7 +69,7 @@ router.get(
 router.get(
   '/:projectId',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   ProjectController.getProject
 );
 
@@ -81,8 +81,8 @@ router.get(
 router.patch(
   '/:projectId',
   authenticate,
-  checkProjectAccess,
-  checkProjectAdmin,
+  projectContext,
+  requireProjectAdmin,
   validate(updateProjectSchema),
   ProjectController.updateProject
 );
@@ -95,8 +95,8 @@ router.patch(
 router.delete(
   '/:projectId',
   authenticate,
-  checkProjectAccess,
-  checkProjectOwner,
+  projectContext,
+  requireProjectOwner,
   ProjectController.deleteProject
 );
 
@@ -112,8 +112,8 @@ router.delete(
 router.patch(
   '/:projectId/status',
   authenticate,
-  checkProjectAccess,
-  checkProjectAdmin,
+  projectContext,
+  requireProjectAdmin,
   ProjectController.updateProjectStatus
 );
 
@@ -125,8 +125,8 @@ router.patch(
 router.patch(
   '/:projectId/due-date',
   authenticate,
-  checkProjectAccess,
-  checkProjectAdmin,
+  projectContext,
+  requireProjectAdmin,
   ProjectController.updateProjectDueDate
 );
 
@@ -138,8 +138,8 @@ router.patch(
 router.post(
   '/:projectId/trash',
   authenticate,
-  checkProjectAccess,
-  checkProjectOwner,
+  projectContext,
+  requireProjectOwner,
   ProjectController.moveToTrash
 );
 
@@ -151,8 +151,8 @@ router.post(
 router.post(
   '/:projectId/restore',
   authenticate,
-  checkProjectAccess,
-  checkProjectOwner,
+  projectContext,
+  requireProjectOwner,
   ProjectController.restoreFromTrash
 );
 
@@ -164,8 +164,8 @@ router.post(
 router.delete(
   '/:projectId/permanent',
   authenticate,
-  checkProjectAccess,
-  checkProjectOwner,
+  projectContext,
+  requireProjectOwner,
   ProjectController.permanentDelete
 );
 
@@ -181,7 +181,7 @@ router.delete(
 router.get(
   '/:projectId/activities',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   ProjectController.getActivities
 );
 
@@ -193,7 +193,7 @@ router.get(
 router.get(
   '/:projectId/dashboard',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   ProjectController.getDashboardStats
 );
 
@@ -238,7 +238,7 @@ router.post(
 router.get(
   '/:projectId/members',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   ProjectMemberController.listMembers
 );
 
@@ -250,8 +250,8 @@ router.get(
 router.post(
   '/:projectId/members/invite',
   authenticate,
-  checkProjectAccess,
-  checkProjectAdmin,
+  projectContext,
+  requireProjectAdmin,
   validate(inviteMembersSchema),
   ProjectMemberController.inviteMembers
 );
@@ -264,8 +264,8 @@ router.post(
 router.patch(
   '/:projectId/members/:memberId',
   authenticate,
-  checkProjectAccess,
-  checkProjectOwner,
+  projectContext,
+  requireProjectOwner,
   validate(updateMemberRoleSchema),
   ProjectMemberController.updateMemberRole
 );
@@ -278,8 +278,8 @@ router.patch(
 router.delete(
   '/:projectId/members/:memberId',
   authenticate,
-  checkProjectAccess,
-  checkProjectAdmin,
+  projectContext,
+  requireProjectAdmin,
   ProjectMemberController.removeMember
 );
 

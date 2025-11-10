@@ -128,6 +128,7 @@ class SectionController {
   static updateSection = asyncHandler(async (req, res) => {
     const { sectionId } = req.params;
     const { name, color, position, isCollapsed, kanbanWipLimit } = req.body;
+    const userId = req.user.id;
 
     // Check if section exists
     const existingSection = await prisma.projectSection.findUnique({
@@ -136,11 +137,43 @@ class SectionController {
         id: true,
         projectId: true,
         position: true,
+        project: {
+          select: {
+            tenantId: true,
+          },
+        },
       },
     });
 
     if (!existingSection) {
       throw ApiError.notFound('Section not found');
+    }
+
+    // Check if user has access (project-level or tenant-level membership)
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        tenantId: existingSection.project.tenantId,
+        OR: [
+          {
+            level: 'PROJECT',
+            projectId: existingSection.projectId,
+          },
+          {
+            level: 'TENANT',
+            projectId: null,
+          },
+        ],
+      },
+      select: {
+        id: true,
+        role: true,
+        level: true,
+      },
+    });
+
+    if (!membership) {
+      throw ApiError.forbidden('Access denied: You are not a member of this project');
     }
 
     // If position is being changed, reorder sections
@@ -225,6 +258,7 @@ class SectionController {
    */
   static deleteSection = asyncHandler(async (req, res) => {
     const { sectionId } = req.params;
+    const userId = req.user.id;
 
     // Check if section exists
     const section = await prisma.projectSection.findUnique({
@@ -233,11 +267,43 @@ class SectionController {
         id: true,
         projectId: true,
         position: true,
+        project: {
+          select: {
+            tenantId: true,
+          },
+        },
       },
     });
 
     if (!section) {
       throw ApiError.notFound('Section not found');
+    }
+
+    // Check if user has access (project-level or tenant-level membership)
+    const membership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        tenantId: section.project.tenantId,
+        OR: [
+          {
+            level: 'PROJECT',
+            projectId: section.projectId,
+          },
+          {
+            level: 'TENANT',
+            projectId: null,
+          },
+        ],
+      },
+      select: {
+        id: true,
+        role: true,
+        level: true,
+      },
+    });
+
+    if (!membership) {
+      throw ApiError.forbidden('Access denied: You are not a member of this project');
     }
 
     // Move tasks to null section (or you could move to first section)

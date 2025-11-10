@@ -6,28 +6,44 @@ const asyncHandler = require('../utils/asyncHandler');
 const EmailService = require('../services/email.service');
 
 /**
- * ProjectMember Controller
- * Handles project member management
+ * Project Member Controller
+ * Handles project membership management using unified Membership model
  */
 
 class ProjectMemberController {
   /**
    * @route   GET /api/v1/projects/:projectId/members
-   * @desc    List project members
-   * @access  Private (requires ProjectMember)
+   * @desc    List project members (both project-level and tenant-level)
+   * @access  Private (requires project membership)
    */
   static listMembers = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
 
-    // Get current project members
-    const members = await prisma.projectMember.findMany({
-      where: { projectId },
+    // Get project info
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        tenantId: true,
+      },
+    });
+
+    if (!project) {
+      throw ApiError.notFound('Project not found');
+    }
+
+    // Get project-specific members
+    const projectMembers = await prisma.membership.findMany({
+      where: {
+        projectId,
+        level: 'PROJECT',
+      },
       orderBy: { joinedAt: 'asc' },
       select: {
         id: true,
-        projectId: true,
         userId: true,
         role: true,
+        level: true,
         joinedAt: true,
         user: {
           select: {
@@ -39,6 +55,53 @@ class ProjectMemberController {
         },
       },
     });
+
+    // Get tenant-level members (they have access to all projects)
+    const tenantMembers = await prisma.membership.findMany({
+      where: {
+        tenantId: project.tenantId,
+        level: 'TENANT',
+      },
+      orderBy: { joinedAt: 'asc' },
+      select: {
+        id: true,
+        userId: true,
+        role: true,
+        level: true,
+        joinedAt: true,
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+    });
+
+    // Format members with metadata
+    const formattedProjectMembers = projectMembers.map((member) => ({
+      id: member.id,
+      projectId,
+      userId: member.userId,
+      role: member.role,
+      level: member.level,
+      joinedAt: member.joinedAt,
+      isProjectSpecific: true,
+      user: member.user,
+    }));
+
+    const formattedTenantMembers = tenantMembers.map((member) => ({
+      id: member.id,
+      projectId: null,
+      userId: member.userId,
+      role: member.role,
+      level: member.level,
+      joinedAt: member.joinedAt,
+      isProjectSpecific: false,
+      user: member.user,
+    }));
 
     // Get pending invitations for this project
     const pendingInvitations = await prisma.invitation.findMany({
@@ -53,7 +116,7 @@ class ProjectMemberController {
       select: {
         id: true,
         email: true,
-        projectRole: true,
+        role: true,
         createdAt: true,
         inviter: {
           select: {
@@ -65,13 +128,15 @@ class ProjectMemberController {
     });
 
     // Format pending invitations to match member structure
-    const formattedInvitations = pendingInvitations.map(inv => ({
+    const formattedInvitations = pendingInvitations.map((inv) => ({
       id: inv.id,
       projectId,
       userId: null,
-      role: inv.projectRole,
+      role: inv.role,
+      level: 'PROJECT',
       joinedAt: inv.createdAt,
       isPending: true, // Flag to identify pending invitations
+      isProjectSpecific: true,
       user: {
         id: null,
         fullName: null,
@@ -81,21 +146,36 @@ class ProjectMemberController {
       invitedBy: inv.inviter,
     }));
 
-    // Combine members and pending invitations
-    const allMembers = [...members, ...formattedInvitations];
+    // Combine all members
+    const allMembers = [
+      ...formattedProjectMembers,
+      ...formattedTenantMembers,
+      ...formattedInvitations,
+    ];
 
-    ApiResponse.success(allMembers, 'Project members retrieved successfully').send(res);
+    ApiResponse.success(
+      allMembers,
+      'Project members retrieved successfully'
+    ).send(res);
   });
 
   /**
    * @route   POST /api/v1/projects/:projectId/members/invite
    * @desc    Invite members to project
-   * @access  Private (requires OWNER or ADMIN)
+   * @access  Private (requires PROJECT_ADMIN or higher)
    */
   static inviteMembers = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
     const { emails, role } = req.body;
     const userId = req.user.id;
+
+    // Validate role
+    const validRoles = ['PROJECT_ADMIN', 'MEMBER', 'VIEWER'];
+    if (role && !validRoles.includes(role)) {
+      throw ApiError.badRequest(
+        `Invalid role. Must be one of: ${validRoles.join(', ')}`
+      );
+    }
 
     // Get project and tenant info
     const project = await prisma.project.findUnique({
@@ -117,9 +197,30 @@ class ProjectMemberController {
     }
 
     // Check if emails already have access or pending invitations
-    const existingMembers = await prisma.projectMember.findMany({
+    const existingMembers = await prisma.membership.findMany({
       where: {
         projectId,
+        level: 'PROJECT',
+        user: {
+          email: {
+            in: emails,
+          },
+        },
+      },
+      select: {
+        user: {
+          select: {
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Also check tenant-level members
+    const existingTenantMembers = await prisma.membership.findMany({
+      where: {
+        tenantId: project.tenantId,
+        level: 'TENANT',
         user: {
           email: {
             in: emails,
@@ -150,13 +251,16 @@ class ProjectMemberController {
 
     const existingEmails = [
       ...existingMembers.map((m) => m.user.email),
+      ...existingTenantMembers.map((m) => m.user.email),
       ...existingInvitations.map((i) => i.email),
     ];
 
     const newEmails = emails.filter((email) => !existingEmails.includes(email));
 
     if (newEmails.length === 0) {
-      throw ApiError.badRequest('All emails already have access or pending invitations');
+      throw ApiError.badRequest(
+        'All emails already have access or pending invitations'
+      );
     }
 
     // Create invitations
@@ -175,9 +279,7 @@ class ProjectMemberController {
           email,
           invitedBy: userId,
           token,
-          type: 'PROJECT',
-          role: 'MEMBER', // Tenant role (default)
-          projectRole: role || 'MEMBER', // Project-specific role
+          role: role || 'MEMBER', // Default to MEMBER
           expiresAt,
         },
       });
@@ -211,14 +313,22 @@ class ProjectMemberController {
   /**
    * @route   PATCH /api/v1/projects/:projectId/members/:memberId
    * @desc    Update member role
-   * @access  Private (requires OWNER)
+   * @access  Private (requires PROJECT_ADMIN or higher, and can only manage lower roles)
    */
   static updateMemberRole = asyncHandler(async (req, res) => {
     const { projectId, memberId } = req.params;
     const { role } = req.body;
 
+    // Validate role
+    const validRoles = ['PROJECT_ADMIN', 'MEMBER', 'VIEWER'];
+    if (!validRoles.includes(role)) {
+      throw ApiError.badRequest(
+        `Invalid role. Must be one of: ${validRoles.join(', ')}`
+      );
+    }
+
     // Check if member exists
-    const member = await prisma.projectMember.findUnique({
+    const member = await prisma.membership.findUnique({
       where: { id: memberId },
     });
 
@@ -226,33 +336,44 @@ class ProjectMemberController {
       throw ApiError.notFound('Member not found');
     }
 
+    // Verify member belongs to this project
     if (member.projectId !== projectId) {
       throw ApiError.badRequest('Member does not belong to this project');
     }
 
-    // If demoting from OWNER, ensure there's at least one other OWNER
-    if (member.role === 'OWNER' && role !== 'OWNER') {
-      const ownerCount = await prisma.projectMember.count({
+    // Cannot update tenant-level members through project endpoint
+    if (member.level === 'TENANT') {
+      throw ApiError.badRequest(
+        'Cannot modify tenant-level members through project endpoint'
+      );
+    }
+
+    // If demoting from PROJECT_ADMIN, ensure there's at least one other PROJECT_ADMIN
+    if (member.role === 'PROJECT_ADMIN' && role !== 'PROJECT_ADMIN') {
+      const adminCount = await prisma.membership.count({
         where: {
           projectId,
-          role: 'OWNER',
+          level: 'PROJECT',
+          role: 'PROJECT_ADMIN',
         },
       });
 
-      if (ownerCount <= 1) {
-        throw ApiError.badRequest('Cannot demote the last owner. Assign another owner first.');
+      if (adminCount <= 1) {
+        throw ApiError.badRequest(
+          'Cannot demote the last project admin. Assign another admin first.'
+        );
       }
     }
 
     // Update role
-    const updatedMember = await prisma.projectMember.update({
+    const updatedMember = await prisma.membership.update({
       where: { id: memberId },
       data: { role },
       select: {
         id: true,
-        projectId: true,
         userId: true,
         role: true,
+        level: true,
         joinedAt: true,
         user: {
           select: {
@@ -265,19 +386,22 @@ class ProjectMemberController {
       },
     });
 
-    ApiResponse.success(updatedMember, 'Member role updated successfully').send(res);
+    ApiResponse.success(
+      updatedMember,
+      'Member role updated successfully'
+    ).send(res);
   });
 
   /**
    * @route   DELETE /api/v1/projects/:projectId/members/:memberId
    * @desc    Remove member from project
-   * @access  Private (requires OWNER or ADMIN)
+   * @access  Private (requires PROJECT_ADMIN or higher)
    */
   static removeMember = asyncHandler(async (req, res) => {
     const { projectId, memberId } = req.params;
 
     // Check if member exists
-    const member = await prisma.projectMember.findUnique({
+    const member = await prisma.membership.findUnique({
       where: { id: memberId },
     });
 
@@ -285,26 +409,37 @@ class ProjectMemberController {
       throw ApiError.notFound('Member not found');
     }
 
+    // Verify member belongs to this project
     if (member.projectId !== projectId) {
       throw ApiError.badRequest('Member does not belong to this project');
     }
 
-    // If removing an OWNER, ensure there's at least one other OWNER
-    if (member.role === 'OWNER') {
-      const ownerCount = await prisma.projectMember.count({
+    // Cannot remove tenant-level members through project endpoint
+    if (member.level === 'TENANT') {
+      throw ApiError.badRequest(
+        'Cannot remove tenant-level members through project endpoint. They must be removed at tenant level.'
+      );
+    }
+
+    // If removing a PROJECT_ADMIN, ensure there's at least one other PROJECT_ADMIN
+    if (member.role === 'PROJECT_ADMIN') {
+      const adminCount = await prisma.membership.count({
         where: {
           projectId,
-          role: 'OWNER',
+          level: 'PROJECT',
+          role: 'PROJECT_ADMIN',
         },
       });
 
-      if (ownerCount <= 1) {
-        throw ApiError.badRequest('Cannot remove the last owner. Assign another owner first.');
+      if (adminCount <= 1) {
+        throw ApiError.badRequest(
+          'Cannot remove the last project admin. Assign another admin first.'
+        );
       }
     }
 
     // Remove member
-    await prisma.projectMember.delete({
+    await prisma.membership.delete({
       where: { id: memberId },
     });
 

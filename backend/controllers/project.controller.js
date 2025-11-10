@@ -4,25 +4,30 @@ const ApiResponse = require('../utils/ApiResponse');
 const ApiError = require('../utils/ApiError');
 const asyncHandler = require('../utils/asyncHandler');
 const EmailService = require('../services/email.service');
+const { cloneTemplateToProject } = require('./template.controller');
 
 /**
  * Project Controller
  * Handles project CRUD operations
+ * Updated to use unified Membership schema instead of TenantUser/ProjectMember
  */
 
 class ProjectController {
   /**
    * @route   POST /api/v1/projects
-   * @desc    Create a new project
+   * @desc    Create a new project (blank or from template)
    * @access  Private
    */
   static createProject = asyncHandler(async (req, res) => {
-    const { name, color, layout, sections, tasks, inviteEmails } = req.body;
+    const { name, color, layout, templateId, sections, tasks, inviteEmails } = req.body;
     const userId = req.user.id;
 
-    // Get user's tenant
-    const tenantUser = await prisma.tenantUser.findFirst({
-      where: { userId },
+    // Get user's tenant-level membership
+    const tenantMembership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        level: 'TENANT',
+      },
       select: {
         tenantId: true,
         tenant: {
@@ -34,133 +39,170 @@ class ProjectController {
       },
     });
 
-    if (!tenantUser) {
+    if (!tenantMembership) {
       throw ApiError.forbidden('You must belong to a workspace to create a project');
     }
 
-    const tenantId = tenantUser.tenantId;
+    const tenantId = tenantMembership.tenantId;
 
     // Create project with sections and tasks in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Create project
-      const project = await tx.project.create({
-        data: {
+      let project;
+      let createdSections = [];
+      let createdTasks = [];
+
+      // If templateId is provided, clone from template
+      if (templateId) {
+        const projectData = {
           tenantId,
           name,
           color: color || '#3b82f6',
           layout: layout || 'BOARD',
           createdBy: userId,
-        },
-      });
+        };
 
-      // 2. Add creator as PROJECT OWNER
-      await tx.projectMember.create({
-        data: {
-          projectId: project.id,
-          userId,
-          role: 'OWNER',
-        },
-      });
+        // Use cloneTemplateToProject to create project from template
+        const clonedProject = await cloneTemplateToProject(templateId, projectData, tx);
+        project = clonedProject;
 
-      // 3. Fetch status and priority options from database
-      const [statusOptions, priorityOptions] = await Promise.all([
-        tx.taskStatusOption.findMany({
-          where: { isActive: true },
+        // Get created sections and tasks for response
+        createdSections = await tx.projectSection.findMany({
+          where: { projectId: project.id },
           orderBy: { position: 'asc' },
-          select: { label: true, value: true, color: true, icon: true },
-        }),
-        tx.taskPriorityOption.findMany({
-          where: { isActive: true },
-          orderBy: { position: 'asc' },
-          select: { label: true, value: true, color: true, icon: true },
-        }),
-      ]);
+        });
 
-      // 4. Create default columns with dynamic options
-      const defaultColumns = [
-        {
-          name: 'Assignee',
-          type: 'user',
-          width: 200,
-          visible: true,
-          isDefault: true,
-          position: 0,
-        },
-        {
-          name: 'Due Date',
-          type: 'date',
-          width: 150,
-          visible: true,
-          isDefault: true,
-          position: 1,
-        },
-        {
-          name: 'Priority',
-          type: 'select',
-          width: 120,
-          visible: true,
-          isDefault: true,
-          position: 2,
-          options: priorityOptions,
-        },
-        {
-          name: 'Status',
-          type: 'select',
-          width: 150,
-          visible: true,
-          isDefault: true,
-          position: 3,
-          options: statusOptions,
-        },
-      ];
-
-      for (const columnData of defaultColumns) {
-        await tx.projectColumn.create({
+        createdTasks = await tx.task.findMany({
+          where: { projectId: project.id },
+          orderBy: { orderIndex: 'asc' },
+        });
+      } else {
+        // Create blank project
+        // 1. Create project
+        project = await tx.project.create({
           data: {
-            projectId: project.id,
-            ...columnData,
+            tenantId,
+            name,
+            color: color || '#3b82f6',
+            layout: layout || 'BOARD',
+            createdBy: userId,
           },
         });
-      }
 
-      // 5. Create sections if provided
-      const createdSections = [];
-      if (sections && sections.length > 0) {
-        for (let i = 0; i < sections.length; i++) {
-          const section = sections[i];
-          const createdSection = await tx.projectSection.create({
+        // 2. Fetch status and priority options from staticTaskOption
+        const [statusOptions, priorityOptions] = await Promise.all([
+          tx.staticTaskOption.findMany({
+            where: {
+              optionType: 'STATUS',
+              isActive: true,
+            },
+            orderBy: { position: 'asc' },
+            select: { label: true, value: true, color: true, icon: true },
+          }),
+          tx.staticTaskOption.findMany({
+            where: {
+              optionType: 'PRIORITY',
+              isActive: true,
+            },
+            orderBy: { position: 'asc' },
+            select: { label: true, value: true, color: true, icon: true },
+          }),
+        ]);
+
+        // 3. Create default columns with dynamic options
+        const defaultColumns = [
+          {
+            name: 'Assignee',
+            type: 'user',
+            width: 200,
+            visible: true,
+            isDefault: true,
+            position: 0,
+          },
+          {
+            name: 'Due Date',
+            type: 'date',
+            width: 150,
+            visible: true,
+            isDefault: true,
+            position: 1,
+          },
+          {
+            name: 'Priority',
+            type: 'select',
+            width: 120,
+            visible: true,
+            isDefault: true,
+            position: 2,
+            options: priorityOptions,
+          },
+          {
+            name: 'Status',
+            type: 'select',
+            width: 150,
+            visible: true,
+            isDefault: true,
+            position: 3,
+            options: statusOptions,
+          },
+        ];
+
+        for (const columnData of defaultColumns) {
+          await tx.projectColumn.create({
             data: {
               projectId: project.id,
-              name: section.name,
-              color: section.color || '#94a3b8',
-              position: i,
+              ...columnData,
             },
           });
-          createdSections.push(createdSection);
+        }
+
+        // 4. Create sections if provided
+        if (sections && sections.length > 0) {
+          for (let i = 0; i < sections.length; i++) {
+            const section = sections[i];
+            const createdSection = await tx.projectSection.create({
+              data: {
+                projectId: project.id,
+                name: section.name,
+                color: section.color || '#94a3b8',
+                position: i,
+              },
+            });
+            createdSections.push(createdSection);
+          }
+        }
+
+        // 5. Create tasks if provided
+        if (tasks && tasks.length > 0) {
+          for (const task of tasks) {
+            // Find matching section
+            const section = createdSections.find((s) => s.name === task.sectionName);
+
+            const createdTask = await tx.task.create({
+              data: {
+                projectId: project.id,
+                sectionId: section?.id || null,
+                title: task.title,
+                createdBy: userId,
+                orderIndex: 0,
+              },
+            });
+            createdTasks.push(createdTask);
+          }
         }
       }
 
-      // 6. Create tasks if provided
-      const createdTasks = [];
-      if (tasks && tasks.length > 0) {
-        for (const task of tasks) {
-          // Find matching section
-          const section = createdSections.find((s) => s.name === task.sectionName);
+      // Add creator as PROJECT_ADMIN member
+      await tx.membership.create({
+        data: {
+          userId,
+          tenantId,
+          projectId: project.id,
+          level: 'PROJECT',
+          role: 'PROJECT_ADMIN',
+        },
+      });
 
-          const createdTask = await tx.task.create({
-            data: {
-              projectId: project.id,
-              sectionId: section?.id || null,
-              title: task.title,
-              createdBy: userId,
-              orderIndex: 0,
-            },
-          });
-          createdTasks.push(createdTask);
-        }
-      }
-
-      // 7. Send project invitations if provided
+      // Send project invitations if provided
       const invitations = [];
       if (inviteEmails && inviteEmails.length > 0) {
         const expiresAt = new Date();
@@ -187,7 +229,7 @@ class ProjectController {
           try {
             await EmailService.sendInvitationEmail(
               email,
-              `${tenantUser.tenant.name} - ${project.name}`,
+              `${tenantMembership.tenant.name} - ${project.name}`,
               req.user.fullName || req.user.email,
               token
             );
@@ -222,24 +264,53 @@ class ProjectController {
     const limitNum = parseInt(limit);
     const skip = (pageNum - 1) * limitNum;
 
-    // Get projects where user is a member (exclude deleted and templates)
-    const [projects, total] = await Promise.all([
-      prisma.project.findMany({
-        where: {
-          deletedAt: null,
-          isTemplate: false,
-          members: {
+    // Get user's tenant membership to include all tenant projects
+    const tenantMembership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        level: 'TENANT',
+      },
+      select: {
+        tenantId: true,
+      },
+    });
+
+    // Build where clause:
+    // - Include projects where user has PROJECT-level membership
+    // - OR include all projects in user's tenant (if they have TENANT-level membership)
+    const whereClause = {
+      deletedAt: null,
+      OR: [
+        {
+          // Projects where user has direct project membership
+          memberships: {
             some: {
               userId,
+              level: 'PROJECT',
             },
           },
         },
+      ],
+    };
+
+    // If user has tenant membership, include all projects in their tenant
+    if (tenantMembership) {
+      whereClause.OR.push({
+        tenantId: tenantMembership.tenantId,
+      });
+    }
+
+    // Get projects (exclude templates which are in Template table now)
+    const [projects, total] = await Promise.all([
+      prisma.project.findMany({
+        where: whereClause,
         select: {
           id: true,
           name: true,
           layout: true,
           createdAt: true,
           updatedAt: true,
+          templateId: true, // Reference to source template if cloned
           creator: {
             select: {
               id: true,
@@ -250,7 +321,11 @@ class ProjectController {
           },
           _count: {
             select: {
-              members: true,
+              memberships: {
+                where: {
+                  level: 'PROJECT',
+                },
+              },
               tasks: true,
             },
           },
@@ -262,15 +337,7 @@ class ProjectController {
         take: limitNum,
       }),
       prisma.project.count({
-        where: {
-          deletedAt: null,
-          isTemplate: false,
-          members: {
-            some: {
-              userId,
-            },
-          },
-        },
+        where: whereClause,
       }),
     ]);
 
@@ -281,7 +348,8 @@ class ProjectController {
       layout: project.layout,
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
-      memberCount: project._count.members,
+      templateId: project.templateId,
+      memberCount: project._count.memberships,
       taskCount: project._count.tasks,
       creator: project.creator,
     }));
@@ -303,7 +371,7 @@ class ProjectController {
   /**
    * @route   GET /api/v1/projects/:projectId
    * @desc    Get full project data (project, sections, tasks, members)
-   * @access  Private (requires ProjectMember)
+   * @access  Private (requires Membership)
    */
   static getProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -324,8 +392,7 @@ class ProjectController {
           dueDate: true,
           description: true,
           deletedAt: true,
-          isTemplate: true,
-          templateCategory: true,
+          templateId: true, // Reference to source template
         },
       }),
       // Get sections ordered by position
@@ -384,9 +451,12 @@ class ProjectController {
           },
         },
       }),
-      // Get project members
-      prisma.projectMember.findMany({
-        where: { projectId },
+      // Get project members (PROJECT-level memberships)
+      prisma.membership.findMany({
+        where: {
+          projectId,
+          level: 'PROJECT',
+        },
         select: {
           id: true,
           projectId: true,
@@ -441,7 +511,7 @@ class ProjectController {
   /**
    * @route   PATCH /api/v1/projects/:projectId
    * @desc    Update project
-   * @access  Private (requires OWNER or ADMIN)
+   * @access  Private (requires PROJECT_ADMIN or TENANT_ADMIN)
    */
   static updateProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -465,8 +535,7 @@ class ProjectController {
         dueDate: true,
         description: true,
         deletedAt: true,
-        isTemplate: true,
-        templateCategory: true,
+        templateId: true,
       },
     });
 
@@ -476,12 +545,12 @@ class ProjectController {
   /**
    * @route   DELETE /api/v1/projects/:projectId
    * @desc    Delete project
-   * @access  Private (requires OWNER)
+   * @access  Private (requires PROJECT_ADMIN)
    */
   static deleteProject = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
 
-    // Delete project (cascades to sections, tasks, members, invitations)
+    // Delete project (cascades to sections, tasks, memberships, invitations)
     await prisma.project.delete({
       where: { id: projectId },
     });
@@ -492,7 +561,7 @@ class ProjectController {
   /**
    * @route   PATCH /api/v1/projects/:projectId/status
    * @desc    Update project status
-   * @access  Private (requires OWNER or ADMIN)
+   * @access  Private (requires PROJECT_ADMIN or TENANT_ADMIN)
    */
   static updateProjectStatus = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -544,7 +613,7 @@ class ProjectController {
   /**
    * @route   PATCH /api/v1/projects/:projectId/due-date
    * @desc    Update project due date
-   * @access  Private (requires OWNER or ADMIN)
+   * @access  Private (requires PROJECT_ADMIN or TENANT_ADMIN)
    */
   static updateProjectDueDate = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -588,7 +657,7 @@ class ProjectController {
   /**
    * @route   POST /api/v1/projects/:projectId/trash
    * @desc    Move project to trash (soft delete)
-   * @access  Private (requires OWNER)
+   * @access  Private (requires PROJECT_ADMIN)
    */
   static moveToTrash = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -623,7 +692,7 @@ class ProjectController {
   /**
    * @route   POST /api/v1/projects/:projectId/restore
    * @desc    Restore project from trash
-   * @access  Private (requires OWNER)
+   * @access  Private (requires PROJECT_ADMIN)
    */
   static restoreFromTrash = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -661,7 +730,7 @@ class ProjectController {
   /**
    * @route   DELETE /api/v1/projects/:projectId/permanent
    * @desc    Permanently delete a trashed project
-   * @access  Private (requires OWNER)
+   * @access  Private (requires PROJECT_ADMIN)
    */
   static permanentDelete = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -695,10 +764,11 @@ class ProjectController {
     const trashedProjects = await prisma.project.findMany({
       where: {
         deletedAt: { not: null },
-        members: {
+        memberships: {
           some: {
             userId,
-            role: 'OWNER', // Only owners can see trashed projects
+            level: 'PROJECT',
+            role: 'PROJECT_ADMIN', // Only PROJECT_ADMIN can see trashed projects
           },
         },
       },
@@ -719,7 +789,11 @@ class ProjectController {
         _count: {
           select: {
             tasks: true,
-            members: true,
+            memberships: {
+              where: {
+                level: 'PROJECT',
+              },
+            },
           },
         },
       },
@@ -737,6 +811,8 @@ class ProjectController {
 
       return {
         ...project,
+        memberCount: project._count.memberships,
+        taskCount: project._count.tasks,
         autoDeleteDate,
         daysUntilPermanentDeletion: Math.max(0, daysLeft),
       };
@@ -748,7 +824,7 @@ class ProjectController {
   /**
    * @route   GET /api/v1/projects/:projectId/activities
    * @desc    Get project activity feed
-   * @access  Private (requires ProjectMember)
+   * @access  Private (requires Membership)
    */
   static getActivities = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -793,7 +869,7 @@ class ProjectController {
   /**
    * @route   GET /api/v1/projects/:projectId/dashboard
    * @desc    Get project dashboard statistics
-   * @access  Private (requires ProjectMember)
+   * @access  Private (requires Membership)
    */
   static getDashboardStats = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
@@ -960,40 +1036,37 @@ class ProjectController {
 
   /**
    * @route   GET /api/v1/projects/templates/list
-   * @desc    List global templates + tenant-specific templates
+   * @desc    List templates (now proxies to template controller)
    * @access  Private
+   * @note    Templates are now stored in separate Template table
    */
   static listTemplates = asyncHandler(async (req, res) => {
     const { category } = req.query;
     const userId = req.user.id;
 
-    // Get user's tenant - CRITICAL for multi-tenant isolation
-    const tenantUser = await prisma.tenantUser.findFirst({
-      where: { userId },
+    // Get user's tenant membership for filtering
+    const tenantMembership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        level: 'TENANT',
+      },
       select: { tenantId: true },
     });
 
-    if (!tenantUser) {
+    if (!tenantMembership) {
       throw ApiError.forbidden('You must belong to a workspace to view templates');
     }
 
-    // Build where clause to include:
-    // 1. Global templates (isGlobal=true, accessible to all tenants)
-    // 2. Tenant-specific templates (tenantId matches user's tenant)
+    // Build where clause to include global templates
     const where = {
-      isTemplate: true,
-      deletedAt: null,
-      OR: [
-        { isGlobal: true }, // Global templates created by super admins
-        { tenantId: tenantUser.tenantId }, // Tenant's own templates
-      ],
+      isGlobal: true,
     };
 
     if (category && category !== 'ALL') {
-      where.templateCategory = category;
+      where.category = category;
     }
 
-    const templates = await prisma.project.findMany({
+    const templates = await prisma.template.findMany({
       where,
       select: {
         id: true,
@@ -1001,42 +1074,39 @@ class ProjectController {
         description: true,
         color: true,
         layout: true,
-        templateCategory: true,
+        category: true,
         isGlobal: true,
-        tenantId: true,
+        icon: true,
+        thumbnail: true,
         _count: {
           select: {
             sections: true,
-            tasks: true,
+            clonedProjects: true,
           },
         },
       },
       orderBy: [
-        { isGlobal: 'desc' }, // Global templates first
+        { category: 'asc' },
         { name: 'asc' },
       ],
     });
 
     // Group templates by category
     const groupedTemplates = templates.reduce((acc, template) => {
-      const category = template.templateCategory;
-      if (!acc[category]) {
-        acc[category] = [];
+      const cat = template.category;
+      if (!acc[cat]) {
+        acc[cat] = [];
       }
-      acc[category].push(template);
+      acc[cat].push(template);
       return acc;
     }, {});
-
-    // Separate global and tenant templates for UI
-    const globalTemplates = templates.filter((t) => t.isGlobal);
-    const tenantTemplates = templates.filter((t) => !t.isGlobal);
 
     ApiResponse.success(
       {
         all: templates,
         byCategory: groupedTemplates,
-        global: globalTemplates,
-        tenant: tenantTemplates,
+        global: templates, // All are global in new system
+        tenant: [], // Tenant-specific templates not supported yet
       },
       'Templates retrieved successfully'
     ).send(res);
@@ -1046,6 +1116,8 @@ class ProjectController {
    * @route   POST /api/v1/projects/templates/:templateId/clone
    * @desc    Clone template to create new project
    * @access  Private
+   * @note    This route is kept for backward compatibility
+   *          New projects should use POST /api/v1/projects with templateId in body
    */
   static cloneTemplate = asyncHandler(async (req, res) => {
     const { templateId } = req.params;
@@ -1056,113 +1128,41 @@ class ProjectController {
       throw ApiError.badRequest('Project name is required');
     }
 
-    // Get user's tenant
-    const tenantUser = await prisma.tenantUser.findFirst({
-      where: { userId },
+    // Get user's tenant-level membership
+    const tenantMembership = await prisma.membership.findFirst({
+      where: {
+        userId,
+        level: 'TENANT',
+      },
       select: { tenantId: true },
     });
 
-    if (!tenantUser) {
+    if (!tenantMembership) {
       throw ApiError.forbidden('You must belong to a workspace to create a project');
-    }
-
-    // Get template with sections and tasks
-    const template = await prisma.project.findUnique({
-      where: {
-        id: templateId,
-        isTemplate: true,
-      },
-      include: {
-        sections: {
-          orderBy: { position: 'asc' },
-          include: {
-            tasks: {
-              where: { parentId: null },
-              orderBy: { orderIndex: 'asc' },
-            },
-          },
-        },
-        columns: {
-          orderBy: { position: 'asc' },
-        },
-      },
-    });
-
-    if (!template) {
-      throw ApiError.notFound('Template not found');
     }
 
     // Clone template in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create new project from template
-      const project = await tx.project.create({
-        data: {
-          tenantId: tenantUser.tenantId,
-          name,
-          description: template.description,
-          color: template.color,
-          layout: template.layout,
-          createdBy: userId,
-          isTemplate: false,
-        },
-      });
+      // Create project data
+      const projectData = {
+        tenantId: tenantMembership.tenantId,
+        name,
+        createdBy: userId,
+      };
 
-      // Add creator as project owner
-      await tx.projectMember.create({
+      // Use cloneTemplateToProject
+      const project = await cloneTemplateToProject(templateId, projectData, tx);
+
+      // Add creator as project admin
+      await tx.membership.create({
         data: {
           projectId: project.id,
           userId,
-          role: 'OWNER',
+          tenantId: tenantMembership.tenantId,
+          level: 'PROJECT',
+          role: 'PROJECT_ADMIN',
         },
       });
-
-      // Clone columns
-      for (const column of template.columns) {
-        await tx.projectColumn.create({
-          data: {
-            projectId: project.id,
-            name: column.name,
-            type: column.type,
-            width: column.width,
-            visible: column.visible,
-            isDefault: column.isDefault,
-            position: column.position,
-            options: column.options,
-          },
-        });
-      }
-
-      // Clone sections and tasks
-      const sectionMapping = {};
-      for (const section of template.sections) {
-        const newSection = await tx.projectSection.create({
-          data: {
-            projectId: project.id,
-            name: section.name,
-            color: section.color,
-            position: section.position,
-          },
-        });
-        sectionMapping[section.id] = newSection.id;
-
-        // Clone tasks for this section
-        for (const task of section.tasks) {
-          await tx.task.create({
-            data: {
-              projectId: project.id,
-              sectionId: newSection.id,
-              title: task.title,
-              description: task.description,
-              type: task.type,
-              priority: task.priority,
-              status: task.status,
-              orderIndex: task.orderIndex,
-              level: task.level,
-              createdBy: userId,
-            },
-          });
-        }
-      }
 
       // Create activity log
       await tx.projectActivity.create({
@@ -1170,10 +1170,9 @@ class ProjectController {
           projectId: project.id,
           userId,
           type: 'PROJECT_CREATED',
-          description: `created project from template "${template.name}"`,
+          description: `created project from template`,
           metadata: {
-            templateId: template.id,
-            templateName: template.name,
+            templateId: templateId,
           },
         },
       });

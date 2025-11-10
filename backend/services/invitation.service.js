@@ -5,7 +5,7 @@ const EmailService = require('./email.service');
 
 /**
  * Invitation Service
- * Handles tenant and project invitation logic
+ * Handles tenant and project invitation logic with unified Membership model
  */
 
 class InvitationService {
@@ -17,7 +17,12 @@ class InvitationService {
    * @param {String} role - Role for invitee (default: MEMBER)
    * @returns {Array} Created invitations
    */
-  static async sendTenantInvitations(tenantId, emails, inviterId, role = 'MEMBER') {
+  static async sendTenantInvitations(
+    tenantId,
+    emails,
+    inviterId,
+    role = 'MEMBER'
+  ) {
     // Get tenant info
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
@@ -45,12 +50,11 @@ class InvitationService {
       });
 
       if (existingUser) {
-        const existingMember = await prisma.tenantUser.findUnique({
+        const existingMember = await prisma.membership.findFirst({
           where: {
-            tenantId_userId: {
-              tenantId,
-              userId: existingUser.id,
-            },
+            tenantId,
+            userId: existingUser.id,
+            level: 'TENANT',
           },
         });
 
@@ -63,9 +67,9 @@ class InvitationService {
       const existingInvitation = await prisma.invitation.findFirst({
         where: {
           tenantId,
+          projectId: null, // Tenant-level invitation
           email,
           status: 'PENDING',
-          type: 'TENANT',
         },
       });
 
@@ -87,10 +91,10 @@ class InvitationService {
         invitation = await prisma.invitation.create({
           data: {
             tenantId,
+            projectId: null, // Tenant-level invitation
             email,
             invitedBy: inviterId,
             token: uuidv4(),
-            type: 'TENANT',
             role,
             expiresAt,
           },
@@ -114,7 +118,7 @@ class InvitationService {
   /**
    * Send project invitation
    * @param {String} projectId - Project ID
-   * @param {Array} emails - Array of email objects with email and projectRole
+   * @param {Array} emails - Array of email objects with email and role
    * @param {String} inviterId - ID of user sending invitation
    * @returns {Array} Created invitations
    */
@@ -143,9 +147,12 @@ class InvitationService {
     const invitations = [];
 
     for (const emailData of emails) {
-      // Support both string emails and {email, projectRole} objects
+      // Support both string emails and {email, role} objects
       const email = typeof emailData === 'string' ? emailData : emailData.email;
-      const projectRole = typeof emailData === 'object' ? emailData.projectRole || 'MEMBER' : 'MEMBER';
+      const role =
+        typeof emailData === 'object'
+          ? emailData.role || 'MEMBER'
+          : 'MEMBER';
 
       // Check for existing pending invitation
       const existingInvitation = await prisma.invitation.findFirst({
@@ -154,7 +161,6 @@ class InvitationService {
           projectId,
           email,
           status: 'PENDING',
-          type: 'PROJECT',
         },
       });
 
@@ -168,7 +174,7 @@ class InvitationService {
             token: uuidv4(),
             expiresAt,
             invitedBy: inviterId,
-            projectRole,
+            role,
           },
         });
       } else {
@@ -180,9 +186,7 @@ class InvitationService {
             email,
             invitedBy: inviterId,
             token: uuidv4(),
-            type: 'PROJECT',
-            role: 'MEMBER', // Tenant role
-            projectRole, // Project role
+            role, // Project role
             expiresAt,
           },
         });
@@ -191,7 +195,6 @@ class InvitationService {
       invitations.push(invitation);
 
       // Send project invitation email
-      const projectLink = `${process.env.CLIENT_URL}/accept-invitation/${invitation.token}`;
       await EmailService.sendInvitationEmail(
         email,
         `${project.name} (${project.tenant.name})`,
@@ -237,7 +240,8 @@ class InvitationService {
     }
 
     // Find or create user
-    let user = userId ? await prisma.user.findUnique({ where: { id: userId } })
+    let user = userId
+      ? await prisma.user.findUnique({ where: { id: userId } })
       : await prisma.user.findUnique({ where: { email: invitation.email } });
 
     if (!user) {
@@ -259,43 +263,52 @@ class InvitationService {
       });
     }
 
-    // Add user to tenant if not already a member
-    const existingMember = await prisma.tenantUser.findUnique({
-      where: {
-        tenantId_userId: {
-          tenantId: invitation.tenantId,
-          userId: user.id,
-        },
-      },
-    });
+    // Determine invitation type based on projectId
+    const isProjectInvitation = invitation.projectId !== null;
 
-    if (!existingMember) {
-      await prisma.tenantUser.create({
-        data: {
-          tenantId: invitation.tenantId,
-          userId: user.id,
-          role: invitation.role,
-        },
-      });
-    }
-
-    // If this is a project invitation, also add user to project members
-    if (invitation.type === 'PROJECT' && invitation.projectId) {
-      const existingProjectMember = await prisma.projectMember.findUnique({
+    if (isProjectInvitation) {
+      // Project-level invitation
+      // Check if user already has project-level membership
+      const existingProjectMembership = await prisma.membership.findFirst({
         where: {
-          projectId_userId: {
-            projectId: invitation.projectId,
-            userId: user.id,
-          },
+          projectId: invitation.projectId,
+          userId: user.id,
+          level: 'PROJECT',
         },
       });
 
-      if (!existingProjectMember) {
-        await prisma.projectMember.create({
+      if (!existingProjectMembership) {
+        // Create project-level membership
+        await prisma.membership.create({
           data: {
+            tenantId: invitation.tenantId,
             projectId: invitation.projectId,
             userId: user.id,
-            role: invitation.projectRole || 'MEMBER', // Use projectRole instead of role
+            level: 'PROJECT',
+            role: invitation.role,
+          },
+        });
+      }
+    } else {
+      // Tenant-level invitation
+      // Check if user already has tenant-level membership
+      const existingTenantMembership = await prisma.membership.findFirst({
+        where: {
+          tenantId: invitation.tenantId,
+          userId: user.id,
+          level: 'TENANT',
+        },
+      });
+
+      if (!existingTenantMembership) {
+        // Create tenant-level membership
+        await prisma.membership.create({
+          data: {
+            tenantId: invitation.tenantId,
+            projectId: null,
+            userId: user.id,
+            level: 'TENANT',
+            role: invitation.role,
           },
         });
       }
@@ -310,7 +323,7 @@ class InvitationService {
     return {
       tenant: invitation.tenant,
       project: invitation.project,
-      type: invitation.type,
+      isProjectInvitation,
       user: {
         id: user.id,
         email: user.email,

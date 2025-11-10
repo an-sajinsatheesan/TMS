@@ -14,8 +14,11 @@ class TenantController {
    * @access  Private
    */
   static getTenants = asyncHandler(async (req, res) => {
-    const tenantUsers = await prisma.tenantUser.findMany({
-      where: { userId: req.user.id },
+    const memberships = await prisma.membership.findMany({
+      where: {
+        userId: req.user.id,
+        level: 'TENANT',
+      },
       include: {
         tenant: {
           include: {
@@ -34,10 +37,10 @@ class TenantController {
       orderBy: { joinedAt: 'desc' },
     });
 
-    const tenants = tenantUsers.map(tu => ({
-      ...tu.tenant,
-      userRole: tu.role,
-      joinedAt: tu.joinedAt,
+    const tenants = memberships.map(membership => ({
+      ...membership.tenant,
+      userRole: membership.role,
+      joinedAt: membership.joinedAt,
     }));
 
     ApiResponse.success({ tenants }, 'Tenants retrieved successfully').send(res);
@@ -46,14 +49,14 @@ class TenantController {
   /**
    * @route   GET /api/v1/tenants/:tenantId/settings
    * @desc    Get tenant settings
-   * @access  Private (Admin/Owner)
+   * @access  Private (Tenant Admin)
    */
   static getSettings = asyncHandler(async (req, res) => {
     const { tenant, tenantRole } = req;
 
-    // Only admin/owner can view settings
-    if (tenantRole !== 'ADMIN' && tenantRole !== 'OWNER') {
-      throw ApiError.forbidden('Admin or owner access required');
+    // Only tenant admin can view settings
+    if (tenantRole !== 'TENANT_ADMIN' && tenantRole !== 'SUPER_ADMIN') {
+      throw ApiError.forbidden('Tenant admin access required');
     }
 
     ApiResponse.success({ tenant }, 'Tenant settings retrieved').send(res);
@@ -62,7 +65,7 @@ class TenantController {
   /**
    * @route   PATCH /api/v1/tenants/:tenantId/settings
    * @desc    Update tenant settings
-   * @access  Private (Admin/Owner)
+   * @access  Private (Tenant Admin)
    */
   static updateSettings = asyncHandler(async (req, res) => {
     const { tenantId } = req.params;
