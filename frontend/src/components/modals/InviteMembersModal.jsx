@@ -15,7 +15,7 @@ import { projectMembersService } from '@/services/api/projectMembers.service';
 
 const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], onMembersUpdated }) => {
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('MEMBER');
+  const [role, setRole] = useState('MEMBER'); // Default to MEMBER role
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -75,12 +75,12 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
 
   const handleUpdateRole = async (memberId, newRole) => {
     try {
-      await projectMembersService.updateRole(projectId, memberId, { role: newRole });
+      await projectMembersService.updateRole(projectId, memberId, newRole);
       toast.success('Member role updated');
       onMembersUpdated?.();
     } catch (error) {
       console.error('Error updating role:', error);
-      toast.error('Failed to update member role');
+      toast.error(error.response?.data?.message || 'Failed to update member role');
     }
   };
 
@@ -121,12 +121,11 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
               />
             </div>
             <Select value={role} onValueChange={setRole} disabled={isSubmitting}>
-              <SelectTrigger className="w-36">
+              <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="OWNER">Owner</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
+                <SelectItem value="PROJECT_ADMIN">Project Admin</SelectItem>
                 <SelectItem value="MEMBER">Member</SelectItem>
                 <SelectItem value="VIEWER">Viewer</SelectItem>
               </SelectContent>
@@ -172,29 +171,43 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
                             Pending
                           </Badge>
                         )}
+                        {member.level === 'TENANT' && !member.isProjectSpecific && (
+                          <Badge variant="secondary" className="text-xs">
+                            Workspace Admin
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-gray-500 truncate">{member.user?.email}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Select
-                      value={member.role}
-                      onValueChange={(newRole) => handleUpdateRole(member.id, newRole)}
-                      disabled={member.role === 'OWNER' || member.isPending}
-                    >
-                      <SelectTrigger className="w-28 h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="OWNER">Owner</SelectItem>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
-                        <SelectItem value="MEMBER">Member</SelectItem>
-                        <SelectItem value="VIEWER">Viewer</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {/* Don't allow editing tenant-level members from project view */}
+                    {member.level === 'TENANT' && !member.isProjectSpecific ? (
+                      <div className="text-sm text-gray-500 w-32 text-center">
+                        {member.role === 'TENANT_ADMIN' ? 'Tenant Admin' :
+                         member.role === 'PROJECT_ADMIN' ? 'Project Admin' :
+                         member.role === 'MEMBER' ? 'Member' : 'Viewer'}
+                      </div>
+                    ) : (
+                      <Select
+                        value={member.role}
+                        onValueChange={(newRole) => handleUpdateRole(member.id, newRole)}
+                        disabled={member.isPending}
+                      >
+                        <SelectTrigger className="w-32 h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PROJECT_ADMIN">Project Admin</SelectItem>
+                          <SelectItem value="MEMBER">Member</SelectItem>
+                          <SelectItem value="VIEWER">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
 
-                    {member.role !== 'OWNER' && !member.isPending && (
+                    {/* Only allow removing project-specific members */}
+                    {member.isProjectSpecific && !member.isPending && (
                       <Button
                         variant="ghost"
                         size="icon"

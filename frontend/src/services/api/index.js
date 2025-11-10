@@ -3,3 +3,4 @@ export { tasksService } from './tasks.service';
 export { sectionsService } from './sections.service';
 export { projectMembersService } from './projectMembers.service';
 export { projectColumnsService } from './projectColumns.service';
+export { templatesService } from './templates.service';
