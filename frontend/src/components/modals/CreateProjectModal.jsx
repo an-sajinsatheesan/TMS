@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { projectsService } from '../../services/api';
+import { projectsService, templatesService } from '../../services/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { X, Plus, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { X, Plus, ChevronRight, ChevronLeft, Check, FileText, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Color palette for project selection
@@ -30,6 +30,11 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Template state
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+
   // Project data state
   const [projectName, setProjectName] = useState('');
   const [projectColor, setProjectColor] = useState('#3b82f6');
@@ -41,23 +46,67 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
   const [tasks, setTasks] = useState([]);
   const [layout, setLayout] = useState('BOARD');
 
-  const totalSteps = 4;
+  const totalSteps = selectedTemplate ? 3 : 5;
+
+  // Fetch templates on mount
+  useEffect(() => {
+    if (visible) {
+      fetchTemplates();
+    }
+  }, [visible]);
+
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true);
+    try {
+      const response = await templatesService.getAll();
+      setTemplates(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch templates:', error);
+      toast.error('Failed to load templates');
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
 
   const handleNext = () => {
-    if (currentStep === 1 && !projectName.trim()) {
+    // Step 1: Template selection - no validation needed
+    if (currentStep === 1) {
+      setCurrentStep(2);
+      return;
+    }
+
+    // Step 2: Project name validation
+    if (currentStep === 2 && !projectName.trim()) {
       toast.error('Please enter a project name');
       return;
     }
-    if (currentStep === 2 && sections.length === 0) {
+
+    // Step 2: If template selected, skip to layout (step 5)
+    if (currentStep === 2 && selectedTemplate) {
+      setCurrentStep(5);
+      return;
+    }
+
+    // Step 3: Sections validation (only for blank projects)
+    if (currentStep === 3 && sections.length === 0) {
       toast.error('Please add at least one section');
       return;
     }
+
+    // Move to next step
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
 
   const handleBack = () => {
+    // Step 5: If template selected, go back to step 2 (skip 3-4)
+    if (currentStep === 5 && selectedTemplate) {
+      setCurrentStep(2);
+      return;
+    }
+
+    // Normal back navigation
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
@@ -71,21 +120,34 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
 
     setLoading(true);
     try {
-      const projectData = {
-        name: projectName,
-        color: projectColor,
-        layout,
-        sections: sections.map((s, index) => ({
-          name: s.name,
-          color: s.color,
-          position: index
-        })),
-        tasks: tasks.filter(t => t.title.trim()).map((t, index) => ({
-          title: t.title,
-          sectionName: t.sectionName,
-          orderIndex: index
-        }))
-      };
+      let projectData;
+
+      if (selectedTemplate) {
+        // Create project with template
+        projectData = {
+          name: projectName,
+          templateId: selectedTemplate.id,
+          layout,
+          color: projectColor
+        };
+      } else {
+        // Create blank project with custom sections and tasks
+        projectData = {
+          name: projectName,
+          color: projectColor,
+          layout,
+          sections: sections.map((s, index) => ({
+            name: s.name,
+            color: s.color,
+            position: index
+          })),
+          tasks: tasks.filter(t => t.title.trim()).map((t, index) => ({
+            title: t.title,
+            sectionName: t.sectionName,
+            orderIndex: index
+          }))
+        };
+      }
 
       await projectsService.create(projectData);
       toast.success('Project created successfully');
@@ -109,6 +171,7 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
     ]);
     setTasks([]);
     setLayout('BOARD');
+    setSelectedTemplate(null);
     setCurrentStep(1);
     onHide();
   };
@@ -148,6 +211,115 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
+        // Template Selection Step
+        return (
+          <div className="space-y-4 py-4">
+            <div>
+              <label className="block text-sm font-medium mb-3">
+                Choose a starting point for your project
+              </label>
+            </div>
+
+            {loadingTemplates ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="mt-2 text-sm text-gray-500">Loading templates...</p>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2">
+                {/* Blank Project Option */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedTemplate(null)}
+                  className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+                    selectedTemplate === null
+                      ? 'border-primary bg-primary/5'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <FileText className="w-6 h-6 text-gray-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-medium mb-1">Blank Project</div>
+                      <div className="text-sm text-gray-500">
+                        Start from scratch and customize everything
+                      </div>
+                    </div>
+                    {selectedTemplate === null && (
+                      <Check className="w-5 h-5 text-primary mt-1" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Template Options */}
+                {templates.length > 0 && (
+                  <>
+                    <div className="pt-2">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Templates
+                      </h4>
+                    </div>
+                    {templates.map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        onClick={() => setSelectedTemplate(template)}
+                        className={`w-full p-4 border-2 rounded-lg text-left transition-all ${
+                          selectedTemplate?.id === template.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className="p-2 rounded-lg"
+                            style={{
+                              backgroundColor: template.color ? `${template.color}20` : '#f3f4f6'
+                            }}
+                          >
+                            <FileText
+                              className="w-6 h-6"
+                              style={{ color: template.color || '#4b5563' }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium">{template.name}</span>
+                              {template.category && (
+                                <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                  {template.category}
+                                </span>
+                              )}
+                            </div>
+                            {template.description && (
+                              <div className="text-sm text-gray-500 mb-2">
+                                {template.description}
+                              </div>
+                            )}
+                            {template.sections && template.sections.length > 0 && (
+                              <div className="text-xs text-gray-400">
+                                {template.sections.length} sections • {template.tasks?.length || 0} tasks
+                              </div>
+                            )}
+                          </div>
+                          {selectedTemplate?.id === template.id && (
+                            <Check className="w-5 h-5 text-primary mt-1" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        );
+
+      case 2:
+        // Project Name & Color Step
         return (
           <div className="space-y-6 py-4">
             <div>
@@ -191,7 +363,8 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
           </div>
         );
 
-      case 2:
+      case 3:
+        // Sections Step (skip if template selected)
         return (
           <div className="space-y-4 py-4">
             <div className="flex justify-between items-center mb-2">
@@ -240,7 +413,8 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
           </div>
         );
 
-      case 3:
+      case 4:
+        // Tasks Step (skip if template selected)
         return (
           <div className="space-y-4 py-4">
             <div className="flex justify-between items-center mb-2">
@@ -326,7 +500,8 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
           </div>
         );
 
-      case 4:
+      case 5:
+        // Layout & Summary Step
         return (
           <div className="space-y-6 py-4">
             <div>
@@ -361,18 +536,28 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h4 className="font-medium mb-3">Project Summary</h4>
               <div className="space-y-2 text-sm">
+                {selectedTemplate && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Template:</span>
+                    <span className="font-medium">{selectedTemplate.name}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Project Name:</span>
                   <span className="font-medium">{projectName || 'Not set'}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Sections:</span>
-                  <span className="font-medium">{sections.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tasks:</span>
-                  <span className="font-medium">{tasks.filter(t => t.title.trim()).length}</span>
-                </div>
+                {!selectedTemplate && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Sections:</span>
+                      <span className="font-medium">{sections.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tasks:</span>
+                      <span className="font-medium">{tasks.filter(t => t.title.trim()).length}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Layout:</span>
                   <span className="font-medium">{layout}</span>
@@ -388,34 +573,45 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
   };
 
   // Stepper indicator
-  const StepIndicator = () => (
-    <div className="flex items-center justify-center mb-6">
-      {[1, 2, 3, 4].map((step) => (
-        <div key={step} className="flex items-center">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-              step === currentStep
-                ? 'bg-primary text-white'
-                : step < currentStep
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-200 text-gray-600'
-            }`}
-          >
-            {step < currentStep ? <Check className="w-4 h-4" /> : step}
-          </div>
-          {step < 4 && (
+  const StepIndicator = () => {
+    const steps = selectedTemplate ? [1, 2, 5] : [1, 2, 3, 4, 5];
+
+    return (
+      <div className="flex items-center justify-center mb-6">
+        {steps.map((step, index) => (
+          <div key={step} className="flex items-center">
             <div
-              className={`w-12 h-1 mx-2 ${
-                step < currentStep ? 'bg-green-500' : 'bg-gray-200'
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                step === currentStep
+                  ? 'bg-primary text-white'
+                  : step < currentStep || (selectedTemplate && currentStep === 5 && step === 2)
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-200 text-gray-600'
               }`}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
+            >
+              {step < currentStep || (selectedTemplate && currentStep === 5 && step === 2) ? (
+                <Check className="w-4 h-4" />
+              ) : (
+                index + 1
+              )}
+            </div>
+            {index < steps.length - 1 && (
+              <div
+                className={`w-12 h-1 mx-2 ${
+                  step < currentStep || (selectedTemplate && currentStep === 5 && step === 2)
+                    ? 'bg-green-500'
+                    : 'bg-gray-200'
+                }`}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const stepTitles = [
+    'Select Template',
     'Project Name & Color',
     'Create Sections',
     'Add Tasks',
@@ -456,12 +652,12 @@ const CreateProjectModal = ({ visible, onHide, onSuccess }) => {
 
             <Button
               type="button"
-              onClick={currentStep === totalSteps ? handleSubmit : handleNext}
+              onClick={currentStep === 5 ? handleSubmit : handleNext}
               disabled={loading}
             >
               {loading ? (
                 'Creating...'
-              ) : currentStep === totalSteps ? (
+              ) : currentStep === 5 ? (
                 <>
                   <Check className="w-4 h-4 mr-1" />
                   Create Project

@@ -170,30 +170,4 @@ export const projectsService = {
     }
   },
 
-  /**
-   * List project templates
-   */
-  getTemplates: async (category = null) => {
-    try {
-      const params = category ? { category } : {};
-      const response = await axiosInstance.get('/projects/templates/list', { params });
-      return response;
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-      throw error;
-    }
-  },
-
-  /**
-   * Clone a template to create a new project
-   */
-  cloneTemplate: async (templateId, name) => {
-    try {
-      const response = await axiosInstance.post(`/projects/templates/${templateId}/clone`, { name });
-      return response;
-    } catch (error) {
-      console.error('Error cloning template:', error);
-      throw error;
-    }
-  },
 };

@@ -46,8 +46,7 @@ export default function InviteDialog({ visible, onHide, projectId, projectName }
         console.error('Error fetching roles:', error);
         // Fallback to hardcoded roles if API fails
         setProjectRoles([
-          { value: 'OWNER', label: 'Owner', description: 'Full access', icon: 'Crown' },
-          { value: 'ADMIN', label: 'Admin', description: 'Can manage members', icon: 'Shield' },
+          { value: 'PROJECT_ADMIN', label: 'Project Admin', description: 'Can manage project', icon: 'Shield' },
           { value: 'MEMBER', label: 'Member', description: 'Can create tasks', icon: 'Users', isDefault: true },
           { value: 'VIEWER', label: 'Viewer', description: 'Read only', icon: 'Eye' },
         ]);
@@ -85,7 +84,7 @@ export default function InviteDialog({ visible, onHide, projectId, projectName }
       // Send emails with role information
       const invitations = emailList.map(email => ({
         email,
-        projectRole: selectedRole
+        role: selectedRole
       }));
 
       await invitationService.sendProjectInvitations(projectId, invitations);
