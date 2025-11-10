@@ -635,6 +635,55 @@ class TaskController {
 
     ApiResponse.success(transformedTask, 'Subtask created successfully').send(res, 201);
   });
+
+  /**
+   * @route   GET /api/v1/projects/:projectId/tasks/options
+   * @desc    Get task status and priority options
+   * @access  Private (requires ProjectMember)
+   */
+  static getTaskOptions = asyncHandler(async (req, res) => {
+    // Fetch status and priority options in parallel using StaticTaskOption
+    const [statusOptions, priorityOptions] = await Promise.all([
+      prisma.staticTaskOption.findMany({
+        where: {
+          optionType: 'STATUS',
+          isActive: true,
+        },
+        orderBy: { position: 'asc' },
+        select: {
+          id: true,
+          label: true,
+          value: true,
+          color: true,
+          icon: true,
+          position: true,
+        },
+      }),
+      prisma.staticTaskOption.findMany({
+        where: {
+          optionType: 'PRIORITY',
+          isActive: true,
+        },
+        orderBy: { position: 'asc' },
+        select: {
+          id: true,
+          label: true,
+          value: true,
+          color: true,
+          icon: true,
+          position: true,
+        },
+      }),
+    ]);
+
+    ApiResponse.success(
+      {
+        statusOptions,
+        priorityOptions,
+      },
+      'Task options retrieved successfully'
+    ).send(res);
+  });
 }
 
 module.exports = TaskController;

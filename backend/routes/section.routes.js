@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true }); // Enable access to :projectId from parent router
 const SectionController = require('../controllers/section.controller');
 const { authenticate } = require('../middlewares/auth');
-const { checkProjectAccess } = require('../middlewares/projectAccess.middleware');
+const { projectContext } = require('../middlewares/membership');
 const {
   validate,
   createSectionSchema,
@@ -20,7 +20,7 @@ const {
  * @desc    List all sections in a project
  * @access  Private (requires ProjectMember)
  */
-router.get('/', authenticate, checkProjectAccess, SectionController.listSections);
+router.get('/', authenticate, projectContext, SectionController.listSections);
 
 /**
  * @route   POST /api/v1/projects/:projectId/sections
@@ -30,7 +30,7 @@ router.get('/', authenticate, checkProjectAccess, SectionController.listSections
 router.post(
   '/',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   validate(createSectionSchema),
   SectionController.createSection
 );
@@ -43,7 +43,7 @@ router.post(
 router.post(
   '/reorder',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   validate(reorderSectionsSchema),
   SectionController.reorderSections
 );

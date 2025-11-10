@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true }); // Enable access to :projectId from parent router
 const TaskController = require('../controllers/task.controller');
 const { authenticate } = require('../middlewares/auth');
-const { checkProjectAccess } = require('../middlewares/projectAccess.middleware');
+const { projectContext } = require('../middlewares/membership');
 const {
   validate,
   validateQuery,
@@ -23,7 +23,7 @@ const {
 router.get(
   '/',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   validateQuery(listTasksSchema),
   TaskController.listTasks
 );
@@ -36,7 +36,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  checkProjectAccess,
+  projectContext,
   validate(createTaskSchema),
   TaskController.createTask
 );
