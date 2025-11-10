@@ -15,6 +15,13 @@ export const projectMembersService = {
   },
 
   /**
+   * Alias for getAll (backward compatibility)
+   */
+  list: async (projectId) => {
+    return projectMembersService.getAll(projectId);
+  },
+
+  /**
    * Invite members to a project
    */
   invite: async (projectId, inviteData) => {

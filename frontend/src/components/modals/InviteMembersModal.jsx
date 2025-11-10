@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { X, Mail, UserPlus, Trash2 } from 'lucide-react';
+import { X, Mail, UserPlus, Trash2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -156,14 +157,22 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Avatar className="h-10 w-10 flex-shrink-0">
                       <AvatarImage src={member.user?.avatarUrl} alt={member.user?.fullName || member.user?.email} />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                      <AvatarFallback className={member.isPending ? "bg-gray-400 text-white" : "bg-gradient-to-br from-blue-500 to-purple-600 text-white"}>
                         {(member.user?.fullName || member.user?.email || 'U')[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">
-                        {member.user?.fullName || 'Unknown User'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-gray-900 truncate">
+                          {member.user?.fullName || member.user?.email}
+                        </p>
+                        {member.isPending && (
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Pending
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-500 truncate">{member.user?.email}</p>
                     </div>
                   </div>
@@ -172,7 +181,7 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
                     <Select
                       value={member.role}
                       onValueChange={(newRole) => handleUpdateRole(member.id, newRole)}
-                      disabled={member.role === 'OWNER'}
+                      disabled={member.role === 'OWNER' || member.isPending}
                     >
                       <SelectTrigger className="w-28 h-9">
                         <SelectValue />
@@ -185,7 +194,7 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
                       </SelectContent>
                     </Select>
 
-                    {member.role !== 'OWNER' && (
+                    {member.role !== 'OWNER' && !member.isPending && (
                       <Button
                         variant="ghost"
                         size="icon"

@@ -333,6 +333,7 @@ model Invitation {
   token       String           @unique
   type        InvitationType   @default(TENANT)
   role        TenantRole       @default(MEMBER)
+  projectRole ProjectRole      @default(MEMBER)
   status      InvitationStatus @default(PENDING)
   expiresAt   DateTime
   createdAt   DateTime         @default(now())

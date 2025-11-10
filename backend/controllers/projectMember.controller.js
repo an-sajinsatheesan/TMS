@@ -19,6 +19,7 @@ class ProjectMemberController {
   static listMembers = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
 
+    // Get current project members
     const members = await prisma.projectMember.findMany({
       where: { projectId },
       orderBy: { joinedAt: 'asc' },
@@ -39,7 +40,51 @@ class ProjectMemberController {
       },
     });
 
-    ApiResponse.success(members, 'Project members retrieved successfully').send(res);
+    // Get pending invitations for this project
+    const pendingInvitations = await prisma.invitation.findMany({
+      where: {
+        projectId,
+        status: 'PENDING',
+        expiresAt: {
+          gt: new Date(), // Only non-expired invitations
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        projectRole: true,
+        createdAt: true,
+        inviter: {
+          select: {
+            fullName: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Format pending invitations to match member structure
+    const formattedInvitations = pendingInvitations.map(inv => ({
+      id: inv.id,
+      projectId,
+      userId: null,
+      role: inv.projectRole,
+      joinedAt: inv.createdAt,
+      isPending: true, // Flag to identify pending invitations
+      user: {
+        id: null,
+        fullName: null,
+        email: inv.email,
+        avatarUrl: null,
+      },
+      invitedBy: inv.inviter,
+    }));
+
+    // Combine members and pending invitations
+    const allMembers = [...members, ...formattedInvitations];
+
+    ApiResponse.success(allMembers, 'Project members retrieved successfully').send(res);
   });
 
   /**
@@ -131,7 +176,8 @@ class ProjectMemberController {
           invitedBy: userId,
           token,
           type: 'PROJECT',
-          role: role || 'MEMBER',
+          role: 'MEMBER', // Tenant role (default)
+          projectRole: role || 'MEMBER', // Project-specific role
           expiresAt,
         },
       });

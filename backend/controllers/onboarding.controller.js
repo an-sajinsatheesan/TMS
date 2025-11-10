@@ -54,6 +54,7 @@ class OnboardingController {
   /**
    * @route   POST /api/v1/onboarding/profile
    * @desc    Complete account registration - CREATE user with name and password AFTER OTP verification
+   *          OR UPDATE existing user (from invitation) with password
    * @access  Public (email must be provided from OTP verification)
    */
   static saveProfile = asyncHandler(async (req, res) => {
@@ -67,6 +68,9 @@ class OnboardingController {
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
+      include: {
+        onboardingData: true,
+      },
     });
 
     if (existingUser && existingUser.passwordHash) {
@@ -76,43 +80,124 @@ class OnboardingController {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create user NOW (after OTP verification)
-    const newUser = await prisma.user.create({
-      data: {
-        email,
-        fullName,
-        passwordHash,
-        avatarUrl: avatarUrl || null,
-        authProvider: 'EMAIL',
-        isEmailVerified: true,
-      },
-    });
+    let user;
+    let onboardingData;
+    let isInvitedUser = false;
+    let userTenants = [];
 
-    // Create onboarding data - ALWAYS start at step 1
-    const onboardingData = await prisma.onboardingData.create({
-      data: {
-        userId: newUser.id,
-        currentStep: 1,
-      },
-    });
+    if (existingUser && !existingUser.passwordHash) {
+      // User exists from invitation but no password yet - UPDATE user
+      user = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          fullName,
+          passwordHash,
+          avatarUrl: avatarUrl || null,
+          isEmailVerified: true,
+        },
+      });
+
+      // Check if user was invited (has tenant memberships)
+      userTenants = await prisma.tenantUser.findMany({
+        where: { userId: user.id },
+        include: {
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      });
+
+      isInvitedUser = userTenants.length > 0;
+
+      // Get or create onboarding data
+      if (existingUser.onboardingData) {
+        onboardingData = existingUser.onboardingData;
+
+        // If user was invited, mark onboarding as complete
+        if (isInvitedUser && !onboardingData.completedAt) {
+          onboardingData = await prisma.onboardingData.update({
+            where: { id: onboardingData.id },
+            data: {
+              completedAt: new Date(),
+              currentStep: 10, // Mark as completed
+            },
+          });
+        }
+      } else {
+        onboardingData = await prisma.onboardingData.create({
+          data: {
+            userId: user.id,
+            currentStep: isInvitedUser ? 10 : 1, // Skip onboarding if invited
+            completedAt: isInvitedUser ? new Date() : null,
+          },
+        });
+      }
+    } else {
+      // New user - CREATE user
+      user = await prisma.user.create({
+        data: {
+          email,
+          fullName,
+          passwordHash,
+          avatarUrl: avatarUrl || null,
+          authProvider: 'EMAIL',
+          isEmailVerified: true,
+        },
+      });
+
+      // Create onboarding data - ALWAYS start at step 1
+      onboardingData = await prisma.onboardingData.create({
+        data: {
+          userId: user.id,
+          currentStep: 1,
+        },
+      });
+    }
 
     // Generate tokens NOW (after password is set)
-    const tokens = JwtService.generateAuthTokens(newUser);
+    const tokens = JwtService.generateAuthTokens(user);
+
+    // Get user's project memberships if invited
+    let projectMemberships = [];
+    if (isInvitedUser) {
+      projectMemberships = await prisma.projectMember.findMany({
+        where: { userId: user.id },
+        include: {
+          project: {
+            select: {
+              id: true,
+              name: true,
+              tenantId: true,
+            },
+          },
+        },
+      });
+    }
 
     ApiResponse.success(
       {
         user: {
-          id: newUser.id,
-          email: newUser.email,
-          fullName: newUser.fullName,
-          avatarUrl: newUser.avatarUrl,
-          isEmailVerified: newUser.isEmailVerified,
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          isEmailVerified: user.isEmailVerified,
         },
         tokens,
         onboardingStatus: {
-          isComplete: false,
-          currentStep: 1,
+          isComplete: onboardingData.completedAt !== null,
+          currentStep: onboardingData.currentStep,
         },
+        // Include invitation context for frontend
+        invitation: isInvitedUser ? {
+          isInvited: true,
+          tenants: userTenants.map(ut => ut.tenant),
+          projects: projectMemberships.map(pm => pm.project),
+        } : null,
       },
       'Account created successfully. Welcome to the platform!'
     ).send(res);

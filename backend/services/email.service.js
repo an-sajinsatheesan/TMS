@@ -141,6 +141,21 @@ class EmailService {
             return { success: true, email, invitationUrl, messageId: info.messageId };
         } catch (error) {
             logger.error(`Failed to send invitation email to ${email}:`, error);
+
+            // Fallback to logger in development
+            if (process.env.NODE_ENV === 'development') {
+                logger.warn('========== INVITATION EMAIL FALLBACK ==========');
+                logger.warn(`To: ${email}`);
+                logger.warn(`From: ${inviterName}`);
+                logger.warn(`Workspace/Project: ${tenantName}`);
+                logger.warn(`Invitation Link: ${invitationUrl}`);
+                logger.warn('===============================================');
+
+                // In development, return success even if email fails
+                // The invitation link is logged for testing
+                return { success: true, email, invitationUrl, messageId: 'dev-fallback', devMode: true };
+            }
+
             throw new Error(`Failed to send email: ${error.message}`);
         }
     }

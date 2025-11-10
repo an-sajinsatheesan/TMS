@@ -9,6 +9,7 @@
         "test": "jest --coverage",
         "db:migrate": "node scripts/migrate.js",
         "db:seed": "node prisma/seeds/consolidatedOptions.seed.js",
+        "db:reset": "npx prisma migrate reset --force --skip-seed && npm run db:seed",
         "db:setup": "node scripts/setup-database.js"
     },
     "keywords": [

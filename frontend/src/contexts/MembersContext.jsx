@@ -31,6 +31,7 @@ export const MembersProvider = ({ projectId, children }) => {
         return;
       }
 
+      console.log('[MembersContext] Fetching members for project:', projectId);
       setLoading(true);
       setError(null);
 
@@ -38,17 +39,28 @@ export const MembersProvider = ({ projectId, children }) => {
         const response = await projectMembersService.getAll(projectId);
         const members = response?.data?.data || [];
 
+        console.log('[MembersContext] Fetched members:', members);
+
         if (!isMounted) return;
 
         // Map members to user format with colors
-        const mappedUsers = members.map((member, index) => ({
+        // Filter out pending invitations (they should only show in invite modal)
+        const activeMembers = members.filter(member => !member.isPending);
+
+        console.log('[MembersContext] Active members (excluding pending):', activeMembers);
+
+        const mappedUsers = activeMembers.map((member, index) => ({
           id: member.userId,
           name: member.user?.fullName || member.user?.email || 'Unknown User',
           email: member.user?.email,
           avatar: member.user?.avatarUrl,
           color: colorPalette[index % colorPalette.length],
           role: member.role,
+          // Keep original member data for components that need it
+          user: member.user,
         }));
+
+        console.log('[MembersContext] Mapped users:', mappedUsers);
 
         // Ensure current user is in the list
         const currentUserInList = mappedUsers.find(u => u.id === currentUser.id);
@@ -60,6 +72,12 @@ export const MembersProvider = ({ projectId, children }) => {
             avatar: currentUser.avatarUrl,
             color: colorPalette[0],
             role: 'OWNER',
+            user: {
+              id: currentUser.id,
+              fullName: currentUser.fullName,
+              email: currentUser.email,
+              avatarUrl: currentUser.avatarUrl,
+            },
           });
         }
 
@@ -77,6 +95,12 @@ export const MembersProvider = ({ projectId, children }) => {
               avatar: currentUser.avatarUrl,
               color: colorPalette[0],
               role: 'OWNER',
+              user: {
+                id: currentUser.id,
+                fullName: currentUser.fullName,
+                email: currentUser.email,
+                avatarUrl: currentUser.avatarUrl,
+              },
             }]);
           }
         }
@@ -89,8 +113,20 @@ export const MembersProvider = ({ projectId, children }) => {
 
     fetchMembers();
 
+    // Auto-refresh when window regains focus (like Asana/Monday.com)
+    const handleFocus = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[MembersContext] Window focused - refreshing members');
+        fetchMembers();
+      }
+    };
+
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', handleFocus);
+
     return () => {
       isMounted = false;
+      document.removeEventListener('visibilitychange', handleFocus);
     };
   }, [projectId, currentUser]);
 
@@ -102,13 +138,18 @@ export const MembersProvider = ({ projectId, children }) => {
       const response = await projectMembersService.getAll(projectId);
       const members = response?.data?.data || [];
 
-      const mappedUsers = members.map((member, index) => ({
+      // Filter out pending invitations (they should only show in invite modal)
+      const activeMembers = members.filter(member => !member.isPending);
+
+      const mappedUsers = activeMembers.map((member, index) => ({
         id: member.userId,
         name: member.user?.fullName || member.user?.email || 'Unknown User',
         email: member.user?.email,
         avatar: member.user?.avatarUrl,
         color: colorPalette[index % colorPalette.length],
         role: member.role,
+        // Keep original member data for components that need it
+        user: member.user,
       }));
 
       setUsers(mappedUsers);

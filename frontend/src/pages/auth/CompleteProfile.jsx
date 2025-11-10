@@ -36,6 +36,10 @@ const CompleteProfile = () => {
   const { loading, error } = useSelector((state) => state.auth);
 
   const email = location.state?.email || '';
+  const fromInvitation = location.state?.fromInvitation || false;
+  const invitationToken = location.state?.invitationToken || null;
+  const invitationData = location.state?.invitationData || null;
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -64,20 +68,72 @@ const CompleteProfile = () => {
 
   const onSubmit = async (data) => {
     try {
-      await dispatch(completeProfileAction({
+      const result = await dispatch(completeProfileAction({
         email,
         fullName: data.fullName,
         password: data.password
       })).unwrap();
 
-      toast.success('Account created successfully!', {
-        description: 'Welcome aboard!'
-      });
+      // Check if user was invited - prioritize backend response over location state
+      const backendInvitation = result?.invitation;
+      const isInvited = backendInvitation?.isInvited || (fromInvitation && invitationData);
 
-      // Navigate to onboarding
-      setTimeout(() => {
-        navigate('/onboarding', { replace: true });
-      }, 500);
+      if (isInvited) {
+        // From invitation - user is already authenticated (tokens saved in Redux)
+        // Skip onboarding and redirect directly to workspace/project
+
+        // Determine redirect path from backend data or location state
+        let redirectPath;
+        let tenantName;
+
+        if (backendInvitation && backendInvitation.isInvited) {
+          // Use backend data (most reliable)
+          const firstTenant = backendInvitation.tenants?.[0];
+          const firstProject = backendInvitation.projects?.[0];
+
+          if (firstProject) {
+            // User was invited to a specific project
+            redirectPath = `/workspace/${firstProject.tenantId}/project/${firstProject.id}`;
+            tenantName = firstProject.name;
+          } else if (firstTenant) {
+            // User was invited to a tenant
+            redirectPath = `/workspace/${firstTenant.id}`;
+            tenantName = firstTenant.name;
+          }
+        } else if (invitationData) {
+          // Fallback to location state
+          if (invitationData.type === 'PROJECT' && invitationData.projectId) {
+            redirectPath = `/workspace/${invitationData.tenantId}/project/${invitationData.projectId}`;
+            tenantName = invitationData.projectName;
+          } else {
+            redirectPath = `/workspace/${invitationData.tenantId}`;
+            tenantName = invitationData.tenantName;
+          }
+        }
+
+        toast.success('Welcome aboard!', {
+          description: tenantName ? `You've successfully joined ${tenantName}!` : 'Your account has been created!'
+        });
+
+        // Use setTimeout to allow toast to show
+        setTimeout(() => {
+          if (redirectPath) {
+            navigate(redirectPath, { replace: true });
+          } else {
+            // Fallback to dashboard if we couldn't determine the path
+            navigate('/dashboard', { replace: true });
+          }
+        }, 800);
+      } else {
+        // Normal registration - go to onboarding
+        toast.success('Account created successfully!', {
+          description: 'Welcome! Let\'s set up your workspace.'
+        });
+
+        setTimeout(() => {
+          navigate('/onboarding', { replace: true });
+        }, 500);
+      }
     } catch (err) {
       toast.error('Profile completion failed', {
         description: err || 'Please try again'
@@ -95,9 +151,13 @@ const CompleteProfile = () => {
       <div className="w-full">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">Complete your profile</h1>
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">
+            {fromInvitation ? 'Complete your account' : 'Complete your profile'}
+          </h1>
           <p className="text-gray-600">
-            Just a few more details to get started
+            {fromInvitation
+              ? `Set up your account to join ${invitationData?.tenantName}`
+              : 'Just a few more details to get started'}
           </p>
         </div>
 

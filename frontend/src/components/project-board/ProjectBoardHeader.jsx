@@ -20,7 +20,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { projectsService } from '@/services/api/projects.service';
-import { projectMembersService } from '@/services/api/projectMembers.service';
+import { useMembers } from '@/contexts/MembersContext';
 import InviteMembersModal from '../modals/InviteMembersModal';
 
 const STATUS_COLORS = {
@@ -31,7 +31,7 @@ const STATUS_COLORS = {
 };
 
 const ProjectBoardHeader = ({ project, onProjectUpdate, onDelete }) => {
-  const [members, setMembers] = useState([]);
+  const { users: members, refreshMembers } = useMembers();
   const [isEditingName, setIsEditingName] = useState(false);
   const [projectName, setProjectName] = useState(project?.name || '');
   const [selectedDate, setSelectedDate] = useState(project?.dueDate ? new Date(project.dueDate) : null);
@@ -39,26 +39,9 @@ const ProjectBoardHeader = ({ project, onProjectUpdate, onDelete }) => {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    if (project?.id) {
-      fetchMembers();
-    }
-  }, [project?.id]);
-
-  useEffect(() => {
     setProjectName(project?.name || '');
     setSelectedDate(project?.dueDate ? new Date(project.dueDate) : null);
   }, [project]);
-
-  const fetchMembers = async () => {
-    try {
-      const response = await projectMembersService.list(project.id);
-      const responseData = response.data?.data || response.data;
-      setMembers(Array.isArray(responseData) ? responseData : []);
-    } catch (error) {
-      console.error('Error fetching members:', error);
-      setMembers([]);
-    }
-  };
 
   // Don't render if project is not loaded
   if (!project || !project.id) {
@@ -367,7 +350,7 @@ const ProjectBoardHeader = ({ project, onProjectUpdate, onDelete }) => {
         onClose={() => setShowInviteModal(false)}
         projectId={project?.id}
         currentMembers={members}
-        onMembersUpdated={fetchMembers}
+        onMembersUpdated={refreshMembers}
       />
     </>
   );

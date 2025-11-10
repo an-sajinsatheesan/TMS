@@ -114,7 +114,7 @@ class InvitationService {
   /**
    * Send project invitation
    * @param {String} projectId - Project ID
-   * @param {Array} emails - Array of emails to invite
+   * @param {Array} emails - Array of email objects with email and projectRole
    * @param {String} inviterId - ID of user sending invitation
    * @returns {Array} Created invitations
    */
@@ -142,7 +142,11 @@ class InvitationService {
 
     const invitations = [];
 
-    for (const email of emails) {
+    for (const emailData of emails) {
+      // Support both string emails and {email, projectRole} objects
+      const email = typeof emailData === 'string' ? emailData : emailData.email;
+      const projectRole = typeof emailData === 'object' ? emailData.projectRole || 'MEMBER' : 'MEMBER';
+
       // Check for existing pending invitation
       const existingInvitation = await prisma.invitation.findFirst({
         where: {
@@ -164,6 +168,7 @@ class InvitationService {
             token: uuidv4(),
             expiresAt,
             invitedBy: inviterId,
+            projectRole,
           },
         });
       } else {
@@ -176,7 +181,8 @@ class InvitationService {
             invitedBy: inviterId,
             token: uuidv4(),
             type: 'PROJECT',
-            role: 'MEMBER',
+            role: 'MEMBER', // Tenant role
+            projectRole, // Project role
             expiresAt,
           },
         });
@@ -289,7 +295,7 @@ class InvitationService {
           data: {
             projectId: invitation.projectId,
             userId: user.id,
-            role: invitation.role || 'MEMBER',
+            role: invitation.projectRole || 'MEMBER', // Use projectRole instead of role
           },
         });
       }

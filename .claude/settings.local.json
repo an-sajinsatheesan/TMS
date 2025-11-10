@@ -25,7 +25,15 @@
       "Bash(timeout 10 bash:*)",
       "Bash(timeout 10 npm start)",
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma migrate:*)",
-      "Bash(npx shadcn@latest init)"
+      "Bash(npx shadcn@latest init)",
+      "Bash(find:*)",
+      "Bash(npm run db:reset:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npm run db:reset:*)",
+      "Bash(node scripts/check-members.js:*)",
+      "Bash(node scripts/check-specific-user.js:*)",
+      "Bash(node scripts/test-api-response.js:*)",
+      "Bash(node prisma/seeds/projectMemberRoles.seed.js:*)",
+      "Bash(node scripts/test-roles-api.js:*)"
     ],
     "deny": [],
     "ask": []

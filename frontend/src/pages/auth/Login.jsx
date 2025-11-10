@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { loginSchema } from '../../utils/validationSchemas';
 import { toast } from '../../hooks/useToast.jsx';
@@ -17,28 +17,40 @@ import AuthLayout from './AuthLayout';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useDispatch();
     const { loading, error, onboardingStatus } = useSelector((state) => state.auth);
     const [showPassword, setShowPassword] = useState(false);
 
+    // Get invitation context from location state
+    const invitationMessage = location.state?.message;
+    const invitationRedirect = location.state?.redirectTo;
+    const prefillEmail = location.state?.email || '';
+
     const { register, handleSubmit, formState: { errors }, setError } = useForm({
         resolver: yupResolver(loginSchema),
         defaultValues: {
-            email: '',
+            email: prefillEmail,
             password: ''
         }
     });
 
     const onSubmit = async (data) => {
         try {
-            await dispatch(loginAction({ email: data.email, password: data.password })).unwrap();
+            const result = await dispatch(loginAction({ email: data.email, password: data.password })).unwrap();
 
             toast.success('Login successful!', {
                 description: 'Welcome back!'
             });
 
+            // If coming from invitation, redirect to the specified path
+            if (invitationRedirect) {
+                setTimeout(() => {
+                    navigate(invitationRedirect, { replace: true });
+                }, 300);
+            }
             // Check onboarding status and redirect accordingly
-            if (onboardingStatus && !onboardingStatus.isComplete) {
+            else if (result?.onboardingStatus && !result.onboardingStatus.isComplete) {
                 const stepMap = {
                     1: '/onboarding',
                     2: '/onboarding/step2',
@@ -49,10 +61,14 @@ const Login = () => {
                     7: '/onboarding/step7',
                     8: '/onboarding/step8',
                 };
-                const redirectPath = stepMap[onboardingStatus.currentStep] || '/onboarding';
-                navigate(redirectPath, { replace: true });
+                const redirectPath = stepMap[result.onboardingStatus.currentStep] || '/onboarding';
+                setTimeout(() => {
+                    navigate(redirectPath, { replace: true });
+                }, 300);
             } else {
-                navigate('/dashboard', { replace: true });
+                setTimeout(() => {
+                    navigate('/dashboard', { replace: true });
+                }, 300);
             }
         } catch (err) {
             toast.error('Login failed', {
@@ -81,6 +97,14 @@ const Login = () => {
                     <h1 className="text-3xl font-semibold text-gray-900 mb-2">Welcome back</h1>
                     <p className="text-gray-600">Sign in to your account to continue</p>
                 </div>
+
+                {/* Invitation Success Message */}
+                {invitationMessage && (
+                    <Alert className="mb-6 border-green-500 bg-green-50">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <AlertDescription className="text-green-800">{invitationMessage}</AlertDescription>
+                    </Alert>
+                )}
 
                 {/* Error Alert */}
                 {(errors.root || error) && (
