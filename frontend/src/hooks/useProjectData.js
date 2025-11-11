@@ -349,10 +349,68 @@ export function useProjectData(projectId) {
   }, []); // Empty deps
 
   /**
+   * Helper: Add subtask to parent in nested structure
+   */
+  const addSubtaskToParent = (tasks, parentId, subtask) => {
+    return tasks.map((task) => {
+      if (task.id === parentId) {
+        // Add subtask to parent's subtasks array
+        const subtasks = task.subtasks || [];
+        return {
+          ...task,
+          subtasks: [...subtasks, subtask],
+          subtaskCount: (task.subtaskCount || 0) + 1,
+          isExpanded: true, // Auto-expand parent to show the new subtask
+        };
+      }
+      if (task.subtasks && task.subtasks.length > 0) {
+        return {
+          ...task,
+          subtasks: addSubtaskToParent(task.subtasks, parentId, subtask),
+        };
+      }
+      return task;
+    });
+  };
+
+  /**
+   * Helper: Replace subtask in nested structure
+   */
+  const replaceSubtaskInTree = (tasks, tempId, realSubtask) => {
+    return tasks.map((task) => {
+      if (task.subtasks && task.subtasks.length > 0) {
+        return {
+          ...task,
+          subtasks: task.subtasks.map((subtask) =>
+            subtask.id === tempId ? realSubtask : replaceSubtaskInTree([subtask], tempId, realSubtask)[0] || subtask
+          ),
+        };
+      }
+      return task;
+    });
+  };
+
+  /**
+   * Helper: Remove subtask from nested structure
+   */
+  const removeSubtaskFromTree = (tasks, subtaskId) => {
+    return tasks.map((task) => {
+      if (task.subtasks && task.subtasks.length > 0) {
+        const filteredSubtasks = task.subtasks.filter((st) => st.id !== subtaskId);
+        return {
+          ...task,
+          subtasks: removeSubtaskFromTree(filteredSubtasks, subtaskId),
+        };
+      }
+      return task;
+    });
+  };
+
+  /**
    * Create a subtask
    */
   const createSubtask = useCallback(async (parentTaskId, subtaskData = {}) => {
-    const parentTask = tasksRef.current.find((t) => t.id === parentTaskId);
+    const parentTask = findTaskInTree(tasksRef.current, parentTaskId);
     if (!parentTask) {
       console.error('Parent task not found');
       return;
@@ -378,39 +436,36 @@ export function useProjectData(projectId) {
       customFields: {},
       parentId: parentTaskId,
       level: (parentTask.level || 0) + 1,
-      orderIndex: tasksRef.current.filter((t) => t.parentId === parentTaskId).length,
+      orderIndex: (parentTask.subtasks?.length || 0),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       completedAt: null,
       subtaskCount: 0,
       isExpanded: false,
+      subtasks: [],
     };
 
-    // Optimistic update
-    setTasks((prev) => [...prev, newSubtask]);
+    // Optimistic update - nest subtask under parent
+    setTasks((prev) => addSubtaskToParent(prev, parentTaskId, newSubtask));
 
     try {
       const response = await tasksService.createSubtask(parentTaskId, {
         title: newSubtask.title,
       });
 
-      // Replace temp task with real task from server
-      setTasks((prev) =>
-        prev.map((t) => (t.id === tempId ? response.data : t))
-      );
-
-      // Update parent task's subtask count
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === parentTaskId ? { ...t, subtaskCount: (t.subtaskCount || 0) + 1 } : t
-        )
-      );
+      // Replace temp subtask with real subtask from server
+      const realSubtask = {
+        ...response.data,
+        name: response.data.title,
+        subtasks: [],
+      };
+      setTasks((prev) => replaceSubtaskInTree(prev, tempId, realSubtask));
 
       return response.data;
     } catch (err) {
       console.error('Failed to create subtask:', err);
-      // Remove temp task on error
-      setTasks((prev) => prev.filter((t) => t.id !== tempId));
+      // Remove temp subtask on error
+      setTasks((prev) => removeSubtaskFromTree(prev, tempId));
       setError('Failed to create subtask');
       throw err;
     }

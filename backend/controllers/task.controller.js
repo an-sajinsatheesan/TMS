@@ -34,23 +34,14 @@ class TaskController {
     } = req.body;
     const userId = req.user.id;
 
-    // Calculate orderIndex (add to end of section)
-    let orderIndex = 0;
-    if (sectionId) {
-      const lastTask = await prisma.task.findFirst({
-        where: { projectId, sectionId },
-        orderBy: { orderIndex: 'desc' },
-        select: { orderIndex: true },
-      });
-      orderIndex = lastTask ? lastTask.orderIndex + 1 : 0;
-    }
-
-    // If parentId provided, calculate level and increment parent subtask count
+    // If parentId provided, calculate level
     let level = 0;
+    let orderIndex = 0;
+
     if (parentId) {
       const parent = await prisma.task.findUnique({
         where: { id: parentId },
-        select: { level: true },
+        select: { level: true, sectionId: true },
       });
 
       if (!parent) {
@@ -58,6 +49,24 @@ class TaskController {
       }
 
       level = parent.level + 1;
+
+      // For subtasks, add to the end of parent's subtasks
+      const lastSubtask = await prisma.task.findFirst({
+        where: { parentId },
+        orderBy: { orderIndex: 'desc' },
+        select: { orderIndex: true },
+      });
+      orderIndex = lastSubtask ? lastSubtask.orderIndex + 1 : 0;
+    } else if (sectionId) {
+      // For top-level tasks, add to the top of the section (new tasks appear first)
+      const firstTask = await prisma.task.findFirst({
+        where: { projectId, sectionId, parentId: null },
+        orderBy: { orderIndex: 'asc' },
+        select: { orderIndex: true },
+      });
+
+      // New tasks get orderIndex = minOrderIndex - 1, ensuring they appear at the top
+      orderIndex = firstTask ? firstTask.orderIndex - 1 : 0;
     }
 
     // Create task
