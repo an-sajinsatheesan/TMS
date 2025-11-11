@@ -253,13 +253,37 @@ class InvitationService {
         },
       });
 
-      // Create onboarding data
+      // Create onboarding data and mark as completed (invited users skip onboarding)
+      // They're joining an existing workspace, not creating one
       await prisma.onboardingData.create({
         data: {
           userId: user.id,
           currentStep: 1,
+          completedAt: new Date(), // Mark onboarding as complete
         },
       });
+    } else {
+      // For existing users accepting invitation, mark onboarding as complete
+      // if they don't already have a completed onboarding
+      const onboardingData = await prisma.onboardingData.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (onboardingData && !onboardingData.completedAt) {
+        await prisma.onboardingData.update({
+          where: { userId: user.id },
+          data: { completedAt: new Date() },
+        });
+      } else if (!onboardingData) {
+        // Create completed onboarding data if none exists
+        await prisma.onboardingData.create({
+          data: {
+            userId: user.id,
+            currentStep: 1,
+            completedAt: new Date(),
+          },
+        });
+      }
     }
 
     // Determine invitation type based on projectId
