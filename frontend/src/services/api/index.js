@@ -4,3 +4,4 @@ export { sectionsService } from './sections.service';
 export { projectMembersService } from './projectMembers.service';
 export { projectColumnsService } from './projectColumns.service';
 export { templatesService } from './templates.service';
+export { tenantsService } from './tenants.service';

@@ -4,6 +4,7 @@ import AuthInit from './components/common/AuthInit';
 import { AuthProvider } from './contexts/AuthContext';
 import { OnboardingProvider } from './contexts/OnboardingContext';
 import { ProjectProvider } from './contexts/ProjectContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
 import { toast } from './hooks/useToast';
@@ -46,6 +47,10 @@ import OnboardingStepGuard from './components/common/OnboardingStepGuard';
 // Other Pages
 import InvitationAccept from './pages/InvitationAccept';
 
+// Workspace Pages
+import WorkspaceSettings from './pages/WorkspaceSettings';
+import WorkspaceCreate from './pages/WorkspaceCreate';
+
 function App() {
     useEffect(() => {
         // Listen for session expiration events
@@ -63,6 +68,7 @@ function App() {
 
     return (
         <AuthProvider>
+            <WorkspaceProvider>
             <OnboardingProvider>
                 <ProjectProvider>
                     <Router>
@@ -210,6 +216,24 @@ function App() {
                             }
                         />
 
+                        {/* Protected Workspace Routes */}
+                        <Route
+                            path="/workspace/settings"
+                            element={
+                                <ProtectedRoute>
+                                    <WorkspaceSettings />
+                                </ProtectedRoute>
+                            }
+                        />
+                        <Route
+                            path="/workspace/create"
+                            element={
+                                <ProtectedRoute>
+                                    <WorkspaceCreate />
+                                </ProtectedRoute>
+                            }
+                        />
+
                         {/* Protected Project Board Routes */}
                         <Route
                             path="/project-board/:userId/:projectId/:viewMode"
@@ -237,6 +261,7 @@ function App() {
                 </Router>
                 </ProjectProvider>
             </OnboardingProvider>
+            </WorkspaceProvider>
         </AuthProvider>
     );
 }
