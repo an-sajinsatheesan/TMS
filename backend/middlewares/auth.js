@@ -30,8 +30,24 @@ const authenticate = asyncHandler(async (req, res, next) => {
     // Get user from database
     const user = await AuthService.getUserById(decoded.id);
 
-    // Attach user to request
-    req.user = user;
+    // Get user's tenant membership
+    const prisma = require('../config/prisma');
+    const tenantMembership = await prisma.tenant_users.findFirst({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        tenantId: true,
+        role: true,
+      },
+    });
+
+    // Attach user and tenantId to request
+    req.user = {
+      ...user,
+      tenantId: tenantMembership?.tenantId || null,
+      tenantRole: tenantMembership?.role || null,
+    };
 
     next();
   } catch (error) {
