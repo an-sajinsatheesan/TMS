@@ -108,8 +108,40 @@ class EmailService {
     static async sendInvitationEmail(email, tenantName, inviterName, token) {
         const invitationUrl = `${process.env.CLIENT_URL}/accept-invitation/${token}`;
 
+        // Check email configuration
+        const emailUser = process.env.EMAIL_USER;
+        const emailPassword = process.env.EMAIL_PASSWORD;
+        const emailHost = process.env.EMAIL_HOST;
+
+        logger.info('========== EMAIL CONFIGURATION CHECK ==========');
+        logger.info(`Email Host: ${emailHost || 'NOT CONFIGURED'}`);
+        logger.info(`Email User: ${emailUser || 'NOT CONFIGURED'}`);
+        logger.info(`Email Password: ${emailPassword ? '****** (configured)' : 'NOT CONFIGURED'}`);
+        logger.info(`CLIENT_URL: ${process.env.CLIENT_URL || 'NOT CONFIGURED'}`);
+        logger.info('===============================================');
+
+        // If email not configured, use development fallback
+        if (!emailUser || !emailPassword || emailUser === 'your-email@gmail.com') {
+            logger.warn('========== EMAIL NOT CONFIGURED - DEVELOPMENT MODE ==========');
+            logger.warn('⚠️  Email credentials not configured in .env file');
+            logger.warn('⚠️  Using console fallback instead of sending real emails');
+            logger.warn('');
+            logger.warn(`To: ${email}`);
+            logger.warn(`From: ${inviterName}`);
+            logger.warn(`Workspace/Project: ${tenantName}`);
+            logger.warn(`Invitation Link: ${invitationUrl}`);
+            logger.warn('');
+            logger.warn('📧 To send real emails, configure EMAIL_* variables in .env');
+            logger.warn('📚 See backend/docs/EMAIL_SETUP.md for instructions');
+            logger.warn('===============================================');
+
+            return { success: true, email, invitationUrl, messageId: 'dev-fallback', devMode: true };
+        }
+
         try {
             const transporter = this.createTransporter();
+
+            logger.info(`📧 Attempting to send invitation email to ${email}...`);
 
             const mailOptions = {
                 from: process.env.EMAIL_FROM || 'TaskCRM <noreply@taskcrm.com>',
@@ -136,24 +168,35 @@ class EmailService {
             };
 
             const info = await transporter.sendMail(mailOptions);
-            logger.info(`Invitation email sent to ${email} for tenant ${tenantName}`);
+            logger.info(`✅ Invitation email sent successfully to ${email}`);
+            logger.info(`Message ID: ${info.messageId}`);
+            logger.info(`Response: ${info.response}`);
 
             return { success: true, email, invitationUrl, messageId: info.messageId };
         } catch (error) {
-            logger.error(`Failed to send invitation email to ${email}:`, error);
+            logger.error(`❌ Failed to send invitation email to ${email}`);
+            logger.error(`Error: ${error.message}`);
+            logger.error(`Error Code: ${error.code}`);
+
+            if (error.response) {
+                logger.error(`SMTP Response: ${error.response}`);
+            }
 
             // Fallback to logger in development
             if (process.env.NODE_ENV === 'development') {
-                logger.warn('========== INVITATION EMAIL FALLBACK ==========');
+                logger.warn('========== INVITATION EMAIL FALLBACK (ERROR) ==========');
                 logger.warn(`To: ${email}`);
                 logger.warn(`From: ${inviterName}`);
                 logger.warn(`Workspace/Project: ${tenantName}`);
                 logger.warn(`Invitation Link: ${invitationUrl}`);
+                logger.warn('');
+                logger.warn('⚠️  Email sending failed but invitation was created');
+                logger.warn('⚠️  Copy the link above to test invitation acceptance');
                 logger.warn('===============================================');
 
                 // In development, return success even if email fails
                 // The invitation link is logged for testing
-                return { success: true, email, invitationUrl, messageId: 'dev-fallback', devMode: true };
+                return { success: true, email, invitationUrl, messageId: 'dev-fallback', devMode: true, error: error.message };
             }
 
             throw new Error(`Failed to send email: ${error.message}`);
