@@ -62,6 +62,7 @@ const ListView = ({ projectId }) => {
     moveTask,
     createSubtask,
     duplicateTask,
+    createSection,
   } = useProjectData(projectId);
 
   // Redux columns state
@@ -73,6 +74,7 @@ const ListView = ({ projectId }) => {
   const [sortConfig, setSortConfig] = useState({ column: null, direction: null });
   const [activeFilters, setActiveFilters] = useState({});
   const [overId, setOverId] = useState(null);
+  const [focusedSectionId, setFocusedSectionId] = useState(null);
 
   const { users: projectMembers } = useMembers();
 
@@ -572,12 +574,44 @@ const ListView = ({ projectId }) => {
     onColumnVisibilityChange: handleColumnVisibilityChange,
   };
 
-  const handleAddTask = (type) => {
-    console.log('Add task type:', type);
+  const handleAddTask = async (type, sectionId) => {
+    // Determine which section to add to
+    const targetSectionId = sectionId || focusedSectionId || sections[0]?.id;
+
+    if (!targetSectionId) {
+      toast.error('Please create a section first');
+      return;
+    }
+
+    try {
+      // Create task based on type
+      const taskData = {
+        title: type === 'milestone' ? 'New Milestone' : type === 'approval' ? 'New Approval' : 'New Task',
+      };
+
+      // Add custom field to differentiate types
+      if (type === 'milestone') {
+        taskData.customFields = { type: 'milestone' };
+      } else if (type === 'approval') {
+        taskData.customFields = { type: 'approval' };
+      }
+
+      await createTask(targetSectionId, taskData);
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully`);
+    } catch (err) {
+      console.error(`Failed to create ${type}:`, err);
+      toast.error(`Failed to add ${type}`);
+    }
   };
 
-  const handleAddSection = () => {
-    console.log('Add section');
+  const handleAddSection = async () => {
+    try {
+      await createSection({ name: 'New Section' });
+      toast.success('Section created successfully');
+    } catch (err) {
+      console.error('Failed to create section:', err);
+      toast.error('Failed to create section');
+    }
   };
 
   return (
@@ -587,6 +621,7 @@ const ListView = ({ projectId }) => {
         <ProjectActionBar
           onAddTask={handleAddTask}
           onAddSection={handleAddSection}
+          focusedSectionId={focusedSectionId}
         />
 
         <DndContext
@@ -674,7 +709,11 @@ const ListView = ({ projectId }) => {
                 const showSectionDropIndicator = activeId && overId === sectionDraggableId && activeId !== sectionDraggableId;
 
                 return (
-                  <div key={section.id}>
+                  <div
+                    key={section.id}
+                    onClick={() => setFocusedSectionId(section.id)}
+                    className={focusedSectionId === section.id ? 'ring-2 ring-blue-200 ring-inset' : ''}
+                  >
                     {/* Show drop indicator above the section if dragging over it */}
                     {showSectionDropIndicator && (
                       <DropIndicator
