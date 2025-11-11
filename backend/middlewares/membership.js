@@ -4,14 +4,17 @@ const asyncHandler = require('../utils/asyncHandler');
 
 /**
  * Role Hierarchy (from highest to lowest)
- * SUPER_ADMIN > TENANT_ADMIN > PROJECT_ADMIN > MEMBER > VIEWER
+ * SUPER_ADMIN > OWNER > ADMIN > MEMBER > VIEWER
+ *
+ * Note: OWNER and ADMIN apply to both tenant-level and project-level roles
+ * Tenant OWNER/ADMIN automatically have full access to all tenant projects
  */
 const ROLE_HIERARCHY = {
-  SUPER_ADMIN: 5,
-  TENANT_ADMIN: 4,
-  PROJECT_ADMIN: 3,
-  MEMBER: 2,
-  VIEWER: 1,
+  SUPER_ADMIN: 6,
+  OWNER: 5,
+  ADMIN: 4,
+  MEMBER: 3,
+  VIEWER: 2,
 };
 
 /**
@@ -173,7 +176,7 @@ const projectContext = asyncHandler(async (req, res, next) => {
 
 /**
  * Require minimum role for tenant-level operations
- * Usage: requireTenantRole('TENANT_ADMIN')
+ * Usage: requireTenantRole('ADMIN')
  */
 const requireTenantRole = (minRole) => {
   return (req, res, next) => {
@@ -193,7 +196,8 @@ const requireTenantRole = (minRole) => {
 
 /**
  * Require minimum role for project-level operations
- * Usage: requireProjectRole('PROJECT_ADMIN')
+ * Usage: requireProjectRole('ADMIN')
+ * Note: Tenant-level roles (OWNER/ADMIN) automatically grant project access
  */
 const requireProjectRole = (minRole) => {
   return (req, res, next) => {
@@ -214,16 +218,16 @@ const requireProjectRole = (minRole) => {
 /**
  * Shortcut middlewares for common role requirements
  */
-const requireTenantAdmin = requireTenantRole('TENANT_ADMIN');
-const requireProjectAdmin = requireProjectRole('PROJECT_ADMIN');
+const requireTenantAdmin = requireTenantRole('ADMIN');
+const requireProjectAdmin = requireProjectRole('ADMIN');
 const requireProjectMember = requireProjectRole('MEMBER');
 
 /**
  * Check if user can manage another member
  * Rules:
  * - SUPER_ADMIN can manage anyone
- * - TENANT_ADMIN can manage anyone in their tenant (except SUPER_ADMIN)
- * - PROJECT_ADMIN can manage MEMBER and VIEWER in their project
+ * - Tenant OWNER/ADMIN can manage anyone in their tenant (except SUPER_ADMIN)
+ * - Project OWNER/ADMIN can manage MEMBER and VIEWER in their project
  * - Cannot manage users with equal or higher role
  */
 const canManageMember = (managerRole, targetRole) => {
@@ -296,7 +300,7 @@ const requireProjectOwner = asyncHandler(async (req, res, next) => {
 
   const isSuperAdmin = req.user.systemRole === 'SUPER_ADMIN';
   const isCreator = req.project.createdBy === req.user.id;
-  const isTenantAdmin = req.tenantRole === 'TENANT_ADMIN';
+  const isTenantAdmin = req.tenantRole === 'ADMIN' || req.tenantRole === 'OWNER';
 
   if (!isSuperAdmin && !isCreator && !isTenantAdmin) {
     throw ApiError.forbidden('Only project owner, tenant admin, or super admin can perform this action');

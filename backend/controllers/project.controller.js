@@ -756,7 +756,7 @@ class ProjectController {
         project_members: {
           some: {
             userId,
-            role: 'PROJECT_ADMIN', // Only PROJECT_ADMIN can see trashed projects
+            role: 'ADMIN', // Only ADMIN can see trashed projects
           },
         },
       },
