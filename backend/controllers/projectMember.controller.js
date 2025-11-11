@@ -65,7 +65,7 @@ class ProjectMemberController {
         userId: true,
         role: true,
         joinedAt: true,
-        user: {
+        users: {
           select: {
             id: true,
             fullName: true,
@@ -96,7 +96,7 @@ class ProjectMemberController {
       level: 'TENANT',
       joinedAt: member.joinedAt,
       isProjectSpecific: false,
-      user: member.user,
+      user: member.users,
     }));
 
     // Get pending invitations for this project
@@ -215,14 +215,14 @@ class ProjectMemberController {
     const existingTenantMembers = await prisma.tenant_users.findMany({
       where: {
         tenantId: project.tenantId,
-        user: {
+        users: {
           email: {
             in: emails,
           },
         },
       },
       select: {
-        user: {
+        users: {
           select: {
             email: true,
           },
@@ -245,7 +245,7 @@ class ProjectMemberController {
 
     const existingEmails = [
       ...existingMembers.map((m) => m.user.email),
-      ...existingTenantMembers.map((m) => m.user.email),
+      ...existingTenantMembers.map((m) => m.users.email),
       ...existingInvitations.map((i) => i.email),
     ];
 
