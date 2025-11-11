@@ -68,16 +68,19 @@ async function seedConsolidatedOptions() {
 async function seedTaskStatusOptions() {
   console.log('Seeding task status options...');
 
+  const { v4: uuidv4 } = require('uuid');
+  const now = new Date();
+
   const statusOptions = [
-    { label: 'On Track', value: 'On Track', color: '#10b981', icon: 'pi-check-circle', position: 0 },
-    { label: 'At Risk', value: 'At Risk', color: '#f59e0b', icon: 'pi-exclamation-triangle', position: 1 },
-    { label: 'Off Track', value: 'Off Track', color: '#ef4444', icon: 'pi-times-circle', position: 2 },
-    { label: 'Completed', value: 'Completed', color: '#8b5cf6', icon: 'pi-check', position: 3 },
-    { label: 'On Hold', value: 'On Hold', color: '#6b7280', icon: 'pi-pause-circle', position: 4 },
+    { id: uuidv4(), label: 'On Track', value: 'On Track', color: '#10b981', icon: 'pi-check-circle', position: 0, createdAt: now, updatedAt: now },
+    { id: uuidv4(), label: 'At Risk', value: 'At Risk', color: '#f59e0b', icon: 'pi-exclamation-triangle', position: 1, createdAt: now, updatedAt: now },
+    { id: uuidv4(), label: 'Off Track', value: 'Off Track', color: '#ef4444', icon: 'pi-times-circle', position: 2, createdAt: now, updatedAt: now },
+    { id: uuidv4(), label: 'Completed', value: 'Completed', color: '#8b5cf6', icon: 'pi-check', position: 3, createdAt: now, updatedAt: now },
+    { id: uuidv4(), label: 'On Hold', value: 'On Hold', color: '#6b7280', icon: 'pi-pause-circle', position: 4, createdAt: now, updatedAt: now },
   ];
 
   for (const option of statusOptions) {
-    await prisma.taskStatusOption.upsert({
+    await prisma.task_status_options.upsert({
       where: { value: option.value },
       update: option,
       create: option,
@@ -89,14 +92,17 @@ async function seedTaskStatusOptions() {
 async function seedTaskPriorityOptions() {
   console.log('Seeding task priority options...');
 
+  const { v4: uuidv4 } = require('uuid');
+  const now = new Date();
+
   const priorityOptions = [
-    { label: 'High', value: 'High', color: '#ef4444', icon: 'pi-angle-double-up', position: 0 },
-    { label: 'Medium', value: 'Medium', color: '#f59e0b', icon: 'pi-minus', position: 1 },
-    { label: 'Low', value: 'Low', color: '#3b82f6', icon: 'pi-angle-double-down', position: 2 },
+    { id: uuidv4(), label: 'High', value: 'High', color: '#ef4444', icon: 'pi-angle-double-up', position: 0, createdAt: now, updatedAt: now },
+    { id: uuidv4(), label: 'Medium', value: 'Medium', color: '#f59e0b', icon: 'pi-minus', position: 1, createdAt: now, updatedAt: now },
+    { id: uuidv4(), label: 'Low', value: 'Low', color: '#3b82f6', icon: 'pi-angle-double-down', position: 2, createdAt: now, updatedAt: now },
   ];
 
   for (const option of priorityOptions) {
-    await prisma.taskPriorityOption.upsert({
+    await prisma.task_priority_options.upsert({
       where: { value: option.value },
       update: option,
       create: option,
@@ -187,8 +193,8 @@ async function seedProjectTemplates() {
     {
       name: 'Marketing Campaign Launch',
       description: 'Template for planning and executing marketing campaigns',
-      templateCategory: 'MARKETING',
-      isTemplate: true,
+      category: 'MARKETING',
+      isGlobal: true,
       color: '#ef4444',
       layout: 'LIST',
       sections: [
@@ -212,8 +218,8 @@ async function seedProjectTemplates() {
     {
       name: 'Social Media Management',
       description: 'Organize and track social media content across platforms',
-      templateCategory: 'MARKETING',
-      isTemplate: true,
+      category: 'MARKETING',
+      isGlobal: true,
       color: '#ec4899',
       layout: 'BOARD',
       sections: [
@@ -231,8 +237,8 @@ async function seedProjectTemplates() {
     {
       name: 'Content Marketing Pipeline',
       description: 'Manage blog posts, videos, and other content creation',
-      templateCategory: 'MARKETING',
-      isTemplate: true,
+      category: 'MARKETING',
+      isGlobal: true,
       color: '#f59e0b',
       layout: 'LIST',
       sections: [
@@ -252,8 +258,8 @@ async function seedProjectTemplates() {
     {
       name: 'Employee Onboarding',
       description: 'Streamline new hire onboarding process',
-      templateCategory: 'HR',
-      isTemplate: true,
+      category: 'HR',
+      isGlobal: true,
       color: '#06b6d4',
       layout: 'LIST',
       sections: [
@@ -275,8 +281,8 @@ async function seedProjectTemplates() {
     {
       name: 'Recruitment Pipeline',
       description: 'Track candidates through the hiring process',
-      templateCategory: 'HR',
-      isTemplate: true,
+      category: 'HR',
+      isGlobal: true,
       color: '#14b8a6',
       layout: 'BOARD',
       sections: [
@@ -294,8 +300,8 @@ async function seedProjectTemplates() {
     {
       name: 'Performance Review Cycle',
       description: 'Manage quarterly or annual performance reviews',
-      templateCategory: 'HR',
-      isTemplate: true,
+      category: 'HR',
+      isGlobal: true,
       color: '#0ea5e9',
       layout: 'LIST',
       sections: [
@@ -315,8 +321,8 @@ async function seedProjectTemplates() {
     {
       name: 'Software Development Sprint',
       description: 'Agile sprint planning and execution',
-      templateCategory: 'IT',
-      isTemplate: true,
+      category: 'IT',
+      isGlobal: true,
       color: '#8b5cf6',
       layout: 'BOARD',
       sections: [
@@ -334,8 +340,8 @@ async function seedProjectTemplates() {
     {
       name: 'Bug Tracking & Resolution',
       description: 'Track and resolve software bugs',
-      templateCategory: 'IT',
-      isTemplate: true,
+      category: 'IT',
+      isGlobal: true,
       color: '#ef4444',
       layout: 'LIST',
       sections: [
@@ -353,8 +359,8 @@ async function seedProjectTemplates() {
     {
       name: 'IT Infrastructure Setup',
       description: 'Setup and configure IT infrastructure for new projects',
-      templateCategory: 'IT',
-      isTemplate: true,
+      category: 'IT',
+      isGlobal: true,
       color: '#6366f1',
       layout: 'LIST',
       sections: [
@@ -374,8 +380,8 @@ async function seedProjectTemplates() {
     {
       name: 'Sales Pipeline',
       description: 'Track leads through the sales funnel',
-      templateCategory: 'SALES',
-      isTemplate: true,
+      category: 'SALES',
+      isGlobal: true,
       color: '#10b981',
       layout: 'BOARD',
       sections: [
@@ -393,8 +399,8 @@ async function seedProjectTemplates() {
     {
       name: 'Product Launch Sales Plan',
       description: 'Coordinate sales activities for new product launches',
-      templateCategory: 'SALES',
-      isTemplate: true,
+      category: 'SALES',
+      isGlobal: true,
       color: '#22c55e',
       layout: 'LIST',
       sections: [
@@ -412,8 +418,8 @@ async function seedProjectTemplates() {
     {
       name: 'Account Management',
       description: 'Manage and grow existing customer accounts',
-      templateCategory: 'SALES',
-      isTemplate: true,
+      category: 'SALES',
+      isGlobal: true,
       color: '#059669',
       layout: 'LIST',
       sections: [
@@ -433,8 +439,8 @@ async function seedProjectTemplates() {
     {
       name: 'Process Improvement Initiative',
       description: 'Plan and implement operational improvements',
-      templateCategory: 'OPERATION',
-      isTemplate: true,
+      category: 'OPERATION',
+      isGlobal: true,
       color: '#f97316',
       layout: 'LIST',
       sections: [
@@ -452,8 +458,8 @@ async function seedProjectTemplates() {
     {
       name: 'Vendor Management',
       description: 'Track vendor relationships and contracts',
-      templateCategory: 'OPERATION',
-      isTemplate: true,
+      category: 'OPERATION',
+      isGlobal: true,
       color: '#ea580c',
       layout: 'LIST',
       sections: [
@@ -471,8 +477,8 @@ async function seedProjectTemplates() {
     {
       name: 'Inventory Management',
       description: 'Track and manage inventory levels',
-      templateCategory: 'OPERATION',
-      isTemplate: true,
+      category: 'OPERATION',
+      isGlobal: true,
       color: '#fb923c',
       layout: 'LIST',
       sections: [
@@ -492,8 +498,8 @@ async function seedProjectTemplates() {
     {
       name: 'Email Marketing Campaign',
       description: 'Plan and execute email marketing campaigns',
-      templateCategory: 'CAMPAIGN',
-      isTemplate: true,
+      category: 'CAMPAIGN',
+      isGlobal: true,
       color: '#ec4899',
       layout: 'LIST',
       sections: [
@@ -513,8 +519,8 @@ async function seedProjectTemplates() {
     {
       name: 'Event Planning & Execution',
       description: 'Organize corporate events and conferences',
-      templateCategory: 'CAMPAIGN',
-      isTemplate: true,
+      category: 'CAMPAIGN',
+      isGlobal: true,
       color: '#d946ef',
       layout: 'LIST',
       sections: [
@@ -533,8 +539,8 @@ async function seedProjectTemplates() {
     {
       name: 'PR Campaign',
       description: 'Manage public relations and media outreach campaigns',
-      templateCategory: 'CAMPAIGN',
-      isTemplate: true,
+      category: 'CAMPAIGN',
+      isGlobal: true,
       color: '#c026d3',
       layout: 'LIST',
       sections: [
@@ -554,8 +560,8 @@ async function seedProjectTemplates() {
     {
       name: 'Website Redesign',
       description: 'Plan and execute website redesign projects',
-      templateCategory: 'DESIGN',
-      isTemplate: true,
+      category: 'DESIGN',
+      isGlobal: true,
       color: '#a855f7',
       layout: 'LIST',
       sections: [
@@ -574,8 +580,8 @@ async function seedProjectTemplates() {
     {
       name: 'Brand Identity Development',
       description: 'Create comprehensive brand identity systems',
-      templateCategory: 'DESIGN',
-      isTemplate: true,
+      category: 'DESIGN',
+      isGlobal: true,
       color: '#9333ea',
       layout: 'LIST',
       sections: [
@@ -594,8 +600,8 @@ async function seedProjectTemplates() {
     {
       name: 'UI/UX Design Sprint',
       description: 'Rapid design and prototyping for new features',
-      templateCategory: 'DESIGN',
-      isTemplate: true,
+      category: 'DESIGN',
+      isGlobal: true,
       color: '#7c3aed',
       layout: 'LIST',
       sections: [
@@ -613,57 +619,31 @@ async function seedProjectTemplates() {
     },
   ];
 
+  // Create system user for templates if it doesn't exist
+  let systemUser = await prisma.user.findFirst({
+    where: { email: 'system@templates.local' }
+  });
+
+  if (!systemUser) {
+    systemUser = await prisma.user.create({
+      data: {
+        email: 'system@templates.local',
+        fullName: 'System Templates',
+        isEmailVerified: true,
+        authProvider: 'EMAIL',
+        isSuperAdmin: true,
+      }
+    });
+  }
+
   let createdCount = 0;
 
   for (const template of templates) {
-    // Check if a Free Trial subscription exists (required for template projects)
-    const freeTrialPlan = await prisma.subscriptionPlan.findUnique({
-      where: { name: 'Free Trial' }
-    });
-
-    if (!freeTrialPlan) {
-      console.log('⚠ Skipping template seeding: Free Trial subscription plan not found');
-      break;
-    }
-
-    // Create a system tenant for templates if it doesn't exist
-    let systemTenant = await prisma.tenant.findFirst({
-      where: { slug: 'system-templates' }
-    });
-
-    if (!systemTenant) {
-      // Create a system user for templates
-      let systemUser = await prisma.user.findFirst({
-        where: { email: 'system@templates.local' }
-      });
-
-      if (!systemUser) {
-        systemUser = await prisma.user.create({
-          data: {
-            email: 'system@templates.local',
-            fullName: 'System Templates',
-            isEmailVerified: true,
-            authProvider: 'EMAIL',
-          }
-        });
-      }
-
-      systemTenant = await prisma.tenant.create({
-        data: {
-          name: 'System Templates',
-          slug: 'system-templates',
-          ownerId: systemUser.id,
-          subscriptionPlanId: freeTrialPlan.id,
-        }
-      });
-    }
-
     // Check if template already exists
-    const existing = await prisma.project.findFirst({
+    const existing = await prisma.template.findFirst({
       where: {
         name: template.name,
-        isTemplate: true,
-        tenantId: systemTenant.id
+        isGlobal: true
       }
     });
 
@@ -671,24 +651,23 @@ async function seedProjectTemplates() {
       continue; // Skip if already exists
     }
 
-    // Create the template project with sections and tasks
-    const { sections, tasks, ...projectData } = template;
+    // Create the template with sections and tasks
+    const { sections, tasks, ...templateData } = template;
 
-    const project = await prisma.project.create({
+    const createdTemplate = await prisma.template.create({
       data: {
-        ...projectData,
-        tenantId: systemTenant.id,
-        createdBy: systemTenant.ownerId,
+        ...templateData,
+        createdBy: systemUser.id,
       }
     });
 
     // Create sections
     const createdSections = [];
     for (const section of sections) {
-      const createdSection = await prisma.projectSection.create({
+      const createdSection = await prisma.templateSection.create({
         data: {
           ...section,
-          projectId: project.id,
+          templateId: createdTemplate.id,
         }
       });
       createdSections.push(createdSection);
@@ -697,13 +676,11 @@ async function seedProjectTemplates() {
     // Create tasks
     for (const task of tasks) {
       const { sectionIndex, position, ...taskData } = task;
-      await prisma.task.create({
+      await prisma.templateTask.create({
         data: {
           ...taskData,
-          projectId: project.id,
           sectionId: createdSections[sectionIndex].id,
-          orderIndex: position,
-          createdBy: systemTenant.ownerId,
+          position: position,
         }
       });
     }
@@ -711,7 +688,7 @@ async function seedProjectTemplates() {
     createdCount++;
   }
 
-  console.log(`✓ Seeded ${createdCount} project templates`);
+  console.log(`✓ Seeded ${createdCount} global templates`);
 }
 
 async function main() {

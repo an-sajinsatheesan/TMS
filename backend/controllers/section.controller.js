@@ -150,27 +150,30 @@ class SectionController {
     }
 
     // Check if user has access (project-level or tenant-level membership)
-    const membership = await prisma.membership.findFirst({
+    let membership = await prisma.project_members.findFirst({
       where: {
         userId,
-        tenantId: existingSection.project.tenantId,
-        OR: [
-          {
-            level: 'PROJECT',
-            projectId: existingSection.projectId,
-          },
-          {
-            level: 'TENANT',
-            projectId: null,
-          },
-        ],
+        projectId: existingSection.projectId,
       },
       select: {
         id: true,
         role: true,
-        level: true,
       },
     });
+
+    if (!membership) {
+      // Check tenant-level membership
+      membership = await prisma.tenant_users.findFirst({
+        where: {
+          userId,
+          tenantId: existingSection.project.tenantId,
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+    }
 
     if (!membership) {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
@@ -280,27 +283,30 @@ class SectionController {
     }
 
     // Check if user has access (project-level or tenant-level membership)
-    const membership = await prisma.membership.findFirst({
+    let membership = await prisma.project_members.findFirst({
       where: {
         userId,
-        tenantId: section.project.tenantId,
-        OR: [
-          {
-            level: 'PROJECT',
-            projectId: section.projectId,
-          },
-          {
-            level: 'TENANT',
-            projectId: null,
-          },
-        ],
+        projectId: section.projectId,
       },
       select: {
         id: true,
         role: true,
-        level: true,
       },
     });
+
+    if (!membership) {
+      // Check tenant-level membership
+      membership = await prisma.tenant_users.findFirst({
+        where: {
+          userId,
+          tenantId: section.project.tenantId,
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+    }
 
     if (!membership) {
       throw ApiError.forbidden('Access denied: You are not a member of this project');

@@ -20,12 +20,11 @@ class InvitationController {
     const userId = req.user.id;
 
     // Verify user has access to tenant
-    const membership = await prisma.membership.findUnique({
+    const membership = await prisma.tenant_users.findUnique({
       where: {
-        tenantId_userId_level: {
+        tenantId_userId: {
           tenantId,
           userId,
-          level: 'TENANT',
         },
       },
     });
@@ -34,8 +33,8 @@ class InvitationController {
       throw ApiError.forbidden('You do not have access to this workspace');
     }
 
-    // Only OWNER and ADMIN can send invitations
-    if (membership.role !== 'OWNER' && membership.role !== 'ADMIN') {
+    // Only TENANT_ADMIN can send invitations
+    if (membership.role !== 'TENANT_ADMIN') {
       throw ApiError.forbidden('You do not have permission to invite members');
     }
 
@@ -71,16 +70,23 @@ class InvitationController {
       throw ApiError.notFound('Project not found');
     }
 
-    // Verify user is a member of the tenant
-    const membership = await prisma.membership.findUnique({
+    // Verify user is a member of the tenant or project
+    let membership = await prisma.tenant_users.findFirst({
       where: {
-        tenantId_userId_level: {
-          tenantId: project.tenantId,
-          userId,
-          level: 'TENANT',
-        },
+        tenantId: project.tenantId,
+        userId,
       },
     });
+
+    if (!membership) {
+      // Check project-level membership
+      membership = await prisma.project_members.findFirst({
+        where: {
+          projectId,
+          userId,
+        },
+      });
+    }
 
     if (!membership) {
       throw ApiError.forbidden('You do not have access to this project');

@@ -33,7 +33,15 @@
       "Bash(node scripts/check-specific-user.js:*)",
       "Bash(node scripts/test-api-response.js:*)",
       "Bash(node prisma/seeds/projectMemberRoles.seed.js:*)",
-      "Bash(node scripts/test-roles-api.js:*)"
+      "Bash(node scripts/test-roles-api.js:*)",
+      "Bash(node scripts/check-db-data.js:*)",
+      "Bash(npx prisma:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout 30 npx prisma:*)",
+      "Bash(if exist node_modules.prisma rd /s /q node_modules.prisma)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(node server.js:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,29 +7,363 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Enable UUID extension
-// Run this SQL first: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+model User {
+  id                String            @id @default(uuid()) @db.Uuid
+  email             String            @unique
+  authProvider      AuthProvider      @default(EMAIL)
+  googleId          String?           @unique
+  passwordHash      String?
+  fullName          String?
+  avatarUrl         String?
+  isEmailVerified   Boolean           @default(false)
+  twoFaEnabled      Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  isSuperAdmin      Boolean           @default(false)
+  sentInvitations   Invitation[]
+  onboardingData    OnboardingData?
+  projectActivities ProjectActivity[]
+  project_members   project_members[]
+  createdProjects   Project[]
+  taskComments      TaskComment[]
+  assignedTasks     Task[]            @relation("TaskAssignee")
+  createdTasks      Task[]
+  tenant_users      tenant_users[]
+  ownedTenants      Tenant[]          @relation("TenantOwner")
+  createdTemplates  Template[]
 
-// ============================================
-// ENUMS
-// ============================================
+  @@index([email])
+  @@index([googleId])
+  @@index([isSuperAdmin])
+  @@map("users")
+}
+
+model OnboardingData {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @unique @db.Uuid
+  currentStep      Int       @default(1)
+  role             String?
+  functions        String[]
+  useCases         String[]
+  projectName      String?
+  tasks            Json?
+  sections         Json?
+  layoutPreference String?
+  completedAt      DateTime?
+  data             Json?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  appUsageIds      String[]  @db.Uuid
+  industryIds      String[]  @db.Uuid
+  roleIds          String[]  @db.Uuid
+  teamSizeId       String?   @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_data")
+}
+
+model OtpCode {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String
+  code       String
+  expiresAt  DateTime
+  isVerified Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([email])
+  @@map("otp_codes")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+  @@map("password_resets")
+}
+
+model Tenant {
+  id                 String           @id @default(uuid()) @db.Uuid
+  name               String
+  slug               String           @unique
+  ownerId            String           @db.Uuid
+  subscriptionPlanId String           @db.Uuid
+  trialEndsAt        DateTime?
+  productKey         String?
+  emailConfig        Json?
+  messageConfig      Json?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  invitations        Invitation[]
+  projects           Project[]
+  tenant_users       tenant_users[]
+  owner              User             @relation("TenantOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+
+  @@index([slug])
+  @@index([ownerId])
+  @@map("tenants")
+}
+
+model SubscriptionPlan {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  features  Json
+  price     Decimal  @db.Decimal(10, 2)
+  trialDays Int      @default(14)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tenants   Tenant[]
+
+  @@map("subscription_plans")
+}
+
+model Project {
+  id               String            @id @default(uuid()) @db.Uuid
+  tenantId         String?           @db.Uuid
+  templateId       String?           @db.Uuid
+  name             String
+  layout           ProjectLayout     @default(LIST)
+  createdBy        String            @db.Uuid
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  color            String?           @default("#3b82f6")
+  description      String?
+  status           ProjectStatus     @default(ACTIVE)
+  dueDate          DateTime?
+  isTemplate       Boolean           @default(false)
+  templateCategory TemplateCategory  @default(CUSTOM)
+  deletedAt        DateTime?
+  isGlobal         Boolean           @default(false)
+  invitations      Invitation[]
+  activities       ProjectActivity[]
+  columns          ProjectColumn[]
+  project_members  project_members[]
+  sections         ProjectSection[]
+  creator          User              @relation(fields: [createdBy], references: [id])
+  tenant           Tenant?           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceTemplate   Template?         @relation("ProjectTemplate", fields: [templateId], references: [id])
+  tasks            Task[]
+
+  @@index([tenantId])
+  @@index([templateId])
+  @@index([createdBy])
+  @@index([deletedAt])
+  @@index([isGlobal])
+  @@index([isTemplate])
+  @@index([tenantId, isTemplate, isGlobal, deletedAt])
+  @@map("projects")
+}
+
+model ProjectSection {
+  id             String   @id @default(uuid()) @db.Uuid
+  projectId      String   @db.Uuid
+  name           String
+  position       Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  color          String?  @default("#94a3b8")
+  isCollapsed    Boolean  @default(false)
+  kanbanWipLimit Int?
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks          Task[]
+
+  @@index([projectId])
+  @@map("project_sections")
+}
+
+model ProjectColumn {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @db.Uuid
+  name      String
+  type      String
+  width     Int      @default(150)
+  visible   Boolean  @default(true)
+  position  Int
+  options   Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDefault Boolean  @default(false)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@map("project_columns")
+}
+
+model ProjectActivity {
+  id          String       @id @default(uuid()) @db.Uuid
+  projectId   String       @db.Uuid
+  userId      String?      @db.Uuid
+  type        ActivityType
+  description String
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User?        @relation(fields: [userId], references: [id])
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("project_activities")
+}
+
+model Task {
+  id             String          @id @default(uuid()) @db.Uuid
+  projectId      String          @db.Uuid
+  sectionId      String?         @db.Uuid
+  title          String
+  createdBy      String          @db.Uuid
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  approvalStatus String?
+  assigneeId     String?         @db.Uuid
+  completed      Boolean         @default(false)
+  completedAt    DateTime?
+  customFields   Json?
+  description    String?
+  dueDate        DateTime?
+  level          Int             @default(0)
+  orderIndex     Float           @default(0)
+  parentId       String?         @db.Uuid
+  priority       String?
+  startDate      DateTime?
+  status         String?
+  tags           String[]
+  type           TaskType        @default(TASK)
+  comments       TaskComment[]
+  assignee       User?           @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator        User            @relation(fields: [createdBy], references: [id])
+  parent         Task?           @relation("Subtasks", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subtasks       Task[]          @relation("Subtasks")
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  section        ProjectSection? @relation(fields: [sectionId], references: [id])
+
+  @@index([projectId])
+  @@index([sectionId])
+  @@index([createdBy])
+  @@index([assigneeId])
+  @@index([parentId])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid()) @db.Uuid
+  taskId    String   @db.Uuid
+  userId    String   @db.Uuid
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@map("task_comments")
+}
+
+model Invitation {
+  id          String           @id @default(uuid()) @db.Uuid
+  tenantId    String           @db.Uuid
+  email       String
+  invitedBy   String           @db.Uuid
+  token       String           @unique
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  createdAt   DateTime         @default(now())
+  projectId   String?          @db.Uuid
+  role        TenantRole       @default(MEMBER)
+  type        InvitationType   @default(TENANT)
+  projectRole ProjectRole      @default(MEMBER)
+  inviter     User             @relation(fields: [invitedBy], references: [id])
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([projectId])
+  @@index([email])
+  @@index([token])
+  @@map("invitations")
+}
+
+model OnboardingOption {
+  id          String   @id @default(uuid()) @db.Uuid
+  category    String
+  label       String
+  value       String
+  description String?
+  icon        String?
+  minSize     Int?
+  maxSize     Int?
+  isActive    Boolean  @default(true)
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([category, value])
+  @@index([category])
+  @@map("onboarding_options")
+}
+
+model project_members {
+  id        String      @id @db.Uuid
+  projectId String      @db.Uuid
+  userId    String      @db.Uuid
+  role      ProjectRole @default(MEMBER)
+  joinedAt  DateTime    @default(now())
+  projects  Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  users     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model task_priority_options {
+  id        String   @id @db.Uuid
+  label     String
+  value     String   @unique
+  color     String
+  icon      String?
+  isActive  Boolean  @default(true)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model task_status_options {
+  id        String   @id @db.Uuid
+  label     String
+  value     String   @unique
+  color     String
+  icon      String?
+  isActive  Boolean  @default(true)
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model tenant_users {
+  id       String     @id @db.Uuid
+  tenantId String     @db.Uuid
+  userId   String     @db.Uuid
+  role     TenantRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+  tenants  Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+}
 
 enum AuthProvider {
   EMAIL
   GOOGLE
-}
-
-enum SystemRole {
-  SUPER_ADMIN    // Global system administrator
-  TENANT_ADMIN   // Manage tenant, users, settings
-  PROJECT_ADMIN  // Manage specific project
-  MEMBER         // Normal project member
-  VIEWER         // Read-only access
-}
-
-enum MembershipLevel {
-  TENANT   // Access to all projects in tenant
-  PROJECT  // Access to specific project only
 }
 
 enum ProjectLayout {
@@ -58,11 +389,6 @@ enum TemplateCategory {
   SALES
   CAMPAIGN
   DESIGN
-}
-
-enum TaskOptionType {
-  PRIORITY
-  STATUS
 }
 
 enum InvitationStatus {
@@ -92,500 +418,100 @@ enum TaskType {
   MILESTONE
 }
 
-// ============================================
-// USER & AUTHENTICATION
-// ============================================
-
-model User {
-  id               String        @id @default(uuid()) @db.Uuid
-  email            String        @unique
-  authProvider     AuthProvider  @default(EMAIL)
-  googleId         String?       @unique
-  passwordHash     String?
-  fullName         String?
-  avatarUrl        String?
-  isEmailVerified  Boolean       @default(false)
-  systemRole       SystemRole?   // Only set for SUPER_ADMIN
-  twoFaEnabled     Boolean       @default(false)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  // Relations
-  onboardingData     OnboardingData?
-  ownedTenants       Tenant[]          @relation("TenantOwner")
-  memberships        Membership[]
-  createdProjects    Project[]
-  createdTasks       Task[]
-  assignedTasks      Task[]            @relation("TaskAssignee")
-  sentInvitations    Invitation[]
-  taskComments       TaskComment[]
-  projectActivities  ProjectActivity[]
-  createdTemplates   Template[]
-
-  @@index([email])
-  @@index([googleId])
-  @@index([systemRole])
-  @@map("users")
+enum InvitationType {
+  TENANT
+  PROJECT
 }
 
-model OnboardingData {
-  id                String    @id @default(uuid()) @db.Uuid
-  userId            String    @unique @db.Uuid
-  currentStep       Int       @default(1)
-
-  // New fields with IDs
-  appUsageIds       String[]  @db.Uuid
-  industryIds       String[]  @db.Uuid
-  teamSizeId        String?   @db.Uuid
-  roleIds           String[]  @db.Uuid
-
-  // Legacy fields (keeping for backward compatibility)
-  role              String?
-  functions         String[]
-  useCases          String[]
-
-  projectName       String?
-  tasks             Json?
-  sections          Json?
-  layoutPreference  String?
-  completedAt       DateTime?
-  data              Json?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  // Relations
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("onboarding_data")
+enum ProjectRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
 }
 
-model OtpCode {
-  id          String    @id @default(uuid()) @db.Uuid
-  email       String
-  code        String
-  expiresAt   DateTime
-  isVerified  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-
-  @@index([email])
-  @@map("otp_codes")
-}
-
-model PasswordReset {
-  id          String    @id @default(uuid()) @db.Uuid
-  email       String
-  token       String    @unique
-  expiresAt   DateTime
-  isUsed      Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-
-  @@index([email])
-  @@index([token])
-  @@map("password_resets")
+enum TenantRole {
+  OWNER
+  ADMIN
+  MEMBER
 }
 
 // ============================================
-// TENANT & MEMBERSHIP
-// ============================================
-
-model Tenant {
-  id                  String    @id @default(uuid()) @db.Uuid
-  name                String
-  slug                String    @unique
-  ownerId             String    @db.Uuid
-  subscriptionPlanId  String    @db.Uuid
-  trialEndsAt         DateTime?
-  productKey          String?
-  emailConfig         Json?
-  messageConfig       Json?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  // Relations
-  owner               User              @relation("TenantOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  subscriptionPlan    SubscriptionPlan  @relation(fields: [subscriptionPlanId], references: [id])
-  memberships         Membership[]
-  projects            Project[]
-  invitations         Invitation[]
-
-  @@index([slug])
-  @@index([ownerId])
-  @@map("tenants")
-}
-
-model Membership {
-  id          String          @id @default(uuid()) @db.Uuid
-  userId      String          @db.Uuid
-  tenantId    String          @db.Uuid
-  projectId   String?         @db.Uuid // NULL = tenant-level membership
-  level       MembershipLevel // TENANT or PROJECT
-  role        SystemRole      // TENANT_ADMIN, PROJECT_ADMIN, MEMBER, VIEWER
-  joinedAt    DateTime        @default(now())
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  // Relations
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project     Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  // Constraints
-  @@unique([userId, tenantId, projectId])
-  @@index([userId])
-  @@index([tenantId])
-  @@index([projectId])
-  @@index([tenantId, level])
-  @@index([projectId, role])
-  @@map("memberships")
-}
-
-model SubscriptionPlan {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String    @unique
-  features    Json
-  price       Decimal   @db.Decimal(10, 2)
-  trialDays   Int       @default(14)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  tenants     Tenant[]
-
-  @@map("subscription_plans")
-}
-
-// ============================================
-// TEMPLATES (Master Templates)
+// GLOBAL TEMPLATE MODELS (for SaaS templates)
 // ============================================
 
 model Template {
-  id               String           @id @default(uuid()) @db.Uuid
-  name             String
-  description      String?
-  color            String           @default("#3b82f6")
-  layout           ProjectLayout    @default(LIST)
-  category         TemplateCategory @default(CUSTOM)
-  icon             String?
-  thumbnail        String?
-  isGlobal         Boolean          @default(false) // Super admin templates
-  createdBy        String           @db.Uuid
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  // Relations
-  creator          User                @relation(fields: [createdBy], references: [id])
-  sections         TemplateSection[]
-  columns          TemplateColumn[]
-  clonedProjects   Project[]
+  id              String            @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  color           String?           @default("#3b82f6")
+  layout          ProjectLayout     @default(LIST)
+  category        TemplateCategory  @default(CUSTOM)
+  icon            String?
+  thumbnail       String?
+  isGlobal        Boolean           @default(true)
+  createdBy       String            @db.Uuid
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  creator         User              @relation(fields: [createdBy], references: [id])
+  sections        TemplateSection[]
+  columns         TemplateColumn[]
+  clonedProjects  Project[]         @relation("ProjectTemplate")
 
   @@index([isGlobal])
   @@index([category])
   @@index([createdBy])
-  @@index([isGlobal, category])
   @@map("templates")
 }
 
 model TemplateSection {
-  id             String    @id @default(uuid()) @db.Uuid
-  templateId     String    @db.Uuid
-  name           String
-  description    String?
-  position       Int
-  color          String?   @default("#94a3b8")
-  icon           String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relations
-  template       Template        @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  tasks          TemplateTask[]
+  id          String         @id @default(uuid()) @db.Uuid
+  templateId  String         @db.Uuid
+  name        String
+  description String?
+  position    Int
+  color       String?        @default("#94a3b8")
+  icon        String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  template    Template       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  tasks       TemplateTask[]
 
   @@index([templateId])
-  @@index([templateId, position])
   @@map("template_sections")
 }
 
-model TemplateTask {
-  id                String          @id @default(uuid()) @db.Uuid
-  templateSectionId String          @db.Uuid
-  title             String
-  description       String?
-  type              TaskType        @default(TASK)
-  position          Int
-  priority          String?         // Reference to StaticTaskOption.value
-  status            String?         // Reference to StaticTaskOption.value
-  tags              String[]
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-
-  // Relations
-  templateSection   TemplateSection @relation(fields: [templateSectionId], references: [id], onDelete: Cascade)
-
-  @@index([templateSectionId])
-  @@index([templateSectionId, position])
-  @@map("template_tasks")
-}
-
 model TemplateColumn {
-  id          String    @id @default(uuid()) @db.Uuid
-  templateId  String    @db.Uuid
-  name        String
-  type        String    // 'text', 'date', 'select', 'user', 'number'
-  width       Int       @default(150)
-  position    Int
-  options     Json?     // For select type columns
-  isDefault   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  template    Template  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid()) @db.Uuid
+  templateId String   @db.Uuid
+  name       String
+  type       String
+  width      Int      @default(150)
+  position   Int
+  options    Json?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   @@index([templateId])
-  @@index([templateId, position])
   @@map("template_columns")
 }
 
-// ============================================
-// PROJECTS
-// ============================================
-
-model Project {
-  id                String           @id @default(uuid()) @db.Uuid
-  tenantId          String           @db.Uuid
-  templateId        String?          @db.Uuid // Reference to source template
-  name              String
-  description       String?
-  color             String?          @default("#3b82f6")
-  layout            ProjectLayout    @default(LIST)
-  status            ProjectStatus    @default(ACTIVE)
-  dueDate           DateTime?
-  deletedAt         DateTime?        // Soft delete
-  createdBy         String           @db.Uuid
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-
-  // Relations
-  tenant            Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  sourceTemplate    Template?           @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  creator           User                @relation(fields: [createdBy], references: [id])
-  memberships       Membership[]
-  sections          ProjectSection[]
-  tasks             Task[]
-  invitations       Invitation[]
-  columns           ProjectColumn[]
-  activities        ProjectActivity[]
-
-  @@index([tenantId])
-  @@index([templateId])
-  @@index([createdBy])
-  @@index([deletedAt])
-  @@index([tenantId, deletedAt])
-  @@map("projects")
-}
-
-model ProjectSection {
-  id             String    @id @default(uuid()) @db.Uuid
-  projectId      String    @db.Uuid
-  name           String
-  position       Int
-  color          String?   @default("#94a3b8")
-  isCollapsed    Boolean   @default(false)
-  kanbanWipLimit Int?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  // Relations
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks       Task[]
-
-  @@index([projectId])
-  @@index([projectId, position])
-  @@map("project_sections")
-}
-
-model ProjectColumn {
-  id          String    @id @default(uuid()) @db.Uuid
-  projectId   String    @db.Uuid
-  name        String
-  type        String    // 'text', 'date', 'select', 'user', 'number'
-  width       Int       @default(150)
-  visible     Boolean   @default(true)
-  isDefault   Boolean   @default(false)
-  position    Int
-  options     Json?     // For select type columns
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([projectId])
-  @@index([projectId, visible])
-  @@map("project_columns")
-}
-
-model ProjectActivity {
-  id          String       @id @default(uuid()) @db.Uuid
-  projectId   String       @db.Uuid
-  userId      String?      @db.Uuid
-  type        ActivityType
-  description String
-  metadata    Json?        // Store additional context (old value, new value, etc.)
-  createdAt   DateTime     @default(now())
-
-  // Relations
-  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user        User?        @relation(fields: [userId], references: [id])
-
-  @@index([projectId])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([projectId, createdAt])
-  @@map("project_activities")
-}
-
-// ============================================
-// TASKS
-// ============================================
-
-model Task {
-  id             String          @id @default(uuid()) @db.Uuid
-  projectId      String          @db.Uuid
-  sectionId      String?         @db.Uuid
-  title          String
-  description    String?
-  type           TaskType        @default(TASK)
-  completed      Boolean         @default(false)
-  assigneeId     String?         @db.Uuid
-  startDate      DateTime?
-  dueDate        DateTime?
-  priority       String?         // Reference to StaticTaskOption.value (optionType=PRIORITY)
-  status         String?         // Reference to StaticTaskOption.value (optionType=STATUS)
-  approvalStatus String?
-  tags           String[]
-  customFields   Json?
-  orderIndex     Float           @default(0)
-  completedAt    DateTime?
-  parentId       String?         @db.Uuid
-  level          Int             @default(0)
-  createdBy      String          @db.Uuid
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-
-  // Relations
-  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  section     ProjectSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  creator     User            @relation(fields: [createdBy], references: [id])
-  assignee    User?           @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  parent      Task?           @relation("Subtasks", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  subtasks    Task[]          @relation("Subtasks")
-  comments    TaskComment[]
-
-  @@index([projectId])
-  @@index([sectionId])
-  @@index([createdBy])
-  @@index([assigneeId])
-  @@index([parentId])
-  @@index([projectId, completed])
-  @@map("tasks")
-}
-
-model TaskComment {
-  id          String    @id @default(uuid()) @db.Uuid
-  taskId      String    @db.Uuid
-  userId      String    @db.Uuid
-  content     String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id])
-
-  @@index([taskId])
-  @@index([userId])
-  @@index([taskId, createdAt])
-  @@map("task_comments")
-}
-
-// ============================================
-// STATIC TASK OPTIONS (Unified)
-// ============================================
-
-model StaticTaskOption {
-  id          String         @id @default(uuid()) @db.Uuid
-  optionType  TaskOptionType // PRIORITY or STATUS
-  label       String         // Display name (e.g., "High", "In Progress")
-  value       String         // Unique value (e.g., "high", "in_progress")
-  color       String         // Hex color for UI
-  icon        String?        // Optional icon name
-  description String?        // Optional description
-  position    Int            @default(0) // Display order
-  isActive    Boolean        @default(true)
-  isDefault   Boolean        @default(false) // Mark one as default
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
-  @@unique([optionType, value])
-  @@index([optionType])
-  @@index([optionType, isActive])
-  @@index([optionType, position])
-  @@map("static_task_options")
-}
-
-// ============================================
-// INVITATIONS
-// ============================================
-
-model Invitation {
-  id          String           @id @default(uuid()) @db.Uuid
-  tenantId    String           @db.Uuid
-  projectId   String?          @db.Uuid // NULL = tenant-level invitation
-  email       String
-  invitedBy   String           @db.Uuid
-  token       String           @unique // One-time use token
-  role        SystemRole       // Role to assign (TENANT_ADMIN, PROJECT_ADMIN, MEMBER, VIEWER)
-  status      InvitationStatus @default(PENDING)
-  expiresAt   DateTime         // 7-day TTL
-  acceptedAt  DateTime?        // When invitation was accepted
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  // Relations
-  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  project     Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  inviter     User             @relation(fields: [invitedBy], references: [id])
-
-  @@index([tenantId])
-  @@index([projectId])
-  @@index([email])
-  @@index([token])
-  @@index([status, expiresAt])
-  @@index([email, status])
-  @@map("invitations")
-}
-
-// ============================================
-// ONBOARDING OPTIONS
-// ============================================
-
-model OnboardingOption {
-  id          String    @id @default(uuid()) @db.Uuid
-  category    String    // 'app_usage', 'industry', 'team_size', 'role'
-  label       String
-  value       String
+model TemplateTask {
+  id          String          @id @default(uuid()) @db.Uuid
+  sectionId   String          @db.Uuid
+  title       String
   description String?
-  icon        String?
-  minSize     Int?      // For team_size category
-  maxSize     Int?      // For team_size category
-  isActive    Boolean   @default(true)
-  position    Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  type        TaskType        @default(TASK)
+  position    Int
+  priority    String?
+  status      String?
+  tags        String[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  section     TemplateSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
-  @@unique([category, value])
-  @@index([category])
-  @@index([category, isActive])
-  @@map("onboarding_options")
+  @@index([sectionId])
+  @@map("template_tasks")
 }

@@ -14,13 +14,12 @@ class TenantController {
    * @access  Private
    */
   static getTenants = asyncHandler(async (req, res) => {
-    const memberships = await prisma.membership.findMany({
+    const memberships = await prisma.tenant_users.findMany({
       where: {
         userId: req.user.id,
-        level: 'TENANT',
       },
       include: {
-        tenant: {
+        tenants: {
           include: {
             subscriptionPlan: true,
             owner: {
@@ -38,7 +37,7 @@ class TenantController {
     });
 
     const tenants = memberships.map(membership => ({
-      ...membership.tenant,
+      ...membership.tenants,
       userRole: membership.role,
       joinedAt: membership.joinedAt,
     }));

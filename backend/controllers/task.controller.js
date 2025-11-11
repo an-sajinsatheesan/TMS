@@ -642,11 +642,10 @@ class TaskController {
    * @access  Private (requires ProjectMember)
    */
   static getTaskOptions = asyncHandler(async (req, res) => {
-    // Fetch status and priority options in parallel using StaticTaskOption
+    // Fetch status and priority options from separate tables
     const [statusOptions, priorityOptions] = await Promise.all([
-      prisma.staticTaskOption.findMany({
+      prisma.task_status_options.findMany({
         where: {
-          optionType: 'STATUS',
           isActive: true,
         },
         orderBy: { position: 'asc' },
@@ -659,9 +658,8 @@ class TaskController {
           position: true,
         },
       }),
-      prisma.staticTaskOption.findMany({
+      prisma.task_priority_options.findMany({
         where: {
-          optionType: 'PRIORITY',
           isActive: true,
         },
         orderBy: { position: 'asc' },

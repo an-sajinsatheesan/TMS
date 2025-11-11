@@ -33,17 +33,15 @@ class ProjectMemberController {
     }
 
     // Get project-specific members
-    const projectMembers = await prisma.membership.findMany({
+    const projectMembers = await prisma.project_members.findMany({
       where: {
         projectId,
-        level: 'PROJECT',
       },
       orderBy: { joinedAt: 'asc' },
       select: {
         id: true,
         userId: true,
         role: true,
-        level: true,
         joinedAt: true,
         user: {
           select: {
@@ -57,17 +55,15 @@ class ProjectMemberController {
     });
 
     // Get tenant-level members (they have access to all projects)
-    const tenantMembers = await prisma.membership.findMany({
+    const tenantMembers = await prisma.tenant_users.findMany({
       where: {
         tenantId: project.tenantId,
-        level: 'TENANT',
       },
       orderBy: { joinedAt: 'asc' },
       select: {
         id: true,
         userId: true,
         role: true,
-        level: true,
         joinedAt: true,
         user: {
           select: {
@@ -86,7 +82,7 @@ class ProjectMemberController {
       projectId,
       userId: member.userId,
       role: member.role,
-      level: member.level,
+      level: 'PROJECT',
       joinedAt: member.joinedAt,
       isProjectSpecific: true,
       user: member.user,
@@ -97,7 +93,7 @@ class ProjectMemberController {
       projectId: null,
       userId: member.userId,
       role: member.role,
-      level: member.level,
+      level: 'TENANT',
       joinedAt: member.joinedAt,
       isProjectSpecific: false,
       user: member.user,
@@ -197,10 +193,9 @@ class ProjectMemberController {
     }
 
     // Check if emails already have access or pending invitations
-    const existingMembers = await prisma.membership.findMany({
+    const existingMembers = await prisma.project_members.findMany({
       where: {
         projectId,
-        level: 'PROJECT',
         user: {
           email: {
             in: emails,
@@ -217,10 +212,9 @@ class ProjectMemberController {
     });
 
     // Also check tenant-level members
-    const existingTenantMembers = await prisma.membership.findMany({
+    const existingTenantMembers = await prisma.tenant_users.findMany({
       where: {
         tenantId: project.tenantId,
-        level: 'TENANT',
         user: {
           email: {
             in: emails,
@@ -328,7 +322,7 @@ class ProjectMemberController {
     }
 
     // Check if member exists
-    const member = await prisma.membership.findUnique({
+    const member = await prisma.project_members.findUnique({
       where: { id: memberId },
     });
 
@@ -341,19 +335,11 @@ class ProjectMemberController {
       throw ApiError.badRequest('Member does not belong to this project');
     }
 
-    // Cannot update tenant-level members through project endpoint
-    if (member.level === 'TENANT') {
-      throw ApiError.badRequest(
-        'Cannot modify tenant-level members through project endpoint'
-      );
-    }
-
     // If demoting from PROJECT_ADMIN, ensure there's at least one other PROJECT_ADMIN
     if (member.role === 'PROJECT_ADMIN' && role !== 'PROJECT_ADMIN') {
-      const adminCount = await prisma.membership.count({
+      const adminCount = await prisma.project_members.count({
         where: {
           projectId,
-          level: 'PROJECT',
           role: 'PROJECT_ADMIN',
         },
       });
@@ -366,14 +352,13 @@ class ProjectMemberController {
     }
 
     // Update role
-    const updatedMember = await prisma.membership.update({
+    const updatedMember = await prisma.project_members.update({
       where: { id: memberId },
       data: { role },
       select: {
         id: true,
         userId: true,
         role: true,
-        level: true,
         joinedAt: true,
         user: {
           select: {
@@ -387,7 +372,10 @@ class ProjectMemberController {
     });
 
     ApiResponse.success(
-      updatedMember,
+      {
+        ...updatedMember,
+        level: 'PROJECT'
+      },
       'Member role updated successfully'
     ).send(res);
   });
@@ -401,7 +389,7 @@ class ProjectMemberController {
     const { projectId, memberId } = req.params;
 
     // Check if member exists
-    const member = await prisma.membership.findUnique({
+    const member = await prisma.project_members.findUnique({
       where: { id: memberId },
     });
 
@@ -414,19 +402,11 @@ class ProjectMemberController {
       throw ApiError.badRequest('Member does not belong to this project');
     }
 
-    // Cannot remove tenant-level members through project endpoint
-    if (member.level === 'TENANT') {
-      throw ApiError.badRequest(
-        'Cannot remove tenant-level members through project endpoint. They must be removed at tenant level.'
-      );
-    }
-
     // If removing a PROJECT_ADMIN, ensure there's at least one other PROJECT_ADMIN
     if (member.role === 'PROJECT_ADMIN') {
-      const adminCount = await prisma.membership.count({
+      const adminCount = await prisma.project_members.count({
         where: {
           projectId,
-          level: 'PROJECT',
           role: 'PROJECT_ADMIN',
         },
       });
@@ -439,7 +419,7 @@ class ProjectMemberController {
     }
 
     // Remove member
-    await prisma.membership.delete({
+    await prisma.project_members.delete({
       where: { id: memberId },
     });
 

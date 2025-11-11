@@ -46,27 +46,30 @@ class ProjectColumnController {
     }
 
     // Check if user has admin access (project-level or tenant-level membership)
-    const membership = await prisma.membership.findFirst({
+    let membership = await prisma.project_members.findFirst({
       where: {
         userId,
-        tenantId: project.tenantId,
-        OR: [
-          {
-            level: 'PROJECT',
-            projectId,
-          },
-          {
-            level: 'TENANT',
-            projectId: null,
-          },
-        ],
+        projectId,
       },
       select: {
         id: true,
         role: true,
-        level: true,
       },
     });
+
+    if (!membership) {
+      // Check tenant-level membership
+      membership = await prisma.tenant_users.findFirst({
+        where: {
+          userId,
+          tenantId: project.tenantId,
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+    }
 
     if (!membership) {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
@@ -129,27 +132,30 @@ class ProjectColumnController {
     }
 
     // Check if user has admin access (project-level or tenant-level membership)
-    const membership = await prisma.membership.findFirst({
+    let membership = await prisma.project_members.findFirst({
       where: {
         userId,
-        tenantId: existingColumn.project.tenantId,
-        OR: [
-          {
-            level: 'PROJECT',
-            projectId: existingColumn.projectId,
-          },
-          {
-            level: 'TENANT',
-            projectId: null,
-          },
-        ],
+        projectId: existingColumn.projectId,
       },
       select: {
         id: true,
         role: true,
-        level: true,
       },
     });
+
+    if (!membership) {
+      // Check tenant-level membership
+      membership = await prisma.tenant_users.findFirst({
+        where: {
+          userId,
+          tenantId: existingColumn.project.tenantId,
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+    }
 
     if (!membership) {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
@@ -202,27 +208,30 @@ class ProjectColumnController {
     }
 
     // Check if user has admin access (project-level or tenant-level membership)
-    const membership = await prisma.membership.findFirst({
+    let membership = await prisma.project_members.findFirst({
       where: {
         userId,
-        tenantId: column.project.tenantId,
-        OR: [
-          {
-            level: 'PROJECT',
-            projectId: column.projectId,
-          },
-          {
-            level: 'TENANT',
-            projectId: null,
-          },
-        ],
+        projectId: column.projectId,
       },
       select: {
         id: true,
         role: true,
-        level: true,
       },
     });
+
+    if (!membership) {
+      // Check tenant-level membership
+      membership = await prisma.tenant_users.findFirst({
+        where: {
+          userId,
+          tenantId: column.project.tenantId,
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+    }
 
     if (!membership) {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
@@ -269,27 +278,30 @@ class ProjectColumnController {
     }
 
     // Check if user has admin access (project-level or tenant-level membership)
-    const membership = await prisma.membership.findFirst({
+    let membership = await prisma.project_members.findFirst({
       where: {
         userId,
-        tenantId: project.tenantId,
-        OR: [
-          {
-            level: 'PROJECT',
-            projectId,
-          },
-          {
-            level: 'TENANT',
-            projectId: null,
-          },
-        ],
+        projectId,
       },
       select: {
         id: true,
         role: true,
-        level: true,
       },
     });
+
+    if (!membership) {
+      // Check tenant-level membership
+      membership = await prisma.tenant_users.findFirst({
+        where: {
+          userId,
+          tenantId: project.tenantId,
+        },
+        select: {
+          id: true,
+          role: true,
+        },
+      });
+    }
 
     if (!membership) {
       throw ApiError.forbidden('Access denied: You are not a member of this project');

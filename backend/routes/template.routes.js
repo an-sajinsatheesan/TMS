@@ -8,11 +8,11 @@ const {
   deleteTemplate,
   getTemplateCategories,
 } = require('../controllers/template.controller');
-const { protect } = require('../middlewares/auth');
+const { authenticate } = require('../middlewares/auth');
 const { requireSuperAdmin } = require('../middlewares/superAdmin');
 
 // Public routes (require authentication)
-router.use(protect);
+router.use(authenticate);
 
 // List all global templates
 router.get('/', listTemplates);

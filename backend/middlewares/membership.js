@@ -57,11 +57,10 @@ const tenantContext = asyncHandler(async (req, res, next) => {
   }
 
   // Check if user has tenant-level membership
-  const membership = await prisma.membership.findFirst({
+  const membership = await prisma.tenant_users.findFirst({
     where: {
       userId: req.user.id,
       tenantId,
-      level: 'TENANT',
     },
   });
 
@@ -124,11 +123,10 @@ const projectContext = asyncHandler(async (req, res, next) => {
   }
 
   // Check for tenant-level membership (grants access to all projects in tenant)
-  const tenantMembership = await prisma.membership.findFirst({
+  const tenantMembership = await prisma.tenant_users.findFirst({
     where: {
       userId,
       tenantId: project.tenantId,
-      level: 'TENANT',
     },
   });
 
@@ -143,11 +141,10 @@ const projectContext = asyncHandler(async (req, res, next) => {
   }
 
   // Check for project-specific membership
-  const projectMembership = await prisma.membership.findFirst({
+  const projectMembership = await prisma.project_members.findFirst({
     where: {
       userId,
       projectId,
-      level: 'PROJECT',
     },
   });
 
@@ -162,11 +159,10 @@ const projectContext = asyncHandler(async (req, res, next) => {
   req.membership = projectMembership;
 
   // Also check tenant membership for tenant-level operations
-  const anyTenantMembership = await prisma.membership.findFirst({
+  const anyTenantMembership = await prisma.tenant_users.findFirst({
     where: {
       userId,
       tenantId: project.tenantId,
-      level: 'TENANT',
     },
   });
 
@@ -247,16 +243,27 @@ const requireCanManageMember = asyncHandler(async (req, res, next) => {
   let targetMembership;
 
   if (memberId) {
-    targetMembership = await prisma.membership.findUnique({
+    // Try project_members first, then tenant_users
+    targetMembership = await prisma.project_members.findUnique({
       where: { id: memberId },
     });
+
+    if (!targetMembership) {
+      targetMembership = await prisma.tenant_users.findUnique({
+        where: { id: memberId },
+      });
+    }
   } else if (userId) {
     // Find membership by userId in context of current project/tenant
-    const where = req.project
-      ? { userId, projectId: req.project.id }
-      : { userId, tenantId: req.tenant.id, level: 'TENANT' };
-
-    targetMembership = await prisma.membership.findFirst({ where });
+    if (req.project) {
+      targetMembership = await prisma.project_members.findFirst({
+        where: { userId, projectId: req.project.id },
+      });
+    } else {
+      targetMembership = await prisma.tenant_users.findFirst({
+        where: { userId, tenantId: req.tenant.id },
+      });
+    }
   }
 
   if (!targetMembership) {

@@ -23,14 +23,13 @@ class ProjectController {
     const userId = req.user.id;
 
     // Get user's tenant-level membership
-    const tenantMembership = await prisma.membership.findFirst({
+    const tenantMembership = await prisma.tenant_users.findFirst({
       where: {
         userId,
-        level: 'TENANT',
       },
       select: {
         tenantId: true,
-        tenant: {
+        tenants: {
           select: {
             id: true,
             name: true,
@@ -88,19 +87,17 @@ class ProjectController {
           },
         });
 
-        // 2. Fetch status and priority options from staticTaskOption
+        // 2. Fetch status and priority options from separate tables
         const [statusOptions, priorityOptions] = await Promise.all([
-          tx.staticTaskOption.findMany({
+          tx.task_status_options.findMany({
             where: {
-              optionType: 'STATUS',
               isActive: true,
             },
             orderBy: { position: 'asc' },
             select: { label: true, value: true, color: true, icon: true },
           }),
-          tx.staticTaskOption.findMany({
+          tx.task_priority_options.findMany({
             where: {
-              optionType: 'PRIORITY',
               isActive: true,
             },
             orderBy: { position: 'asc' },
@@ -192,12 +189,11 @@ class ProjectController {
       }
 
       // Add creator as PROJECT_ADMIN member
-      await tx.membership.create({
+      await tx.project_members.create({
         data: {
+          id: uuidv4(),
           userId,
-          tenantId,
           projectId: project.id,
-          level: 'PROJECT',
           role: 'PROJECT_ADMIN',
         },
       });
@@ -229,7 +225,7 @@ class ProjectController {
           try {
             await EmailService.sendInvitationEmail(
               email,
-              `${tenantMembership.tenant.name} - ${project.name}`,
+              `${tenantMembership.tenants.name} - ${project.name}`,
               req.user.fullName || req.user.email,
               token
             );
@@ -265,10 +261,9 @@ class ProjectController {
     const skip = (pageNum - 1) * limitNum;
 
     // Get user's tenant membership to include all tenant projects
-    const tenantMembership = await prisma.membership.findFirst({
+    const tenantMembership = await prisma.tenant_users.findFirst({
       where: {
         userId,
-        level: 'TENANT',
       },
       select: {
         tenantId: true,
@@ -283,10 +278,9 @@ class ProjectController {
       OR: [
         {
           // Projects where user has direct project membership
-          memberships: {
+          project_members: {
             some: {
               userId,
-              level: 'PROJECT',
             },
           },
         },
@@ -321,11 +315,7 @@ class ProjectController {
           },
           _count: {
             select: {
-              memberships: {
-                where: {
-                  level: 'PROJECT',
-                },
-              },
+              project_members: true,
               tasks: true,
             },
           },
@@ -349,7 +339,7 @@ class ProjectController {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
       templateId: project.templateId,
-      memberCount: project._count.memberships,
+      memberCount: project._count.project_members,
       taskCount: project._count.tasks,
       creator: project.creator,
     }));
@@ -452,10 +442,9 @@ class ProjectController {
         },
       }),
       // Get project members (PROJECT-level memberships)
-      prisma.membership.findMany({
+      prisma.project_members.findMany({
         where: {
           projectId,
-          level: 'PROJECT',
         },
         select: {
           id: true,
@@ -764,10 +753,9 @@ class ProjectController {
     const trashedProjects = await prisma.project.findMany({
       where: {
         deletedAt: { not: null },
-        memberships: {
+        project_members: {
           some: {
             userId,
-            level: 'PROJECT',
             role: 'PROJECT_ADMIN', // Only PROJECT_ADMIN can see trashed projects
           },
         },
@@ -789,11 +777,7 @@ class ProjectController {
         _count: {
           select: {
             tasks: true,
-            memberships: {
-              where: {
-                level: 'PROJECT',
-              },
-            },
+            project_members: true,
           },
         },
       },
@@ -811,7 +795,7 @@ class ProjectController {
 
       return {
         ...project,
-        memberCount: project._count.memberships,
+        memberCount: project._count.project_members,
         taskCount: project._count.tasks,
         autoDeleteDate,
         daysUntilPermanentDeletion: Math.max(0, daysLeft),
@@ -1045,10 +1029,9 @@ class ProjectController {
     const userId = req.user.id;
 
     // Get user's tenant membership for filtering
-    const tenantMembership = await prisma.membership.findFirst({
+    const tenantMembership = await prisma.tenant_users.findFirst({
       where: {
         userId,
-        level: 'TENANT',
       },
       select: { tenantId: true },
     });
@@ -1129,10 +1112,9 @@ class ProjectController {
     }
 
     // Get user's tenant-level membership
-    const tenantMembership = await prisma.membership.findFirst({
+    const tenantMembership = await prisma.tenant_users.findFirst({
       where: {
         userId,
-        level: 'TENANT',
       },
       select: { tenantId: true },
     });
@@ -1154,12 +1136,11 @@ class ProjectController {
       const project = await cloneTemplateToProject(templateId, projectData, tx);
 
       // Add creator as project admin
-      await tx.membership.create({
+      await tx.project_members.create({
         data: {
+          id: uuidv4(),
           projectId: project.id,
           userId,
-          tenantId: tenantMembership.tenantId,
-          level: 'PROJECT',
           role: 'PROJECT_ADMIN',
         },
       });

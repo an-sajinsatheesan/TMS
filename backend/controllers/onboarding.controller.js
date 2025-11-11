@@ -98,13 +98,12 @@ class OnboardingController {
       });
 
       // Check if user was invited (has tenant memberships)
-      userTenants = await prisma.membership.findMany({
+      userTenants = await prisma.tenant_users.findMany({
         where: {
           userId: user.id,
-          level: 'TENANT'
         },
         include: {
-          tenant: {
+          tenants: {
             select: {
               id: true,
               name: true,
@@ -167,13 +166,12 @@ class OnboardingController {
     // Get user's project memberships if invited
     let projectMemberships = [];
     if (isInvitedUser) {
-      projectMemberships = await prisma.membership.findMany({
+      projectMemberships = await prisma.project_members.findMany({
         where: {
           userId: user.id,
-          level: 'PROJECT'
         },
         include: {
-          project: {
+          projects: {
             select: {
               id: true,
               name: true,
@@ -400,11 +398,11 @@ class OnboardingController {
     });
 
     // Add owner to tenant membership
-    await prisma.membership.create({
+    await prisma.tenant_users.create({
       data: {
+        id: require('uuid').v4(),
         tenantId: tenant.id,
         userId,
-        level: 'TENANT',
         role: 'OWNER',
       },
     });
@@ -417,29 +415,30 @@ class OnboardingController {
         color: '#3b82f6',
         layout: onboardingData.layoutPreference || 'LIST',
         createdBy: userId,
-        memberships: {
-          create: {
-            userId,
-            level: 'PROJECT',
-            role: 'OWNER',
-          },
-        },
+      },
+    });
+
+    // Add creator as project member
+    await prisma.project_members.create({
+      data: {
+        id: require('uuid').v4(),
+        projectId: project.id,
+        userId,
+        role: 'OWNER',
       },
     });
 
     // Create default columns for the project
     const [statusOptions, priorityOptions] = await Promise.all([
-      prisma.staticTaskOption.findMany({
+      prisma.task_status_options.findMany({
         where: {
-          optionType: 'STATUS',
           isActive: true
         },
         orderBy: { position: 'asc' },
         select: { label: true, value: true, color: true, icon: true },
       }),
-      prisma.staticTaskOption.findMany({
+      prisma.task_priority_options.findMany({
         where: {
-          optionType: 'PRIORITY',
           isActive: true
         },
         orderBy: { position: 'asc' },

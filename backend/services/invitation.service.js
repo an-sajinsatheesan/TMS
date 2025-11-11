@@ -50,11 +50,10 @@ class InvitationService {
       });
 
       if (existingUser) {
-        const existingMember = await prisma.membership.findFirst({
+        const existingMember = await prisma.tenant_users.findFirst({
           where: {
             tenantId,
             userId: existingUser.id,
-            level: 'TENANT',
           },
         });
 
@@ -269,22 +268,20 @@ class InvitationService {
     if (isProjectInvitation) {
       // Project-level invitation
       // Check if user already has project-level membership
-      const existingProjectMembership = await prisma.membership.findFirst({
+      const existingProjectMembership = await prisma.project_members.findFirst({
         where: {
           projectId: invitation.projectId,
           userId: user.id,
-          level: 'PROJECT',
         },
       });
 
       if (!existingProjectMembership) {
         // Create project-level membership
-        await prisma.membership.create({
+        await prisma.project_members.create({
           data: {
-            tenantId: invitation.tenantId,
+            id: uuidv4(),
             projectId: invitation.projectId,
             userId: user.id,
-            level: 'PROJECT',
             role: invitation.role,
           },
         });
@@ -292,22 +289,20 @@ class InvitationService {
     } else {
       // Tenant-level invitation
       // Check if user already has tenant-level membership
-      const existingTenantMembership = await prisma.membership.findFirst({
+      const existingTenantMembership = await prisma.tenant_users.findFirst({
         where: {
           tenantId: invitation.tenantId,
           userId: user.id,
-          level: 'TENANT',
         },
       });
 
       if (!existingTenantMembership) {
         // Create tenant-level membership
-        await prisma.membership.create({
+        await prisma.tenant_users.create({
           data: {
+            id: uuidv4(),
             tenantId: invitation.tenantId,
-            projectId: null,
             userId: user.id,
-            level: 'TENANT',
             role: invitation.role,
           },
         });
