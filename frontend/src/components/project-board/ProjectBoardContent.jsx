@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import ListView from './ListView/ListView';
+import KanbanView from './KanbanView';
 import Overview from './Overview';
 import Dashboard from './Dashboard';
 
@@ -105,53 +106,8 @@ const ProjectBoardContent = ({ viewMode = 'list', projectId }) => {
   }
 
   if (viewMode === 'kanban') {
-    const columns = ['todo', 'in-progress', 'completed', 'blocked'];
-    const columnTitles = {
-      todo: 'To Do',
-      'in-progress': 'In Progress',
-      completed: 'Completed',
-      blocked: 'Blocked',
-    };
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
-        {columns.map((status) => {
-          const columnTasks = tasks.filter((task) => task.status === status);
-          return (
-            <div key={status} className="flex flex-col">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="font-semibold">{columnTitles[status]}</h3>
-                <Badge variant="secondary">{columnTasks.length}</Badge>
-              </div>
-              <div className="space-y-3 flex-1">
-                {columnTasks.map((task) => (
-                  <Card
-                    key={task.id}
-                    className="hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    <CardContent className="p-4">
-                      <h4 className="font-medium mb-2">{task.title}</h4>
-                      <div className="space-y-2">
-                        <Badge
-                          variant="outline"
-                          className={getPriorityColor(task.priority)}
-                        >
-                          {task.priority}
-                        </Badge>
-                        <p className="text-sm text-gray-500">{task.assignee}</p>
-                        <p className="text-xs text-gray-400">
-                          Due {task.dueDate}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
+    // KanbanView uses the same API as ListView
+    return <KanbanView projectId={projectId} />;
   }
 
   if (viewMode === 'table') {
