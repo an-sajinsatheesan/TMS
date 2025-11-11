@@ -24,4 +24,13 @@ router.get('/:tenantId/settings', tenantContext, requireTenantAdmin, TenantContr
 // PATCH /:tenantId/settings - Update tenant settings (requires tenant admin)
 router.patch('/:tenantId/settings', tenantContext, requireTenantAdmin, validate(tenantValidators.updateSettings), TenantController.updateSettings);
 
+// GET /:tenantId/members - Get tenant members
+router.get('/:tenantId/members', tenantContext, TenantController.getMembers);
+
+// PATCH /:tenantId/members/:userId - Update member role (requires tenant admin)
+router.patch('/:tenantId/members/:userId', tenantContext, requireTenantAdmin, TenantController.updateMemberRole);
+
+// DELETE /:tenantId/members/:userId - Remove member (requires tenant admin)
+router.delete('/:tenantId/members/:userId', tenantContext, requireTenantAdmin, TenantController.removeMember);
+
 module.exports = router;

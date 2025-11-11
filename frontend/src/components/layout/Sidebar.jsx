@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
 import { projectsService } from '../../services/api/projects.service';
+import WorkspaceSwitcher from '../workspace/WorkspaceSwitcher';
 
 const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
   const location = useLocation();
@@ -140,6 +141,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
             <span className="font-semibold text-lg">TaskFlow</span>
           )}
         </div>
+      </div>
+
+      {/* Workspace Switcher */}
+      <div className="border-b px-2 py-3">
+        <WorkspaceSwitcher isCollapsed={isCollapsed} />
       </div>
 
       {/* Scrollable Content */}
