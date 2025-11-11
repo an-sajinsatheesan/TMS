@@ -16,16 +16,6 @@ import TaskDetailsDialog from '../TaskDetailsDialog';
 import ProjectActionBar from '../ProjectActionBar';
 import { toast } from 'sonner';
 
-// Default status columns for Kanban board
-const DEFAULT_STATUSES = [
-  { label: 'Backlog', value: null, color: '#94a3b8' },
-  { label: 'On Track', value: 'On Track', color: '#10b981' },
-  { label: 'At Risk', value: 'At Risk', color: '#f59e0b' },
-  { label: 'Off Track', value: 'Off Track', color: '#ef4444' },
-  { label: 'On Hold', value: 'On Hold', color: '#6b7280' },
-  { label: 'Completed', value: 'Completed', color: '#8b5cf6' },
-];
-
 const KanbanView = ({ projectId }) => {
   const {
     sections,
@@ -36,6 +26,7 @@ const KanbanView = ({ projectId }) => {
     createTask,
     deleteTask,
     createSection,
+    moveTask,
   } = useProjectData(projectId);
 
   const [activeId, setActiveId] = useState(null);
@@ -52,35 +43,18 @@ const KanbanView = ({ projectId }) => {
     })
   );
 
-  // Flatten nested tasks for Kanban view (show all tasks including subtasks)
-  const flattenTasks = (taskList) => {
-    const result = [];
-    const flatten = (tasks) => {
-      tasks.forEach(task => {
-        result.push(task);
-        if (task.subtasks && task.subtasks.length > 0) {
-          flatten(task.subtasks);
-        }
-      });
-    };
-    flatten(taskList);
-    return result;
-  };
-
-  const allTasks = useMemo(() => flattenTasks(tasks), [tasks]);
-
-  // Group tasks by status
-  const tasksByStatus = useMemo(() => {
+  // Group tasks by section (only show top-level tasks, not subtasks in Kanban)
+  const tasksBySection = useMemo(() => {
     const grouped = {};
 
-    DEFAULT_STATUSES.forEach(status => {
-      grouped[status.value || 'backlog'] = allTasks.filter(
-        task => task.status === status.value
+    sections.forEach(section => {
+      grouped[section.id] = tasks.filter(
+        task => task.sectionId === section.id && !task.parentId
       );
     });
 
     return grouped;
-  }, [allTasks]);
+  }, [sections, tasks]);
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
@@ -98,20 +72,20 @@ const KanbanView = ({ projectId }) => {
     if (!over) return;
 
     const taskId = active.id;
-    const newStatus = over.id === 'backlog' ? null : over.id;
+    const newSectionId = over.id;
 
-    const task = allTasks.find(t => t.id === taskId);
+    const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
-    // If status hasn't changed, don't update
-    if (task.status === newStatus) return;
+    // If section hasn't changed, don't update
+    if (task.sectionId === newSectionId) return;
 
     try {
-      await updateTask(taskId, { status: newStatus });
-      toast.success('Task status updated');
+      await moveTask(taskId, newSectionId, 0);
+      toast.success('Task moved successfully');
     } catch (err) {
-      console.error('Failed to update task status:', err);
-      toast.error('Failed to update task status');
+      console.error('Failed to move task:', err);
+      toast.error('Failed to move task');
     }
   };
 
@@ -124,10 +98,10 @@ const KanbanView = ({ projectId }) => {
   };
 
   const handleAddTask = async (type, sectionId) => {
-    // For Kanban, we need at least one section
-    const firstSection = sections[0];
+    // For Kanban, use first section if no section specified
+    const targetSectionId = sectionId || sections[0]?.id;
 
-    if (!firstSection) {
+    if (!targetSectionId) {
       toast.error('Please create a section first');
       return;
     }
@@ -138,7 +112,7 @@ const KanbanView = ({ projectId }) => {
         type: type.toUpperCase(),
       };
 
-      await createTask(firstSection.id, taskData);
+      await createTask(targetSectionId, taskData);
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully`);
     } catch (err) {
       console.error(`Failed to create ${type}:`, err);
@@ -156,23 +130,24 @@ const KanbanView = ({ projectId }) => {
     }
   };
 
-  const handleAddTaskToColumn = async (statusValue) => {
-    const firstSection = sections[0];
-
-    if (!firstSection) {
-      toast.error('Please create a section first');
-      return;
-    }
-
+  const handleAddTaskToColumn = async (sectionId) => {
     try {
-      await createTask(firstSection.id, {
+      await createTask(sectionId, {
         title: 'New Task',
-        status: statusValue,
       });
       toast.success('Task added successfully');
     } catch (err) {
       console.error('Failed to create task:', err);
       toast.error('Failed to create task');
+    }
+  };
+
+  const handleUpdateTaskName = async (taskId, newName) => {
+    try {
+      await updateTask(taskId, { title: newName });
+    } catch (err) {
+      console.error('Failed to update task name:', err);
+      throw err;
     }
   };
 
@@ -200,7 +175,7 @@ const KanbanView = ({ projectId }) => {
     );
   }
 
-  const activeTask = allTasks.find(t => t.id === activeId);
+  const activeTask = tasks.find(t => t.id === activeId);
 
   return (
     <div className="flex flex-col h-full">
@@ -218,16 +193,16 @@ const KanbanView = ({ projectId }) => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-4">
-          <div className="flex gap-4 h-full">
-            {DEFAULT_STATUSES.map((status) => (
+        <div className="flex-1 overflow-x-auto p-4 h-[calc(100vh-170px)]">
+          <div className="flex gap-4 h-full min-h-0">
+            {sections.map((section) => (
               <KanbanColumn
-                key={status.value || 'backlog'}
-                status={status}
-                tasks={tasksByStatus[status.value || 'backlog'] || []}
-                color={status.color}
+                key={section.id}
+                section={section}
+                tasks={tasksBySection[section.id] || []}
                 onTaskClick={handleTaskClick}
                 onAddTask={handleAddTaskToColumn}
+                onUpdateTaskName={handleUpdateTaskName}
               />
             ))}
           </div>
@@ -237,7 +212,7 @@ const KanbanView = ({ projectId }) => {
         <DragOverlay>
           {activeTask ? (
             <div className="rotate-3 opacity-90">
-              <KanbanCard task={activeTask} onClick={() => {}} />
+              <KanbanCard task={activeTask} onClick={() => {}} onUpdateTaskName={handleUpdateTaskName} />
             </div>
           ) : null}
         </DragOverlay>

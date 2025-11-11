@@ -188,13 +188,13 @@ class ProjectController {
         }
       }
 
-      // Add creator as PROJECT_ADMIN member
+      // Add creator as OWNER member
       await tx.project_members.create({
         data: {
           id: uuidv4(),
           userId,
           projectId: project.id,
-          role: 'PROJECT_ADMIN',
+          role: 'OWNER',
         },
       });
 
@@ -1135,13 +1135,13 @@ class ProjectController {
       // Use cloneTemplateToProject
       const project = await cloneTemplateToProject(templateId, projectData, tx);
 
-      // Add creator as project admin
+      // Add creator as project owner
       await tx.project_members.create({
         data: {
           id: uuidv4(),
           projectId: project.id,
           userId,
-          role: 'PROJECT_ADMIN',
+          role: 'OWNER',
         },
       });
 

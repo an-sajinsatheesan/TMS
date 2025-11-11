@@ -102,6 +102,7 @@ model Tenant {
   invitations        Invitation[]
   projects           Project[]
   tenant_users       tenant_users[]
+  teams              Team[]
   owner              User             @relation("TenantOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   subscriptionPlan   SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
 
@@ -315,12 +316,48 @@ model project_members {
   userId    String      @db.Uuid
   role      ProjectRole @default(MEMBER)
   joinedAt  DateTime    @default(now())
-  projects  Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  users     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@index([projectId])
   @@index([userId])
+}
+
+model Team {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  tenantId    String       @db.Uuid
+  color       String?      @default("#3b82f6")
+  createdBy   String       @db.Uuid
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+
+  @@index([tenantId])
+  @@index([createdBy])
+  @@map("teams")
+}
+
+model TeamMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  teamId   String   @db.Uuid
+  userId   String   @db.Uuid
+  role     TeamRole @default(MEMBER)
+  joinedAt DateTime @default(now())
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+enum TeamRole {
+  ADMIN
+  MEMBER
 }
 
 model task_priority_options {
