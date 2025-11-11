@@ -14,6 +14,7 @@ router.patch('/:teamId', TeamController.updateTeam);
 router.delete('/:teamId', TeamController.deleteTeam);
 
 // Team member routes
+router.get('/:teamId/available-members', TeamController.getAvailableMembers); // Must be before /:teamId/members
 router.get('/:teamId/members', TeamController.getTeamMembers);
 router.post('/:teamId/members', TeamController.addTeamMember);
 router.patch('/:teamId/members/:memberId', TeamController.updateTeamMemberRole);

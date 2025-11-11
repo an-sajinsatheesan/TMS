@@ -218,6 +218,75 @@ class TeamController {
   });
 
   /**
+   * @route   GET /api/v1/teams/:teamId/available-members
+   * @desc    Get available users to add to team (tenant members not in team)
+   * @access  Private
+   */
+  static getAvailableMembers = asyncHandler(async (req, res) => {
+    const { teamId } = req.params;
+    const { search } = req.query;
+    const tenantId = req.user.tenantId;
+
+    // Verify team belongs to tenant
+    const team = await prisma.team.findFirst({
+      where: { id: teamId, tenantId },
+    });
+
+    if (!team) {
+      throw ApiError.notFound('Team not found');
+    }
+
+    // Get current team member IDs
+    const teamMembers = await prisma.teamMember.findMany({
+      where: { teamId },
+      select: { userId: true },
+    });
+
+    const teamMemberIds = teamMembers.map((m) => m.userId);
+
+    // Build where clause for search
+    const whereClause = {
+      tenantId,
+      userId: {
+        notIn: teamMemberIds.length > 0 ? teamMemberIds : undefined,
+      },
+    };
+
+    // Get all tenant users not in team
+    const availableUsers = await prisma.tenant_users.findMany({
+      where: whereClause,
+      include: {
+        users: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: 'desc' },
+    });
+
+    // Filter by search if provided
+    let filteredUsers = availableUsers.map((tu) => tu.users);
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredUsers = filteredUsers.filter(
+        (user) =>
+          user.fullName?.toLowerCase().includes(searchLower) ||
+          user.email.toLowerCase().includes(searchLower)
+      );
+    }
+
+    ApiResponse.success(
+      filteredUsers,
+      'Available members retrieved successfully'
+    ).send(res);
+  });
+
+  /**
    * @route   GET /api/v1/teams/:teamId/members
    * @desc    Get team members
    * @access  Private
