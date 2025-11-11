@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const TeamController = require('../controllers/team.controller');
-const { authMiddleware } = require('../middleware/auth.middleware');
+const { authenticate } = require('../middlewares/auth');
 
 // All routes require authentication
-router.use(authMiddleware);
+router.use(authenticate);
 
 // Team CRUD routes
 router.get('/', TeamController.listTeams);

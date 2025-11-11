@@ -41,7 +41,11 @@
       "Bash(if exist node_modules.prisma rd /s /q node_modules.prisma)",
       "Bash(timeout 10 npm run dev:*)",
       "Bash(node server.js:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes\" npx prisma db push:*)",
+      "Bash(timeout 10 node:*)",
+      "Bash(node prisma/seed.js:*)",
+      "Bash(node scripts/check-users.js:*)"
     ],
     "deny": [],
     "ask": []
