@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Search, FolderPlus, Copy, Globe } from 'lucide-react';
 import { projectsService } from '../services/api/projects.service';
+import { templatesService } from '../services/api/templates.service';
 import { toast } from 'sonner';
 
 const CATEGORIES = [
@@ -38,13 +39,13 @@ const ProjectTemplates = () => {
     try {
       setLoading(true);
       const [templatesResponse, projectsResponse] = await Promise.all([
-        projectsService.getTemplates(),
+        templatesService.getAll(),
         projectsService.getAll()
       ]);
 
       // Handle templates response - backend returns { data: { all: [...], byCategory: {...} } }
       const templatesData = templatesResponse.data?.data || templatesResponse.data;
-      setTemplates(templatesData?.all || []);
+      setTemplates(templatesData?.all || templatesData || []);
 
       // Handle projects response - backend returns { data: { data: [...], pagination: {...} } }
       const projectsData = projectsResponse.data?.data || projectsResponse.data;
@@ -97,7 +98,10 @@ const ProjectTemplates = () => {
 
     try {
       setCreatingProject(template.id);
-      const response = await projectsService.cloneTemplate(template.id, projectName.trim());
+      const response = await projectsService.create({
+        name: projectName.trim(),
+        templateId: template.id
+      });
       const newProject = response.data.data;
 
       toast.success(`Project "${projectName}" created successfully!`);
@@ -121,9 +125,11 @@ const ProjectTemplates = () => {
 
     try {
       setCreatingProject(project.id);
-      // For now, we'll use the same clone endpoint but in the future,
-      // we could add a specific endpoint for cloning user projects
-      const response = await projectsService.cloneTemplate(project.id, projectName.trim());
+      // Clone by treating the project as a template
+      const response = await projectsService.create({
+        name: projectName.trim(),
+        templateId: project.id
+      });
       const newProject = response.data.data;
 
       toast.success(`Project "${projectName}" created successfully!`);
