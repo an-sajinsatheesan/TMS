@@ -33,8 +33,8 @@ class InvitationController {
       throw ApiError.forbidden('You do not have access to this workspace');
     }
 
-    // Only TENANT_ADMIN can send invitations
-    if (membership.role !== 'TENANT_ADMIN') {
+    // Only ADMIN/OWNER can send invitations
+    if (membership.role !== 'ADMIN' && membership.role !== 'OWNER') {
       throw ApiError.forbidden('You do not have permission to invite members');
     }
 

@@ -54,7 +54,7 @@ class TenantController {
     const { tenant, tenantRole } = req;
 
     // Only tenant admin can view settings
-    if (tenantRole !== 'TENANT_ADMIN' && tenantRole !== 'SUPER_ADMIN') {
+    if (tenantRole !== 'ADMIN' && tenantRole !== 'OWNER' && tenantRole !== 'SUPER_ADMIN') {
       throw ApiError.forbidden('Tenant admin access required');
     }
 
@@ -146,7 +146,7 @@ class TenantController {
     const { role } = req.body;
 
     // Validate role
-    const validRoles = ['TENANT_ADMIN', 'MEMBER'];
+    const validRoles = ['OWNER', 'ADMIN', 'MEMBER'];
     if (!validRoles.includes(role)) {
       return ApiResponse.error('Invalid role', 400).send(res);
     }

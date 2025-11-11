@@ -75,8 +75,8 @@ class ProjectColumnController {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
     }
 
-    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
-    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+    // Check for admin role (OWNER or ADMIN)
+    if (membership.role !== 'OWNER' && membership.role !== 'ADMIN') {
       throw ApiError.forbidden('Access denied: Requires ADMIN role');
     }
 
@@ -161,8 +161,8 @@ class ProjectColumnController {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
     }
 
-    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
-    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+    // Check for admin role (OWNER or ADMIN)
+    if (membership.role !== 'OWNER' && membership.role !== 'ADMIN') {
       throw ApiError.forbidden('Access denied: Requires ADMIN role');
     }
 
@@ -237,8 +237,8 @@ class ProjectColumnController {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
     }
 
-    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
-    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+    // Check for admin role (OWNER or ADMIN)
+    if (membership.role !== 'OWNER' && membership.role !== 'ADMIN') {
       throw ApiError.forbidden('Access denied: Requires ADMIN role');
     }
 
@@ -307,8 +307,8 @@ class ProjectColumnController {
       throw ApiError.forbidden('Access denied: You are not a member of this project');
     }
 
-    // Check for admin role (TENANT_ADMIN or PROJECT_ADMIN)
-    if (membership.role !== 'TENANT_ADMIN' && membership.role !== 'PROJECT_ADMIN') {
+    // Check for admin role (OWNER or ADMIN)
+    if (membership.role !== 'OWNER' && membership.role !== 'ADMIN') {
       throw ApiError.forbidden('Access denied: Requires ADMIN role');
     }
 
