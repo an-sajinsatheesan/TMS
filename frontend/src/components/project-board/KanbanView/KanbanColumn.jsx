@@ -6,14 +6,14 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const KanbanColumn = ({
-  status,
+  section,
   tasks,
-  color,
   onTaskClick,
-  onAddTask
+  onAddTask,
+  onUpdateTaskName
 }) => {
   const { setNodeRef, isOver } = useDroppable({
-    id: status.value || 'backlog',
+    id: section.id,
   });
 
   const taskIds = tasks.map(task => task.id);
@@ -24,17 +24,17 @@ const KanbanColumn = ({
       <div
         className="flex items-center justify-between p-3 rounded-t-lg border-b-2"
         style={{
-          borderColor: color,
-          backgroundColor: `${color}10`
+          borderColor: section.color || '#94a3b8',
+          backgroundColor: `${section.color || '#94a3b8'}10`
         }}
       >
         <div className="flex items-center gap-2">
           <div
             className="w-3 h-3 rounded-full"
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: section.color || '#94a3b8' }}
           />
           <h3 className="font-semibold text-sm text-gray-900">
-            {status.label || 'Backlog'}
+            {section.name}
           </h3>
           <span className="text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full">
             {tasks.length}
@@ -45,7 +45,7 @@ const KanbanColumn = ({
           size="sm"
           variant="ghost"
           className="h-7 w-7 p-0"
-          onClick={() => onAddTask(status.value)}
+          onClick={() => onAddTask(section.id)}
         >
           <Plus className="h-4 w-4" />
         </Button>
@@ -55,7 +55,7 @@ const KanbanColumn = ({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 p-3 bg-gray-50 rounded-b-lg overflow-y-auto',
+          'flex-1 p-3 bg-gray-50 rounded-b-lg overflow-y-auto min-h-0',
           isOver && 'bg-blue-50 ring-2 ring-blue-300 ring-inset'
         )}
       >
@@ -71,6 +71,7 @@ const KanbanColumn = ({
                 key={task.id}
                 task={task}
                 onClick={() => onTaskClick(task.id)}
+                onUpdateTaskName={onUpdateTaskName}
               />
             ))
           )}
