@@ -416,6 +416,7 @@ enum ActivityType {
 enum TaskType {
   TASK
   MILESTONE
+  APPROVAL
 }
 
 enum InvitationType {

@@ -587,14 +587,8 @@ const ListView = ({ projectId }) => {
       // Create task based on type
       const taskData = {
         title: type === 'milestone' ? 'New Milestone' : type === 'approval' ? 'New Approval' : 'New Task',
+        type: type.toUpperCase(), // Use proper type field: TASK, MILESTONE, or APPROVAL
       };
-
-      // Add custom field to differentiate types
-      if (type === 'milestone') {
-        taskData.customFields = { type: 'milestone' };
-      } else if (type === 'approval') {
-        taskData.customFields = { type: 'approval' };
-      }
 
       await createTask(targetSectionId, taskData);
       toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} added successfully`);
