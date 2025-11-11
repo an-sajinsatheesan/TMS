@@ -166,7 +166,7 @@ class ProjectMemberController {
     const userId = req.user.id;
 
     // Validate role
-    const validRoles = ['PROJECT_ADMIN', 'MEMBER', 'VIEWER'];
+    const validRoles = ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'];
     if (role && !validRoles.includes(role)) {
       throw ApiError.badRequest(
         `Invalid role. Must be one of: ${validRoles.join(', ')}`
@@ -314,7 +314,7 @@ class ProjectMemberController {
     const { role } = req.body;
 
     // Validate role
-    const validRoles = ['PROJECT_ADMIN', 'MEMBER', 'VIEWER'];
+    const validRoles = ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'];
     if (!validRoles.includes(role)) {
       throw ApiError.badRequest(
         `Invalid role. Must be one of: ${validRoles.join(', ')}`
@@ -335,12 +335,12 @@ class ProjectMemberController {
       throw ApiError.badRequest('Member does not belong to this project');
     }
 
-    // If demoting from PROJECT_ADMIN, ensure there's at least one other PROJECT_ADMIN
-    if (member.role === 'PROJECT_ADMIN' && role !== 'PROJECT_ADMIN') {
+    // If demoting from OWNER or ADMIN, ensure there's at least one other OWNER or ADMIN
+    if ((member.role === 'OWNER' || member.role === 'ADMIN') && (role !== 'OWNER' && role !== 'ADMIN')) {
       const adminCount = await prisma.project_members.count({
         where: {
           projectId,
-          role: 'PROJECT_ADMIN',
+          role: { in: ['OWNER', 'ADMIN'] },
         },
       });
 
@@ -402,12 +402,12 @@ class ProjectMemberController {
       throw ApiError.badRequest('Member does not belong to this project');
     }
 
-    // If removing a PROJECT_ADMIN, ensure there's at least one other PROJECT_ADMIN
-    if (member.role === 'PROJECT_ADMIN') {
+    // If removing an OWNER or ADMIN, ensure there's at least one other OWNER or ADMIN
+    if (member.role === 'OWNER' || member.role === 'ADMIN') {
       const adminCount = await prisma.project_members.count({
         where: {
           projectId,
-          role: 'PROJECT_ADMIN',
+          role: { in: ['OWNER', 'ADMIN'] },
         },
       });
 

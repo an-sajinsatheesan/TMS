@@ -125,7 +125,7 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="PROJECT_ADMIN">Project Admin</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
                 <SelectItem value="MEMBER">Member</SelectItem>
                 <SelectItem value="VIEWER">Viewer</SelectItem>
               </SelectContent>
@@ -186,20 +186,22 @@ const InviteMembersModal = ({ isOpen, onClose, projectId, currentMembers = [], o
                     {member.level === 'TENANT' && !member.isProjectSpecific ? (
                       <div className="text-sm text-gray-500 w-32 text-center">
                         {member.role === 'TENANT_ADMIN' ? 'Tenant Admin' :
-                         member.role === 'PROJECT_ADMIN' ? 'Project Admin' :
+                         member.role === 'OWNER' ? 'Owner' :
+                         member.role === 'ADMIN' ? 'Admin' :
                          member.role === 'MEMBER' ? 'Member' : 'Viewer'}
                       </div>
                     ) : (
                       <Select
                         value={member.role}
                         onValueChange={(newRole) => handleUpdateRole(member.id, newRole)}
-                        disabled={member.isPending}
+                        disabled={member.isPending || member.role === 'OWNER'}
                       >
                         <SelectTrigger className="w-32 h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="PROJECT_ADMIN">Project Admin</SelectItem>
+                          <SelectItem value="OWNER">Owner</SelectItem>
+                          <SelectItem value="ADMIN">Admin</SelectItem>
                           <SelectItem value="MEMBER">Member</SelectItem>
                           <SelectItem value="VIEWER">Viewer</SelectItem>
                         </SelectContent>
