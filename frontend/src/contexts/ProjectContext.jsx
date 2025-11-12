@@ -30,7 +30,7 @@ export const ProjectProvider = ({ children }) => {
       setLoading(true); setError(null);
       try {
         const response = await projectsService.getAll();
-        const projectsData = response?.data?.data || [];
+        const projectsData = response?.data || [];
         if (!isMounted) return;
         setProjects(Array.isArray(projectsData) ? projectsData : []);
         if (projectsData.length > 0) { setActiveProject(projectsData[0]); }
@@ -52,7 +52,7 @@ export const ProjectProvider = ({ children }) => {
     setLoading(true); setError(null);
     try {
       const response = await projectsService.getAll();
-      const projectsData = response?.data?.data || [];
+      const projectsData = response?.data || [];
       setProjects(Array.isArray(projectsData) ? projectsData : []);
       if (!activeProject && projectsData.length > 0) { setActiveProject(projectsData[0]); }
       setInitialized(true);

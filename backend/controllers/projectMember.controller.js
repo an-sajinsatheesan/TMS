@@ -12,6 +12,152 @@ const EmailService = require('../services/email.service');
 
 class ProjectMemberController {
   /**
+   * @route   GET /api/v1/projects/:projectId/members/debug
+   * @desc    Debug endpoint to diagnose member visibility issues
+   * @access  Private
+   */
+  static debugMembers = asyncHandler(async (req, res) => {
+    const { projectId } = req.params;
+    const currentUserId = req.user.id;
+
+    // Get project info
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        tenantId: true,
+        createdBy: true,
+        createdAt: true,
+      },
+    });
+
+    if (!project) {
+      throw ApiError.notFound('Project not found');
+    }
+
+    // Get project members
+    const projectMembers = await prisma.project_members.findMany({
+      where: { projectId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    // Get tenant members
+    const tenantMembers = await prisma.tenant_users.findMany({
+      where: { tenantId: project.tenantId },
+      include: {
+        users: {
+          select: {
+            id: true,
+            email: true,
+            fullName: true,
+          },
+        },
+      },
+    });
+
+    // Get invitations
+    const invitations = await prisma.invitation.findMany({
+      where: {
+        OR: [
+          { projectId },
+          { tenantId: project.tenantId },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+
+    const diagnosis = {
+      project: {
+        id: project.id,
+        name: project.name,
+        tenantId: project.tenantId,
+        createdBy: project.createdBy,
+        createdAt: project.createdAt,
+      },
+      currentUser: {
+        id: currentUserId,
+        email: req.user.email,
+      },
+      stats: {
+        projectMembers: projectMembers.length,
+        tenantMembers: tenantMembers.length,
+        invitations: invitations.length,
+      },
+      projectMembers: projectMembers.map(m => ({
+        id: m.id,
+        userId: m.userId,
+        role: m.role,
+        joinedAt: m.joinedAt,
+        email: m.user.email,
+        fullName: m.user.fullName,
+        isCurrentUser: m.userId === currentUserId,
+        isCreator: m.userId === project.createdBy,
+      })),
+      tenantMembers: tenantMembers.map(m => ({
+        id: m.id,
+        userId: m.userId,
+        role: m.role,
+        joinedAt: m.joinedAt,
+        email: m.users.email,
+        fullName: m.users.fullName,
+        isCurrentUser: m.userId === currentUserId,
+        isCreator: m.userId === project.createdBy,
+      })),
+      invitations: invitations.map(inv => ({
+        email: inv.email,
+        status: inv.status,
+        type: inv.projectId ? 'PROJECT' : 'TENANT',
+        role: inv.role || inv.projectRole,
+        createdAt: inv.createdAt,
+        expiresAt: inv.expiresAt,
+      })),
+      issues: [],
+    };
+
+    // Detect issues
+    const creatorInProject = projectMembers.some(m => m.userId === project.createdBy);
+    const creatorInTenant = tenantMembers.some(m => m.userId === project.createdBy);
+    const currentUserInProject = projectMembers.some(m => m.userId === currentUserId);
+    const currentUserInTenant = tenantMembers.some(m => m.userId === currentUserId);
+
+    if (!creatorInProject) {
+      diagnosis.issues.push({
+        severity: 'CRITICAL',
+        message: 'Project creator is NOT in project_members table',
+        fix: 'Add creator to project_members with OWNER role',
+      });
+    }
+
+    if (!currentUserInProject && !currentUserInTenant) {
+      diagnosis.issues.push({
+        severity: 'CRITICAL',
+        message: 'Current user is NOT in project_members OR tenant_users',
+        fix: 'Add user to appropriate membership table',
+      });
+    }
+
+    if (projectMembers.length === 0) {
+      diagnosis.issues.push({
+        severity: 'CRITICAL',
+        message: 'NO project members found at all',
+        fix: 'Project creator should have been added during project creation',
+      });
+    }
+
+    ApiResponse.success(diagnosis, 'Membership diagnosis complete').send(res);
+  });
+
+  /**
    * @route   GET /api/v1/projects/:projectId/members
    * @desc    List project members (both project-level and tenant-level)
    * @access  Private (requires project membership)

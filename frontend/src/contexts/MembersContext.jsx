@@ -37,7 +37,7 @@ export const MembersProvider = ({ projectId, children }) => {
 
       try {
         const response = await projectMembersService.getAll(projectId);
-        const members = response?.data?.data || [];
+        const members = response?.data || [];
 
         console.log('[MembersContext] Fetched members:', members);
 
@@ -136,7 +136,7 @@ export const MembersProvider = ({ projectId, children }) => {
     setLoading(true);
     try {
       const response = await projectMembersService.getAll(projectId);
-      const members = response?.data?.data || [];
+      const members = response?.data || [];
 
       // Filter out pending invitations (they should only show in invite modal)
       const activeMembers = members.filter(member => !member.isPending);

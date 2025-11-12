@@ -231,6 +231,17 @@ router.post(
 // ============================================
 
 /**
+ * @route   GET /api/v1/projects/:projectId/members/debug
+ * @desc    Debug member visibility issues
+ * @access  Private
+ */
+router.get(
+  '/:projectId/members/debug',
+  authenticate,
+  ProjectMemberController.debugMembers
+);
+
+/**
  * @route   GET /api/v1/projects/:projectId/members
  * @desc    List project members
  * @access  Private (requires ProjectMember)
