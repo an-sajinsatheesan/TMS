@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '../components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, UserPlus, Settings, Crown, Trash2, Edit2, Plus, X } from 'lucide-react';
+import { Users, UserPlus, Settings, Crown, Trash2, Edit2, Plus, X, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { teamsService } from '../services/api/teams.service';
 import { toast } from 'sonner';
 
@@ -16,14 +18,16 @@ const Teams = () => {
   const [teams, setTeams] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
+  const [availableMembers, setAvailableMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addMemberDialogOpen, setAddMemberDialogOpen] = useState(false);
   const [newTeam, setNewTeam] = useState({ name: '', description: '', color: '#3b82f6' });
   const [editTeam, setEditTeam] = useState({ name: '', description: '', color: '' });
-  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [selectedMemberId, setSelectedMemberId] = useState('');
   const [newMemberRole, setNewMemberRole] = useState('MEMBER');
+  const [memberSearchOpen, setMemberSearchOpen] = useState(false);
 
   const colorOptions = [
     { value: '#3b82f6', label: 'Blue' },
@@ -43,6 +47,12 @@ const Teams = () => {
       fetchTeamMembers(selectedTeam.id);
     }
   }, [selectedTeam]);
+
+  useEffect(() => {
+    if (addMemberDialogOpen && selectedTeam) {
+      fetchAvailableMembers(selectedTeam.id);
+    }
+  }, [addMemberDialogOpen, selectedTeam]);
 
   const fetchTeams = async () => {
     try {
@@ -64,6 +74,16 @@ const Teams = () => {
     } catch (error) {
       console.error('Failed to fetch team members:', error);
       toast.error('Failed to load team members');
+    }
+  };
+
+  const fetchAvailableMembers = async (teamId) => {
+    try {
+      const response = await teamsService.getAvailableMembers(teamId);
+      setAvailableMembers(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch available members:', error);
+      toast.error('Failed to load available members');
     }
   };
 
@@ -127,25 +147,21 @@ const Teams = () => {
 
   const handleAddMember = async (e) => {
     e.preventDefault();
-    if (!newMemberEmail.trim()) {
-      toast.error('Email is required');
+    if (!selectedMemberId) {
+      toast.error('Please select a member');
       return;
     }
 
     try {
-      // Note: This requires the userId, so you might need to search for the user first
-      // For now, this is a placeholder - you may need to implement user search
-      toast.error('Please implement user search functionality first');
-
-      // await teamsService.addMember(selectedTeam.id, {
-      //   userId: foundUserId,
-      //   role: newMemberRole,
-      // });
-      // toast.success('Member added successfully');
-      // setAddMemberDialogOpen(false);
-      // setNewMemberEmail('');
-      // setNewMemberRole('MEMBER');
-      // fetchTeamMembers(selectedTeam.id);
+      await teamsService.addMember(selectedTeam.id, {
+        userId: selectedMemberId,
+        role: newMemberRole,
+      });
+      toast.success('Member added successfully');
+      setAddMemberDialogOpen(false);
+      setSelectedMemberId('');
+      setNewMemberRole('MEMBER');
+      fetchTeamMembers(selectedTeam.id);
     } catch (error) {
       console.error('Failed to add member:', error);
       toast.error(error.response?.data?.message || 'Failed to add member');
@@ -481,25 +497,75 @@ const Teams = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Add Member Dialog (Placeholder) */}
+        {/* Add Member Dialog */}
         <Dialog open={addMemberDialogOpen} onOpenChange={setAddMemberDialogOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Team Member</DialogTitle>
               <DialogDescription>
-                Note: Full user search functionality needs to be implemented
+                Add an existing workspace member to this team. To invite new members to the workspace, go to the Members page.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAddMember} className="space-y-4">
               <div>
-                <label className="text-sm font-medium">User Email *</label>
-                <Input
-                  type="email"
-                  value={newMemberEmail}
-                  onChange={(e) => setNewMemberEmail(e.target.value)}
-                  placeholder="user@example.com"
-                  required
-                />
+                <label className="text-sm font-medium">Select Member *</label>
+                <Popover open={memberSearchOpen} onOpenChange={setMemberSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={memberSearchOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedMemberId
+                        ? availableMembers.find((m) => m.id === selectedMemberId)?.fullName ||
+                          availableMembers.find((m) => m.id === selectedMemberId)?.email
+                        : 'Select member...'}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search workspace members..." />
+                      <CommandEmpty>
+                        {availableMembers.length === 0
+                          ? 'All workspace members are already in this team'
+                          : 'No member found'}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        <CommandList>
+                          {availableMembers.map((member) => (
+                            <CommandItem
+                              key={member.id}
+                              value={member.fullName || member.email}
+                              onSelect={() => {
+                                setSelectedMemberId(member.id);
+                                setMemberSearchOpen(false);
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={member.avatarUrl} />
+                                  <AvatarFallback>
+                                    {member.fullName?.charAt(0) || member.email?.charAt(0) || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-medium">
+                                    {member.fullName || member.email}
+                                  </span>
+                                  {member.fullName && (
+                                    <span className="text-xs text-muted-foreground">{member.email}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandList>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <label className="text-sm font-medium">Role</label>
@@ -508,7 +574,12 @@ const Teams = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="ADMIN">
+                      <div className="flex items-center gap-2">
+                        <Crown className="h-3 w-3" />
+                        Admin
+                      </div>
+                    </SelectItem>
                     <SelectItem value="MEMBER">Member</SelectItem>
                   </SelectContent>
                 </Select>
@@ -517,7 +588,9 @@ const Teams = () => {
                 <Button type="button" variant="outline" onClick={() => setAddMemberDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Add Member</Button>
+                <Button type="submit" disabled={!selectedMemberId}>
+                  Add Member
+                </Button>
               </div>
             </form>
           </DialogContent>

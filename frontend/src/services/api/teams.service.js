@@ -80,6 +80,19 @@ export const teamsService = {
   },
 
   /**
+   * Get available members (workspace members not in team)
+   */
+  getAvailableMembers: async (teamId) => {
+    try {
+      const response = await axiosInstance.get(`/teams/${teamId}/available-members`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching available members:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Add team member
    */
   addMember: async (teamId, memberData) => {

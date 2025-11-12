@@ -33,6 +33,7 @@ import Dashboard from './pages/Dashboard';
 import ProjectBoard from './pages/ProjectBoard';
 import Projects from './pages/Projects';
 import Favorites from './pages/Favorites';
+import Members from './pages/Members';
 import Teams from './pages/Teams';
 import Analytics from './pages/Analytics';
 import Notifications from './pages/Notifications';
@@ -162,6 +163,16 @@ function App() {
                             element={
                                 <ProtectedRoute>
                                     <Favorites />
+                                </ProtectedRoute>
+                            }
+                        />
+
+                        {/* Protected Members Routes */}
+                        <Route
+                            path="/members"
+                            element={
+                                <ProtectedRoute>
+                                    <Members />
                                 </ProtectedRoute>
                             }
                         />
