@@ -266,8 +266,12 @@ const Members = () => {
                         ) : member.projects && member.projects.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {member.projects.slice(0, 3).map((project) => (
-                              <Badge key={project.id} variant="secondary" className="text-xs">
-                                {project.icon && <span className="mr-1">{project.icon}</span>}
+                              <Badge
+                                key={project.id}
+                                variant="secondary"
+                                className="text-xs"
+                                style={project.color ? { borderLeft: `3px solid ${project.color}` } : {}}
+                              >
                                 {project.name}
                               </Badge>
                             ))}

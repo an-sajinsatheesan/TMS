@@ -150,7 +150,7 @@ class TeamController {
     const tenantId = req.user.tenantId;
 
     // Check if user is team admin
-    const membership = await prisma.teamMember.findFirst({
+    const membership = await prisma.team_members.findFirst({
       where: {
         teamId,
         userId,
@@ -196,7 +196,7 @@ class TeamController {
     const tenantId = req.user.tenantId;
 
     // Check if user is team admin
-    const membership = await prisma.teamMember.findFirst({
+    const membership = await prisma.team_members.findFirst({
       where: {
         teamId,
         userId,
@@ -237,7 +237,7 @@ class TeamController {
     }
 
     // Get current team member IDs
-    const teamMembers = await prisma.teamMember.findMany({
+    const teamMembers = await prisma.team_members.findMany({
       where: { teamId },
       select: { userId: true },
     });
@@ -247,10 +247,14 @@ class TeamController {
     // Build where clause for search
     const whereClause = {
       tenantId,
-      userId: {
-        notIn: teamMemberIds.length > 0 ? teamMemberIds : undefined,
-      },
     };
+
+    // Only add notIn filter if there are team members
+    if (teamMemberIds.length > 0) {
+      whereClause.userId = {
+        notIn: teamMemberIds,
+      };
+    }
 
     // Get all tenant users not in team
     const availableUsers = await prisma.tenant_users.findMany({
@@ -304,7 +308,7 @@ class TeamController {
       throw ApiError.notFound('Team not found');
     }
 
-    const members = await prisma.teamMember.findMany({
+    const members = await prisma.team_members.findMany({
       where: { teamId },
     });
 
@@ -377,7 +381,7 @@ class TeamController {
     }
 
     // Check if already a member
-    const existing = await prisma.teamMember.findFirst({
+    const existing = await prisma.team_members.findFirst({
       where: { teamId, userId: memberUserId },
     });
 
@@ -385,7 +389,7 @@ class TeamController {
       throw ApiError.badRequest('User is already a team member');
     }
 
-    const member = await prisma.teamMember.create({
+    const member = await prisma.team_members.create({
       data: {
         id: uuidv4(),
         teamId,
@@ -438,11 +442,11 @@ class TeamController {
 
     // Ensure at least one admin remains
     if (role !== 'ADMIN') {
-      const adminCount = await prisma.teamMember.count({
+      const adminCount = await prisma.team_members.count({
         where: { teamId, role: 'ADMIN' },
       });
 
-      const targetMember = await prisma.teamMember.findUnique({
+      const targetMember = await prisma.team_members.findUnique({
         where: { id: memberId },
       });
 
@@ -451,7 +455,7 @@ class TeamController {
       }
     }
 
-    const member = await prisma.teamMember.update({
+    const member = await prisma.team_members.update({
       where: { id: memberId },
       data: { role },
     });
@@ -478,7 +482,7 @@ class TeamController {
     }
 
     // Check if member exists
-    const member = await prisma.teamMember.findUnique({
+    const member = await prisma.team_members.findUnique({
       where: { id: memberId },
     });
 
@@ -488,7 +492,7 @@ class TeamController {
 
     // Prevent removing last admin
     if (member.role === 'ADMIN') {
-      const adminCount = await prisma.teamMember.count({
+      const adminCount = await prisma.team_members.count({
         where: { teamId, role: 'ADMIN' },
       });
 
@@ -497,7 +501,7 @@ class TeamController {
       }
     }
 
-    await prisma.teamMember.delete({
+    await prisma.team_members.delete({
       where: { id: memberId },
     });
 
