@@ -32,6 +32,12 @@ class ProjectMemberController {
       throw ApiError.notFound('Project not found');
     }
 
+    console.log('\n========== PROJECT MEMBERS DEBUG ==========');
+    console.log(`Project ID: ${projectId}`);
+    console.log(`Tenant ID: ${project.tenantId}`);
+    console.log(`Requesting User: ${req.user.id} (${req.user.email})`);
+    console.log('===========================================\n');
+
     // Get project-specific members
     const projectMembers = await prisma.project_members.findMany({
       where: {
@@ -54,6 +60,11 @@ class ProjectMemberController {
       },
     });
 
+    console.log(`📊 Found ${projectMembers.length} project-specific members:`);
+    projectMembers.forEach(m => {
+      console.log(`   ✓ ${m.user.email} (${m.user.fullName || 'N/A'}) - Role: ${m.role}`);
+    });
+
     // Get tenant-level members (they have access to all projects)
     const tenantMembers = await prisma.tenant_users.findMany({
       where: {
@@ -74,6 +85,11 @@ class ProjectMemberController {
           },
         },
       },
+    });
+
+    console.log(`\n📊 Found ${tenantMembers.length} tenant-level members:`);
+    tenantMembers.forEach(m => {
+      console.log(`   ✓ ${m.users.email} (${m.users.fullName || 'N/A'}) - Role: ${m.role}`);
     });
 
     // Format members with metadata
@@ -123,6 +139,11 @@ class ProjectMemberController {
       },
     });
 
+    console.log(`\n📊 Found ${pendingInvitations.length} pending invitations:`);
+    pendingInvitations.forEach(inv => {
+      console.log(`   📧 ${inv.email} - Role: ${inv.role}`);
+    });
+
     // Format pending invitations to match member structure
     const formattedInvitations = pendingInvitations.map((inv) => ({
       id: inv.id,
@@ -142,12 +163,30 @@ class ProjectMemberController {
       invitedBy: inv.inviter,
     }));
 
-    // Combine all members
+    // Combine all members (remove duplicates based on userId)
+    // Project members have priority over tenant members
+    const allMembersMap = new Map();
+
+    // Add project members first (they have priority)
+    formattedProjectMembers.forEach(m => {
+      allMembersMap.set(m.userId, m);
+    });
+
+    // Add tenant members only if not already in project members
+    formattedTenantMembers.forEach(m => {
+      if (!allMembersMap.has(m.userId)) {
+        allMembersMap.set(m.userId, m);
+      }
+    });
+
+    // Convert map back to array and add pending invitations
     const allMembers = [
-      ...formattedProjectMembers,
-      ...formattedTenantMembers,
+      ...Array.from(allMembersMap.values()),
       ...formattedInvitations,
     ];
+
+    console.log(`\n📋 Total unique members to return: ${allMembers.length}`);
+    console.log('===========================================\n');
 
     ApiResponse.success(
       allMembers,
