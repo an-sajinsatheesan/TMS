@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Bell,
   Users,
+  UserCog,
   BarChart3,
   FolderKanban,
   Star,
@@ -44,6 +45,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, onAddProject }) => {
   const mainNavItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Bell, label: 'Notifications', path: '/notifications', badge: 3 },
+    { icon: UserCog, label: 'Members', path: '/members' },
     { icon: Users, label: 'Teams', path: '/teams' },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   ];

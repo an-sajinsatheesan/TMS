@@ -97,7 +97,7 @@ class TenantController {
 
   /**
    * @route   GET /api/v1/tenants/:tenantId/members
-   * @desc    Get all members of a tenant
+   * @desc    Get all members of a tenant with their project access
    * @access  Private (Tenant Member)
    */
   static getMembers = asyncHandler(async (req, res) => {
@@ -108,12 +108,28 @@ class TenantController {
         tenantId: tenantId,
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
             fullName: true,
             avatarUrl: true,
+            project_members: {
+              where: {
+                project: {
+                  tenantId: tenantId, // Only projects from this tenant
+                },
+              },
+              include: {
+                project: {
+                  select: {
+                    id: true,
+                    name: true,
+                    icon: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -123,14 +139,20 @@ class TenantController {
       ],
     });
 
-    // Map to consistent format
+    // Map to consistent format with project access
     const formattedMembers = members.map(member => ({
       id: member.id,
       userId: member.userId,
       role: member.role,
       joinedAt: member.joinedAt,
       isPending: member.status === 'PENDING',
-      user: member.user,
+      user: member.users,
+      projects: member.users.project_members.map(pm => ({
+        id: pm.project.id,
+        name: pm.project.name,
+        icon: pm.project.icon,
+        role: pm.role,
+      })),
     }));
 
     ApiResponse.success({ members: formattedMembers }, 'Tenant members retrieved successfully').send(res);
