@@ -33,7 +33,7 @@ export const WorkspaceProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       const response = await tenantsService.getAll();
-      const workspacesData = response?.data?.data?.tenants || [];
+      const workspacesData = response?.data?.tenants || [];
 
       setWorkspaces(workspacesData);
 
@@ -71,7 +71,7 @@ export const WorkspaceProvider = ({ children }) => {
 
     try {
       const response = await tenantsService.getSettings(currentWorkspace.id);
-      const updatedWorkspace = response?.data?.data?.tenant;
+      const updatedWorkspace = response?.data?.tenant;
       if (updatedWorkspace) {
         setCurrentWorkspace(updatedWorkspace);
         // Update in workspaces list too
