@@ -125,7 +125,7 @@ class TenantController {
                   select: {
                     id: true,
                     name: true,
-                    icon: true,
+                    color: true,
                   },
                 },
               },
@@ -150,7 +150,7 @@ class TenantController {
       projects: member.users.project_members.map(pm => ({
         id: pm.project.id,
         name: pm.project.name,
-        icon: pm.project.icon,
+        color: pm.project.color,
         role: pm.role,
       })),
     }));
